@@ -1,14 +1,13 @@
 # Spring Boot boilerplate (work in progress)
 
-> Boiler plate to help to quick start Spring Boot project on the backend with a fully functional security 
-module, maven and hot reloading
+> Bullet Train allows you to manage feature flags and remote config across multiple projects, environments and organisations.
+
 
 <img width="100%" src="./hero.png"/>
 
 # Bullet Train SDK for Java
 
-The SDK for Android and Java applications for [https://bullet-train.io/](https://www.bullet-train.io/). Bullet Train allows you to manage feature flags and remote config across multiple projects, environments and organisations.
-
+The SDK for Android and Java applications for [https://bullet-train.io/](https://www.bullet-train.io/). 
 ## Getting Started
 
 
