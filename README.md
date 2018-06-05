@@ -1,4 +1,5 @@
 <img width="100%" src="./hero.png"/>
+
 > Bullet Train allows you to manage feature flags and remote config across multiple projects, environments and organisations.
 
 
