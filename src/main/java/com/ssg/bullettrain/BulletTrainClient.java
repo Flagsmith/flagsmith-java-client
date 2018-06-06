@@ -16,20 +16,16 @@ import java.util.concurrent.TimeUnit;
  * A client for Bullet Train API.
  */
 public class BulletTrainClient {
+
+    private BulletTrainConfig defaultConfig;
     private static final String AUTH_HEADER = "X-Environment-Key";
     private static final String ACCEPT_HEADER = "Accept";
     // an api key per environment
     private String apiKey;
 
     private final HttpUrl DEFAULT_BASE_URI = HttpUrl.parse("https://bullet-train-api.dokku1.solidstategroup.com/api/v1/");
-    private final OkHttpClient httpClient;
 
     private BulletTrainClient() {
-        this.httpClient = new OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .writeTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .build();
     }
 
     /**
@@ -50,14 +46,13 @@ public class BulletTrainClient {
     public List<Flag> getFeatureFlags(FeatureUser user) {
         HttpUrl url;
         if (user == null) {
-            url = DEFAULT_BASE_URI.newBuilder("flags/")
+            url = defaultConfig.flagsURI.newBuilder()
                     .addEncodedQueryParameter("page", "1")
                     .build();
         } else {
-            url = DEFAULT_BASE_URI.newBuilder("flags/")
+            url = defaultConfig.flagsURI.newBuilder("")
                     .addEncodedPathSegment(user.getIdentifier())
                     .build();
-
         }
 
         Request request = new Request.Builder()
@@ -66,7 +61,7 @@ public class BulletTrainClient {
                 .url(url)
                 .build();
 
-        Call call = httpClient.newCall(request);
+        Call call = defaultConfig.httpClient.newCall(request);
 
         try (Response response = call.execute()) {
             if (response.isSuccessful()) {
@@ -181,6 +176,7 @@ public class BulletTrainClient {
         }
 
         public BulletTrainClient build() {
+            client.defaultConfig = BulletTrainConfig.newBuilder().build();
             return client;
         }
     }
