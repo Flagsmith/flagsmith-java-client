@@ -1,13 +1,12 @@
+# Bullet Train SDK for Java
+
 <img width="100%" src="./hero.png"/>
 
 > Bullet Train allows you to manage feature flags and remote config across multiple projects, environments and organisations.
 
+The SDK for Android and Java applications for [https://bullet-train.io/](https://bullet-train.io/).
 
-# Bullet Train SDK for Java
-
-The SDK for Android and Java applications for [https://bullet-train.io/](https://www.bullet-train.io/). 
 ## Getting Started
-
 
 ## Quick Setup
 
@@ -26,10 +25,9 @@ mvn clean install -DskipTests
 
 Now you can use below steps to add client to your project.
 
-
 ### Maven
 
-Add following dependencies to your project in `pom.xml
+Add following dependencies to your project in `pom.xml`
 ```xml
 <dependency>
   <groupId>com.ssg</groupId>
@@ -37,11 +35,11 @@ Add following dependencies to your project in `pom.xml
   <version>1.0</version>
 </dependency>
 ```
+
 ### Gradle
 ```groovy
 implementation 'com.ssg:bullet-train-client:1.0'
 ```
-
 
 ## Usage
 **Retrieving feature flags for your project**
@@ -63,46 +61,42 @@ To check if feature flag exist and enabled:
 ```java
 boolean featureEnabled = bulletClient.hasFeatureFlag("my_test_feature");
 if (featureEnabled) {
-   // run the code to execute enabled feature
- }
- else {
-   // run the code if feature switched off
- }
+    // run the code to execute enabled feature
+} else {
+    // run the code if feature switched off
+}
 ```
 
-To get configuration value for feature flag :
+To get configuration value for feature flag:
 
 ```java
 boolean featureEnabled = bulletClient.hasFeatureFlag("my_test_feature");
 if (featureEnabled) {
     String myRemoteConfig = bulletClient.getFeatureFlagValue("my_test_feature");
-   // run the code for to execute enabled feature
- }
- else {
-   // run the code if feature switched off
- }
+    // run the code for to execute enabled feature
+} else {
+    // run the code if feature switched off
+}
 ```
 
 **Identifying users**
 
 Identifying users allows you to target specific users from the [Bullet Train dashboard](https://www.bullet-train.io/).
 
-To check if feature exist for given user context :
+To check if feature exist for given user context:
 
 ```java
-
 User user = new User();
 user.setIdentifier("bullet_train_sample_user");
 
 boolean featureEnabled = bulletClient.hasFeatureFlag("my_test_feature", user);
 if (featureEnabled) {
     String myRemoteConfig = bulletClient.getFeatureFlagValue("my_test_feature", user);
-   // run the code for to execute enabled feature for given user
- }
- else {
-   // run the code if feature switched off
- }
- ```
+    // run the code for to execute enabled feature for given user
+} else {
+    // run the code if feature switched off
+}
+```
 
 ## Contributing
 
