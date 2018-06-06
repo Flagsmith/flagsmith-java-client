@@ -17,12 +17,11 @@ import java.util.concurrent.TimeUnit;
  */
 public class BulletTrainClient {
     private static final String AUTH_HEADER = "X-Environment-Key";
-    private static final String CONTENT_TYPE_HEADER = "Content-Type";
     private static final String ACCEPT_HEADER = "Accept";
     // an api key per environment
     private String apiKey;
 
-    private final HttpUrl DEFAULT_BASE_URI = HttpUrl.parse("https://bullet-train-api-dev.dokku1.solidstategroup.com/api/v1/");
+    private final HttpUrl DEFAULT_BASE_URI = HttpUrl.parse("https://bullet-train-api.dokku1.solidstategroup.com/api/v1/");
     private final OkHttpClient httpClient;
 
     private BulletTrainClient() {
@@ -33,13 +32,12 @@ public class BulletTrainClient {
                 .build();
     }
 
-
     /**
      * Get a list of existing Features for the given environment
      *
      * @return
      */
-    public List<FeatureFlag> getFeatureFlags() {
+    public List<Flag> getFeatureFlags() {
         return getFeatureFlags(null);
     }
 
@@ -49,7 +47,7 @@ public class BulletTrainClient {
      * @param user
      * @return
      */
-    public List<FeatureFlag> getFeatureFlags(User user) {
+    public List<Flag> getFeatureFlags(FeatureUser user) {
         HttpUrl url;
         if (user == null) {
             url = DEFAULT_BASE_URI.newBuilder("flags/")
@@ -73,8 +71,8 @@ public class BulletTrainClient {
         try (Response response = call.execute()) {
             if (response.isSuccessful()) {
                 ObjectMapper mapper = MapperFactory.getMappper();
-                List<FeatureFlag> featureFlags = Arrays.asList(mapper.readValue(response.body().string(),
-                        FeatureFlag[].class));
+                List<Flag> featureFlags = Arrays.asList(mapper.readValue(response.body().string(),
+                        Flag[].class));
 
                 return featureFlags;
             }
@@ -86,15 +84,15 @@ public class BulletTrainClient {
 
 
     /**
-     * Check if FeatureFlag exist and is enabled
+     * Check if Feature exist and is enabled
      *
      * @param featureId an identifier for the feature
      * @return true if feature flag exist and enabled, false otherwise
      */
     public boolean hasFeatureFlag(String featureId) {
-        List<FeatureFlag> featureFlags = getFeatureFlags();
-        for (FeatureFlag flag : featureFlags) {
-            if (flag.getId().equals(featureId) && flag.isEnabled()) {
+        List<Flag> featureFlags = getFeatureFlags();
+        for (Flag flag : featureFlags) {
+            if (flag.getFeature().getName().equals(featureId) && flag.isEnabled()) {
                 return true;
             }
         }
@@ -103,15 +101,15 @@ public class BulletTrainClient {
     }
 
     /**
-     * Check if FeatureFlag exist and is enabled for given user
+     * Check if Flag exist and is enabled for given user
      *
-     * @param featureId an identifier for the feature
+     * @param featureId a unique feature name identifier
      * @return true if feature flag exist and enabled, false otherwise
      */
-    public boolean hasFeatureFlag(String featureId, User user) {
-        List<FeatureFlag> featureFlags = getFeatureFlags(user);
-        for (FeatureFlag flag : featureFlags) {
-            if (flag.getId().equals(featureId) && flag.isEnabled()) {
+    public boolean hasFeatureFlag(String featureId, FeatureUser user) {
+        List<Flag> featureFlags = getFeatureFlags(user);
+        for (Flag flag : featureFlags) {
+            if (flag.getFeature().getName().equals(featureId) && flag.isEnabled()) {
                 return true;
             }
         }
@@ -120,16 +118,16 @@ public class BulletTrainClient {
     }
 
     /**
-     * Get FeatureFlag value for given feature id.
+     * Get Flag value for given feature id.
      *
-     * @param featureId an identifier for the feature
-     * @return a value for the FeatureFlag or null if feature does not exist or not enabled
+     * @param featureId a unique feature name identifier
+     * @return a value for the Feature or null if feature does not exist or not enabled
      */
     public String getFeatureFlagValue(String featureId) {
-        List<FeatureFlag> featureFlags = getFeatureFlags();
-        for (FeatureFlag flag : featureFlags) {
-            if (flag.getId().equals(featureId) && flag.isEnabled()) {
-                return flag.getValue();
+        List<Flag> featureFlags = getFeatureFlags();
+        for (Flag flag : featureFlags) {
+            if (flag.getFeature().getName().equals(featureId) && flag.isEnabled()) {
+                return flag.getStateValue();
             }
         }
 
@@ -137,17 +135,17 @@ public class BulletTrainClient {
     }
 
     /**
-     * Get FeatureFlag value for given feature id and user
+     * Get Feature value for given feature id and user
      *
-     * @param featureId
+     * @param featureId a unique feature name identifier
      * @param user      a user in context
      * @return
      */
-    public String getFeatureFlagValue(String featureId, User user) {
-        List<FeatureFlag> featureFlags = getFeatureFlags(user);
-        for (FeatureFlag flag : featureFlags) {
-            if (flag.getId().equals(featureId) && flag.isEnabled()) {
-                return flag.getValue();
+    public String getFeatureFlagValue(String featureId, FeatureUser user) {
+        List<Flag> featureFlags = getFeatureFlags(user);
+        for (Flag flag : featureFlags) {
+            if (flag.getFeature().getName().equals(featureId) && flag.isEnabled()) {
+                return flag.getStateValue();
             }
         }
 
@@ -165,7 +163,6 @@ public class BulletTrainClient {
 
         private Builder() {
             client = new BulletTrainClient();
-
         }
 
         /**
@@ -184,8 +181,6 @@ public class BulletTrainClient {
         }
 
         public BulletTrainClient build() {
-
-
             return client;
         }
     }
