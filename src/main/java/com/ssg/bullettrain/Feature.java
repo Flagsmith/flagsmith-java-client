@@ -9,30 +9,29 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 
 import java.io.IOException;
+import java.io.Serializable;
 
 /**
- * Json model representation of the FeatureFlag
+ * Representation of the feature flag model model representation of the Feature
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class FeatureFlag {
-    private Long id;
-    private String value;
-    private boolean enabled;
+public class Feature implements Serializable {
+    private String name;
+    private String description;
 
     @JsonIgnore
     public void parse(String data) throws IOException {
         ObjectMapper mapper = MapperFactory.getMappper();
-        FeatureFlag prototype = mapper.readValue(data, FeatureFlag.class);
+        Feature prototype = mapper.readValue(data, Feature.class);
         fromPrototype(prototype);
     }
 
     @JsonIgnore
-    private void fromPrototype(FeatureFlag prototype) throws IOException {
-        setId(prototype.getId());
-        setValue(prototype.getValue());
-        setEnabled(prototype.isEnabled());
+    private void fromPrototype(Feature prototype) throws IOException {
+        setName(prototype.getName());
+        setDescription(prototype.getDescription());
     }
 
     @JsonIgnore
