@@ -1,4 +1,4 @@
-package com.ssg.bullettrain;
+package com.solidstategroup.bullettrain;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

@@ -1,4 +1,4 @@
-package com.ssg.bullettrain;
+package com.solidstategroup.bullettrain;
 
 /**
  * Interface for a basic store to support persistence for Flags

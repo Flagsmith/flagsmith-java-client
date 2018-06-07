@@ -1,4 +1,4 @@
-package com.ssg.bullettrain;
+package com.solidstategroup.bullettrain;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;

@@ -1,4 +1,4 @@
-package com.ssg.bullettrain;
+package com.solidstategroup.bullettrain;
 
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;

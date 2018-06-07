@@ -1,4 +1,4 @@
-package com.ssg.bullettrain;
+package com.solidstategroup.bullettrain;
 
 import org.testng.annotations.Test;
 
