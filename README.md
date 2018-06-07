@@ -30,7 +30,7 @@ Now you can use below steps to add client to your project.
 Add following dependencies to your project in `pom.xml`
 ```xml
 <dependency>
-  <groupId>com.ssg</groupId>
+  <groupId>com.solidstategroup</groupId>
   <artifactId>bullet-train-client</artifactId>
   <version>1.0</version>
 </dependency>
@@ -38,7 +38,7 @@ Add following dependencies to your project in `pom.xml`
 
 ### Gradle
 ```groovy
-implementation 'com.ssg:bullet-train-client:1.0'
+implementation 'com.solidstategroup:bullet-train-client:1.0'
 ```
 
 ## Usage
