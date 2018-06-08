@@ -29,7 +29,7 @@ public class BulletTrainClient {
     /**
      * Get a list of existing Features for the given environment
      *
-     * @return
+     * @return a list of feature flags
      */
     public List<Flag> getFeatureFlags() {
         return getFeatureFlags(null);
@@ -38,8 +38,8 @@ public class BulletTrainClient {
     /**
      * Get a list of existing Features for the given environment and user
      *
-     * @param user
-     * @return
+     * @param user a user in context
+     * @return a list of feature flags
      */
     public List<Flag> getFeatureFlags(FeatureUser user) {
         HttpUrl url;
@@ -97,6 +97,7 @@ public class BulletTrainClient {
      * Check if Flag exist and is enabled for given user
      *
      * @param featureId a unique feature name identifier
+     * @param user      a user in context
      * @return true if feature flag exist and enabled, false otherwise
      */
     public boolean hasFeatureFlag(String featureId, FeatureUser user) {
@@ -132,7 +133,7 @@ public class BulletTrainClient {
      *
      * @param featureId a unique feature name identifier
      * @param user      a user in context
-     * @return
+     * @return a value for the feature flag or null if does not exist
      */
     public String getFeatureFlagValue(String featureId, FeatureUser user) {
         List<Flag> featureFlags = getFeatureFlags(user);
@@ -161,8 +162,8 @@ public class BulletTrainClient {
         /**
          * Set the environment API key
          *
-         * @param apiKey
-         * @return
+         * @param apiKey the api key for environment
+         * @return the Builder
          */
         public Builder setApiKey(String apiKey) {
             if (null == apiKey) {
