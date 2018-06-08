@@ -10,20 +10,7 @@ The SDK for Android and Java applications for [https://bullet-train.io/](https:/
 
 ## Quick Setup
 
-Before adding maven dependency to your local environment please follow these instruction first:
-
-- download source code from github
-```ssh
-git clone git@github.com:SolidStateGroup/bullet-train-java-client.git
-cd bullet-train-java-client
-```
-
-- run mvn command to install jar into your local maven repository
-```ssh
-mvn clean install -DskipTests
-```
-
-Now you can use below steps to add client to your project.
+The client library is available from the Central Maven Repository and can be added to your project by many tools:
 
 ### Maven
 
