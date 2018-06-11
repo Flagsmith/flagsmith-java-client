@@ -21,8 +21,6 @@ public class BulletTrainClient {
     // an api key per environment
     private String apiKey;
 
-    private final HttpUrl DEFAULT_BASE_URI = HttpUrl.parse("https://bullet-train-api.dokku1.solidstategroup.com/api/v1/");
-
     private BulletTrainClient() {
     }
 
