@@ -31,7 +31,7 @@ implementation 'com.solidstategroup:bullet-train-client:1.1'
 ## Usage
 **Retrieving feature flags for your project**
 
-**For full documentation visit [https://bullet-train.io/documentation](https://www.bullet-train.io/documentation)**
+**For full documentation visit [https://docs.bullet-train.io](https://docs.bullet-train.io)**
 
 Sign Up and create account at [https://bullet-train.io/](https://www.bullet-train.io/)
 
