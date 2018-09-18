@@ -118,7 +118,7 @@ public class BulletTrainClient {
     public String getFeatureFlagValue(String featureId) {
         List<Flag> featureFlags = getFeatureFlags();
         for (Flag flag : featureFlags) {
-            if (flag.getFeature().getName().equals(featureId) && flag.isEnabled()) {
+            if (flag.getFeature().getName().equals(featureId)) {
                 return flag.getStateValue();
             }
         }
@@ -136,7 +136,7 @@ public class BulletTrainClient {
     public String getFeatureFlagValue(String featureId, FeatureUser user) {
         List<Flag> featureFlags = getFeatureFlags(user);
         for (Flag flag : featureFlags) {
-            if (flag.getFeature().getName().equals(featureId) && flag.isEnabled()) {
+            if (flag.getFeature().getName().equals(featureId)) {
                 return flag.getStateValue();
             }
         }
