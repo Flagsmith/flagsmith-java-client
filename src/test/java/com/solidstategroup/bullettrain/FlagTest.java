@@ -20,6 +20,7 @@ public class FlagTest {
             "      \"created_date\": \"2018-06-04T12:51:18.646762Z\",\n" +
             "      \"initial_value\": \"10\",\n" +
             "      \"description\": \"test description\",\n" +
+            "      \"type\": \"CONFIG\",\n" +
             "      \"project\": 2\n" +
             "    },\n" +
             "    \"feature_state_value\": 10,\n" +
@@ -37,7 +38,8 @@ public class FlagTest {
         assertNotNull(flag.getStateValue(), "Should have flag value");
         assertTrue(flag.isEnabled(), "Flag should be enabled");
         assertNotNull(flag.getFeature(), "Flag should have feature");
-        assertNotNull(flag.getFeature().getName(), "Feature should have name");
+        assertNotNull(flag.getFeature().getName(), "Feature should have type");
+        assertNotNull(flag.getFeature().getType(), "Feature should have name");
         assertNotNull(flag.getFeature().getDescription(), "Feature should have description");
     }
 }
