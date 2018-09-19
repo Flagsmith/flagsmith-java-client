@@ -12,13 +12,16 @@ import java.io.IOException;
 import java.io.Serializable;
 
 /**
- * Representation of the feature flag model model representation of the Feature
+ * Representation of the feature model of the feature Flag.
+ *
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Feature implements Serializable {
+
     private String name;
+    private String type; // either CONFIG or FLAG
     private String description;
 
     @JsonIgnore
@@ -31,6 +34,7 @@ public class Feature implements Serializable {
     @JsonIgnore
     private void fromPrototype(Feature prototype) throws IOException {
         setName(prototype.getName());
+        setType(prototype.getType());
         setDescription(prototype.getDescription());
     }
 

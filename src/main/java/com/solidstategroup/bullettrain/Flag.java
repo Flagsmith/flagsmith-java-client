@@ -13,7 +13,14 @@ import java.io.IOException;
 import java.io.Serializable;
 
 /**
- * Representation of the feature flag model model representation of the Feature
+ * Representation of the Feature Flag in the system.
+ *
+ * Feature can be either feature flag or remote config.
+ *
+ * Feature flag - is a feature that you can turn on and off
+ * e.g. en endpoint for an API or instant messaging for mobile app
+ *
+ * Remote config - is a feature you can configure per env and holds value, eg font size for image.
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)

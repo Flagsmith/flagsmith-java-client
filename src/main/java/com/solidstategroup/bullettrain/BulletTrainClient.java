@@ -75,7 +75,7 @@ public class BulletTrainClient {
 
 
     /**
-     * Check if Feature exist and is enabled
+     * Check if Feature flag exist and is enabled
      *
      * @param featureId an identifier for the feature
      * @return true if feature flag exist and enabled, false otherwise
@@ -92,7 +92,7 @@ public class BulletTrainClient {
     }
 
     /**
-     * Check if Flag exist and is enabled for given user
+     * Check if Feature flag exist and is enabled for given user
      *
      * @param featureId a unique feature name identifier
      * @param user      a user in context
@@ -110,15 +110,15 @@ public class BulletTrainClient {
     }
 
     /**
-     * Get Flag value for given feature id.
+     * Get Feature value (remote config) for given feature id.
      *
      * @param featureId a unique feature name identifier
-     * @return a value for the Feature or null if feature does not exist or not enabled
+     * @return a value for the Feature or null if feature does not exist
      */
     public String getFeatureFlagValue(String featureId) {
         List<Flag> featureFlags = getFeatureFlags();
         for (Flag flag : featureFlags) {
-            if (flag.getFeature().getName().equals(featureId) && flag.isEnabled()) {
+            if (flag.getFeature().getName().equals(featureId)) {
                 return flag.getStateValue();
             }
         }
@@ -127,16 +127,16 @@ public class BulletTrainClient {
     }
 
     /**
-     * Get Feature value for given feature id and user
+     * Get Feature value (remote config) for given feature id and user
      *
      * @param featureId a unique feature name identifier
      * @param user      a user in context
-     * @return a value for the feature flag or null if does not exist
+     * @return a value for the feature or null if does not exist
      */
     public String getFeatureFlagValue(String featureId, FeatureUser user) {
         List<Flag> featureFlags = getFeatureFlags(user);
         for (Flag flag : featureFlags) {
-            if (flag.getFeature().getName().equals(featureId) && flag.isEnabled()) {
+            if (flag.getFeature().getName().equals(featureId)) {
                 return flag.getStateValue();
             }
         }
