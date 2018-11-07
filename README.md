@@ -19,7 +19,7 @@ Add following dependencies to your project in `pom.xml`
 <dependency>
   <groupId>com.solidstategroup</groupId>
   <artifactId>bullet-train-client</artifactId>
-  <version>1.1</version>
+  <version>1.3</version>
 </dependency>
 ```
 
@@ -57,12 +57,11 @@ if (featureEnabled) {
 To get configuration value for feature flag:
 
 ```java
-boolean featureEnabled = bulletClient.hasFeatureFlag("my_test_feature");
-if (featureEnabled) {
-    String myRemoteConfig = bulletClient.getFeatureFlagValue("my_test_feature");
-    // run the code for to execute enabled feature
+String myRemoteConfig = bulletClient.getFeatureFlagValue("my_test_feature");
+if (myRemoteConfig != null) {    
+    // run the code to use remote config value
 } else {
-    // run the code if feature switched off
+    // run the code without remote config
 }
 ```
 
@@ -75,13 +74,22 @@ To check if feature exist for given user context:
 ```java
 User user = new User();
 user.setIdentifier("bullet_train_sample_user");
-
 boolean featureEnabled = bulletClient.hasFeatureFlag("my_test_feature", user);
 if (featureEnabled) {
-    String myRemoteConfig = bulletClient.getFeatureFlagValue("my_test_feature", user);
-    // run the code for to execute enabled feature for given user
+    // run the code to execute enabled feature for given user
 } else {
-    // run the code if feature switched off
+    // run the code when feature switched off
+}
+```
+
+To get configuration value for feature flag for given user context:
+
+```java
+String myRemoteConfig = bulletClient.getFeatureFlagValue("my_test_feature", user);
+if (myRemoteConfig != null) {    
+    // run the code to use remote config value
+} else {
+    // run the code without remote config
 }
 ```
 
