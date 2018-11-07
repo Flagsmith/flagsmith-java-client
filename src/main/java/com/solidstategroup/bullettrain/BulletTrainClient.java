@@ -145,6 +145,17 @@ public class BulletTrainClient {
     }
 
 
+    /**
+     * Get a list of existing Features and user traits for user identity
+     * @return
+     */
+    public List<?> getFlagsAndTraits(){
+
+        // TODO: implement
+        return null;
+    }
+
+
     public static BulletTrainClient.Builder newBuilder() {
         return new BulletTrainClient.Builder();
     }
