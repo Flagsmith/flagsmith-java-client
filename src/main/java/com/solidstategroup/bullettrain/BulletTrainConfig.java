@@ -18,12 +18,14 @@ public final class BulletTrainConfig {
     private static final HttpUrl DEFAULT_BASE_URI = HttpUrl.parse("https://api.bullet-train.io/api/v1/");
     private final HttpUrl baseURI;
     final HttpUrl flagsURI;
+    final HttpUrl identitiesURI;
 
     final OkHttpClient httpClient;
 
     protected BulletTrainConfig(Builder builder) {
         this.baseURI = builder.baseURI;
         this.flagsURI = builder.flagsURI;
+        this.identitiesURI = builder.identitiesURI;
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(builder.connectTimeoutMillis, TimeUnit.MILLISECONDS)
                 .writeTimeout(builder.writeTimeoutMillis, TimeUnit.MILLISECONDS)
@@ -39,6 +41,7 @@ public final class BulletTrainConfig {
         //private BulletTrainConfig config;
         private HttpUrl baseURI = DEFAULT_BASE_URI;
         private HttpUrl flagsURI = baseURI.newBuilder("flags/").build();
+        private HttpUrl identitiesURI = baseURI.newBuilder("identities/").build();
         private int connectTimeoutMillis = DEFAULT_CONNECT_TIMEOUT_MILLIS;
         private int writeTimeoutMillis = DEFAULT_WRITE_TIMEOUT_MILLIS;
         private int readTimeoutMillis = DEFAULT_READ_TIMEOUT_MILLIS;
