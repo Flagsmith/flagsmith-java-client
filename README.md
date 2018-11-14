@@ -93,6 +93,39 @@ if (myRemoteConfig != null) {
 }
 ```
 
+To get user traits for given user context:
+
+```java
+List<Trait> userTraits = bulletClient.getTraits(user)
+if (userTraits != null && userTraits) {    
+    // run the code to use user traits
+} else {
+    // run the code without user traits
+}
+```
+
+To get user trait for given user context and specific key:
+
+```java
+Trait userTrait = bulletClient.getTrait(user, "cookies_key");
+if (userTrait != null) {    
+    // run the code to use user trait
+} else {
+    // run the code without user trait
+}
+```
+
+Or get user traits for given user context and specific keys:
+
+```java
+ List<Trait> userTraits = bulletClient.getTraits(user, "cookies_key", "other_trait");
+if (userTraits != null) {    
+    // run the code to use user traits
+} else {
+    // run the code without user traits
+}
+```
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](https://gist.github.com/kyle-ssg/c36a03aebe492e45cbd3eefb21cb0486) for details on our code of conduct, and the process for submitting pull requests to us.
