@@ -7,6 +7,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -40,39 +41,33 @@ public class BulletTrainClient {
      * @return a list of feature flags
      */
     public List<Flag> getFeatureFlags(FeatureUser user) {
-        HttpUrl url;
+        HttpUrl.Builder urlBuilder;
         if (user == null) {
-            url = defaultConfig.flagsURI.newBuilder()
-                    .addEncodedQueryParameter("page", "1")
-                    .build();
+            urlBuilder = defaultConfig.flagsURI.newBuilder()
+                    .addEncodedQueryParameter("page", "1");
         } else {
-            url = defaultConfig.flagsURI.newBuilder("")
-                    .addEncodedPathSegment(user.getIdentifier())
-                    .build();
+            urlBuilder = defaultConfig.flagsURI.newBuilder("")
+                    .addEncodedPathSegment(user.getIdentifier());
         }
 
         Request request = new Request.Builder()
                 .header(AUTH_HEADER, apiKey)
                 .addHeader(ACCEPT_HEADER, "application/json")
-                .url(url)
+                .url(urlBuilder.build())
                 .build();
 
         Call call = defaultConfig.httpClient.newCall(request);
-
+        List<Flag> featureFlags = new ArrayList<>();
         try (Response response = call.execute()) {
             if (response.isSuccessful()) {
                 ObjectMapper mapper = MapperFactory.getMappper();
-                List<Flag> featureFlags = Arrays.asList(mapper.readValue(response.body().string(),
+                featureFlags = Arrays.asList(mapper.readValue(response.body().string(),
                         Flag[].class));
-
-                return featureFlags;
             }
         } catch (IOException io) {
-            return null;
         }
-        return null;
+        return featureFlags;
     }
-
 
     /**
      * Check if Feature flag exist and is enabled
@@ -146,13 +141,76 @@ public class BulletTrainClient {
 
 
     /**
+     * Get Feature value (remote config) for given feature id and user
+     *
+     * @param key  a unique user trait key
+     * @param user a user in context
+     * @return a Trait object or null if does not exist
+     */
+    public Trait getTrait(FeatureUser user, String key) {
+        List<Trait> traits = getUserTraits(user);
+        for (Trait trait : traits) {
+            if (trait.getKey().equals(key)) {
+                return trait;
+            }
+        }
+        return null;
+    }
+
+
+    /**
      * Get a list of existing Features and user traits for user identity
+     *
      * @return
      */
-    public List<?> getFlagsAndTraits(){
+    public List<Trait> getTraits(FeatureUser user, String... keys) {
+        List<Trait> traits = getUserTraits(user);
 
-        // TODO: implement
-        return null;
+        // if no keys provided return all the user traits
+        if (keys == null || keys.length == 0) {
+            return traits;
+        }
+
+        // otherwise filter on give user traits keys
+        List<Trait> filteredTraits = new ArrayList<>();
+        for (Trait trait : traits) {
+            if (Arrays.asList(keys).contains(trait.getKey())) {
+                filteredTraits.add(trait);
+            }
+        }
+        return filteredTraits;
+    }
+
+    /**
+     * Get a list of existing Features for the given environment and user
+     *
+     * @param user a user in context
+     * @return a list of feature flags
+     */
+    private List<Trait> getUserTraits(FeatureUser user) {
+        HttpUrl url = defaultConfig.identitiesURI.newBuilder("")
+                .addEncodedPathSegment(user.getIdentifier() + "/")
+                .build();
+
+        Request request = new Request.Builder()
+                .header(AUTH_HEADER, apiKey)
+                .addHeader(ACCEPT_HEADER, "application/json")
+                .url(url)
+                .build();
+
+        Call call = defaultConfig.httpClient.newCall(request);
+
+        List<Trait> traits = new ArrayList<>();
+        try (Response response = call.execute()) {
+            if (response.isSuccessful()) {
+                ObjectMapper mapper = MapperFactory.getMappper();
+                FlagsAndTraits flagsAndTraits = mapper.readValue(response.body().string(), FlagsAndTraits.class);
+
+                traits = flagsAndTraits.getTraits();
+            }
+        } catch (IOException io) {
+        }
+        return traits;
     }
 
 
