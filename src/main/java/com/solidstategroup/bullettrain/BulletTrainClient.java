@@ -141,7 +141,7 @@ public class BulletTrainClient {
 
 
     /**
-     * Get Feature value (remote config) for given feature id and user
+     * Get user Trait for given user identity and trait key.
      *
      * @param key  a unique user trait key
      * @param user a user in context
@@ -157,11 +157,10 @@ public class BulletTrainClient {
         return null;
     }
 
-
     /**
-     * Get a list of existing Features and user traits for user identity
+     * Get a list of user Traits for user identity and trait keys
      *
-     * @return
+     * @return a list of user Trait
      */
     public List<Trait> getTraits(FeatureUser user, String... keys) {
         List<Trait> traits = getUserTraits(user);
@@ -182,10 +181,10 @@ public class BulletTrainClient {
     }
 
     /**
-     * Get a list of existing Features for the given environment and user
+     * Get a list of existing user Traits for the given environment and identity user
      *
      * @param user a user in context
-     * @return a list of feature flags
+     * @return a list of user Traits
      */
     private List<Trait> getUserTraits(FeatureUser user) {
         HttpUrl url = defaultConfig.identitiesURI.newBuilder("")
