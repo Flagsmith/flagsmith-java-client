@@ -3,7 +3,9 @@ package com.solidstategroup.bullettrain;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.Call;
 import okhttp3.HttpUrl;
+import okhttp3.MediaType;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 
 import java.io.IOException;
@@ -210,6 +212,46 @@ public class BulletTrainClient {
         } catch (IOException io) {
         }
         return traits;
+    }
+
+
+    /**
+     * Get user Trait for given user identity and trait key.
+     *
+     * @param toUpdate a user trait to update
+     * @param user     a user in context
+     * @return a Trait object or null if does not exist
+     */
+    public Trait updateTrait(FeatureUser user, Trait toUpdate) {
+        return postUserTraits(user, toUpdate);
+    }
+
+    private Trait postUserTraits(FeatureUser user, Trait toUpdate) {
+        HttpUrl url = defaultConfig.identitiesURI.newBuilder("")
+                .addEncodedPathSegment(user.getIdentifier() + "/traits/" + toUpdate.getKey())
+                .build();
+
+        MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+        RequestBody body = RequestBody.create(JSON, toUpdate.toString());
+
+        Request request = new Request.Builder()
+                .header(AUTH_HEADER, apiKey)
+                .addHeader(ACCEPT_HEADER, "application/json")
+                .post(body)
+                .url(url)
+                .build();
+
+        Call call = defaultConfig.httpClient.newCall(request);
+        try (Response response = call.execute()) {
+            if (response.isSuccessful()) {
+                ObjectMapper mapper = MapperFactory.getMappper();
+                Trait trait = mapper.readValue(response.body().string(), Trait.class);
+
+                return trait;
+            }
+        } catch (IOException io) {
+        }
+        return null;
     }
 
 
