@@ -126,6 +126,19 @@ if (userTraits != null) {
 }
 ```
 
+To update value for user traits for given user context and specific keys:
+
+```java
+ Trait userTrait = bulletClient.getTrait(user, "cookies_key");
+if (userTrait != null) {    
+    // update value for user trait
+    userTrait.setValue("new value");
+    Trait updated = bulletClient.updateTrait(user, userTrait);
+} else {
+    // run the code without user trait
+}
+```
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](https://gist.github.com/kyle-ssg/c36a03aebe492e45cbd3eefb21cb0486) for details on our code of conduct, and the process for submitting pull requests to us.
