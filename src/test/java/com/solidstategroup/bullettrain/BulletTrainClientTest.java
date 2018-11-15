@@ -15,7 +15,7 @@ import static org.testng.Assert.assertTrue;
  */
 public class BulletTrainClientTest {
 
-    private static final String API_KEY = "D3wMA9wbhb5sXURdDjzvbj";
+    private static final String API_KEY = "QjgYur4LQTwe5HpvbvhpzK";
     BulletTrainClient bulletClient;
 
     @BeforeTest
