@@ -1,5 +1,6 @@
 package com.solidstategroup.bullettrain;
 
+import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
@@ -15,14 +16,17 @@ import static org.testng.Assert.assertTrue;
 public class BulletTrainClientTest {
 
     private static final String API_KEY = "D3wMA9wbhb5sXURdDjzvbj";
+    BulletTrainClient bulletClient;
+
+    @BeforeTest
+    public void init() {
+        bulletClient = BulletTrainClient.newBuilder()
+                .setApiKey(API_KEY)
+                .build();
+    }
 
     @Test(groups = "integration")
     public void testClient_When_Get_Features_Then_Success() {
-
-        BulletTrainClient bulletClient = BulletTrainClient.newBuilder()
-                .setApiKey(API_KEY)
-                .build();
-
         List<Flag> featureFlags = bulletClient.getFeatureFlags();
 
         assertNotNull(featureFlags, "Should feature flags back");
@@ -36,11 +40,6 @@ public class BulletTrainClientTest {
     @Ignore(value = "requires specific features enabled and exist per env")
     @Test(groups = "integration")
     public void testClient_When_Has_Feature_Then_Success() {
-
-        BulletTrainClient bulletClient = BulletTrainClient.newBuilder()
-                .setApiKey(API_KEY)
-                .build();
-
         // This will return false
         boolean featureEnabled = bulletClient.hasFeatureFlag("flag_feature");
 
@@ -49,11 +48,6 @@ public class BulletTrainClientTest {
 
     @Test(groups = "integration")
     public void testClient_When_Get_Features_For_User_Then_Success() {
-
-        BulletTrainClient bulletClient = BulletTrainClient.newBuilder()
-                .setApiKey(API_KEY)
-                .build();
-
         // context user
         FeatureUser user = new FeatureUser();
         user.setIdentifier("bullet_train_sample_user");
@@ -71,11 +65,6 @@ public class BulletTrainClientTest {
 
     @Test(groups = "integration")
     public void testClient_When_Get_User_Traits_Then_Success() {
-
-        BulletTrainClient bulletClient = BulletTrainClient.newBuilder()
-                .setApiKey(API_KEY)
-                .build();
-
         // context user
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
@@ -92,11 +81,6 @@ public class BulletTrainClientTest {
 
     @Test(groups = "integration")
     public void testClient_When_Get_User_Traits_For_Keys_Then_Success() {
-
-        BulletTrainClient bulletClient = BulletTrainClient.newBuilder()
-                .setApiKey(API_KEY)
-                .build();
-
         // context user
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
@@ -113,11 +97,6 @@ public class BulletTrainClientTest {
 
     @Test(groups = "integration")
     public void testClient_When_Get_User_Traits_For_Invalid_User_Then_Return_Empty() {
-
-        BulletTrainClient bulletClient = BulletTrainClient.newBuilder()
-                .setApiKey(API_KEY)
-                .build();
-
         // context user
         FeatureUser user = new FeatureUser();
         user.setIdentifier("invalid_users_another_user");
@@ -130,12 +109,6 @@ public class BulletTrainClientTest {
 
     @Test(groups = "integration")
     public void testClient_When_Get_User_Trait_Then_Success() {
-
-        BulletTrainClient bulletClient = BulletTrainClient.newBuilder()
-                .setApiKey(API_KEY)
-                .build();
-
-        // context user
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
 
@@ -143,6 +116,22 @@ public class BulletTrainClientTest {
 
         assertNotNull(userTrait, "Should have user traits back");
         assertNotNull(userTrait.getValue(), "Should have user traits value");
+    }
+
+
+    @Test(groups = "integration")
+    public void testClient_When_Get_User_Trait_Update_Then_Updated() {
+        FeatureUser user = new FeatureUser();
+        user.setIdentifier("another_user");
+
+        Trait userTrait = bulletClient.getTrait(user, "cookies_key");
+        assertNotNull(userTrait, "Should have user traits back");
+        assertNotNull(userTrait.getValue(), "Should have user traits value");
+
+        userTrait.setValue("new value");
+        Trait updated = bulletClient.updateTrait(user, userTrait);
+        assertNotNull(updated, "Should have updated user traits back");
+        assertTrue(updated.getValue().equals("new value"));
     }
 
 }
