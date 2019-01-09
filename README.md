@@ -25,7 +25,7 @@ Add following dependencies to your project in `pom.xml`
 
 ### Gradle
 ```groovy
-implementation 'com.solidstategroup:bullet-train-client:1.1'
+implementation 'com.solidstategroup:bullet-train-client:1.3'
 ```
 
 ## Usage
