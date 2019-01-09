@@ -216,7 +216,7 @@ public class BulletTrainClient {
 
 
     /**
-     * Get user Trait for given user identity and trait key.
+     * Update user Trait for given user and Trait details.
      *
      * @param toUpdate a user trait to update
      * @param user     a user in context
