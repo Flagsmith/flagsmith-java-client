@@ -190,7 +190,7 @@ public class BulletTrainClient {
      */
     private List<Trait> getUserTraits(FeatureUser user) {
         HttpUrl url = defaultConfig.identitiesURI.newBuilder("")
-                .addEncodedPathSegment(user.getIdentifier() + "/")
+                .addEncodedQueryParameter("identifier", user.getIdentifier())
                 .build();
 
         Request request = new Request.Builder()
@@ -227,9 +227,8 @@ public class BulletTrainClient {
     }
 
     private Trait postUserTraits(FeatureUser user, Trait toUpdate) {
-        HttpUrl url = defaultConfig.identitiesURI.newBuilder("")
-                .addEncodedPathSegment(user.getIdentifier() + "/traits/" + toUpdate.getKey())
-                .build();
+        HttpUrl url = defaultConfig.traitsURI;
+        toUpdate.setIdentity(user);
 
         MediaType JSON = MediaType.parse("application/json; charset=utf-8");
         RequestBody body = RequestBody.create(JSON, toUpdate.toString());
