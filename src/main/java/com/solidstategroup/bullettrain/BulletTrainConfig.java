@@ -15,7 +15,7 @@ public final class BulletTrainConfig {
     private static final int DEFAULT_CONNECT_TIMEOUT_MILLIS = 2000;
     private static final int DEFAULT_WRITE_TIMEOUT_MILLIS = 5000;
     private static final int DEFAULT_READ_TIMEOUT_MILLIS = 5000;
-    private static final HttpUrl DEFAULT_BASE_URI = HttpUrl.parse("https://bullet-train-api-dev.dokku1.solidstategroup.com/api/v1/");
+    private static final HttpUrl DEFAULT_BASE_URI = HttpUrl.parse("https://api.bullet-train.io/api/v1/");
     private final HttpUrl baseURI;
     final HttpUrl flagsURI;
     final HttpUrl identitiesURI;
