@@ -19,6 +19,7 @@ import java.io.Serializable;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Trait implements Serializable {
+    private FeatureUser identity;
 
     @JsonProperty("trait_key")
     private String key;
