@@ -215,6 +215,13 @@ public class BulletTrainClient {
     }
 
 
+    public Trait setUserTrait(FeatureUser user, String traitKey, String traitValue) {
+        Trait trait = new Trait(traitKey, traitValue);
+
+        return postUserTraits(user, trait);
+    }
+
+
     /**
      * Update user Trait for given user and Trait details.
      *
@@ -227,12 +234,12 @@ public class BulletTrainClient {
     }
 
     private Trait postUserTraits(FeatureUser user, Trait toUpdate) {
-        HttpUrl url = defaultConfig.identitiesURI.newBuilder("")
-                .addEncodedPathSegment(user.getIdentifier() + "/traits/" + toUpdate.getKey())
-                .build();
+        HttpUrl url = defaultConfig.traitsURI;
+
+        TraitDto dto = new TraitDto(user, toUpdate);
 
         MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-        RequestBody body = RequestBody.create(JSON, toUpdate.toString());
+        RequestBody body = RequestBody.create(JSON, dto.toString());
 
         Request request = new Request.Builder()
                 .header(AUTH_HEADER, apiKey)
@@ -245,6 +252,7 @@ public class BulletTrainClient {
         try (Response response = call.execute()) {
             if (response.isSuccessful()) {
                 ObjectMapper mapper = MapperFactory.getMappper();
+                // TODO: this is throwing an IO exception
                 Trait trait = mapper.readValue(response.body().string(), Trait.class);
 
                 return trait;

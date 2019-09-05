@@ -15,7 +15,7 @@ import static org.testng.Assert.assertTrue;
  */
 public class BulletTrainClientTest {
 
-    private static final String API_KEY = "QjgYur4LQTwe5HpvbvhpzK";
+    private static final String API_KEY = "S28U5Jhyp9Jmy6QX8FQtgS";
     BulletTrainClient bulletClient;
 
     @BeforeTest
@@ -111,6 +111,7 @@ public class BulletTrainClientTest {
     public void testClient_When_Get_User_Trait_Then_Success() {
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
+        bulletClient.setUserTrait(user, "cookies_key", "cookies_value");
 
         Trait userTrait = bulletClient.getTrait(user, "cookies_key");
 
