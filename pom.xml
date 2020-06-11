@@ -31,9 +31,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/SolidStateGroup/bullet-train-java-client.git</connection>
-        <developerConnection>scm:git:ssh://github.com:SolidStateGroup/bullet-train-java-client.git</developerConnection>
-        <url>https://github.com/SolidStateGroup/bullet-train-java-client</url>
+        <connection>scm:git:git://github.com/BulletTrainHQ/bullet-train-java-client.git</connection>
+        <developerConnection>scm:git:ssh://github.com:BulletTrainHQ/bullet-train-java-client.git</developerConnection>
+        <url>https://github.com/BulletTrainHQ/bullet-train-java-client</url>
     </scm>
 
     <properties>
