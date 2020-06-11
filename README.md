@@ -154,7 +154,7 @@ BulletTrainClient bulletClient = BulletTrainClient.newBuilder()
 override full configuration with your own
 ```java
 BulletTrainClient bulletClient  = BulletTrainClient.newBuilder()
-            .setApiKey("HZhvxupxpkcnUZ5atbpYES")
+            .setApiKey("YOUR_ENV_API_KEY")
             .withConfiguration(BulletTrainConfig.newBuilder()
                     .baseURI("http://yoururl.com")
                     .connectTimeout(200)
