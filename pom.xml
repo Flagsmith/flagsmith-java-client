@@ -106,7 +106,7 @@
     </distributionManagement>
 
     <build>
-        <finalName>bullet-train-client-${version}</finalName>
+        <finalName>bullet-train-client-${project.version}</finalName>
         <plugins>
 
             <plugin>
