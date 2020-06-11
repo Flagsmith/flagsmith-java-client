@@ -19,13 +19,13 @@ Add following dependencies to your project in `pom.xml`
 <dependency>
   <groupId>com.solidstategroup</groupId>
   <artifactId>bullet-train-client</artifactId>
-  <version>1.3</version>
+  <version>1.5</version>
 </dependency>
 ```
 
 ### Gradle
 ```groovy
-implementation 'com.solidstategroup:bullet-train-client:1.3'
+implementation 'com.solidstategroup:bullet-train-client:1.5'
 ```
 
 ## Usage
@@ -137,6 +137,32 @@ if (userTrait != null) {
 } else {
     // run the code without user trait
 }
+```
+
+## Override default configuration
+
+By default, client is using default configuration. You can override configuration as follows:
+
+override just API uri with your own one
+```java
+BulletTrainClient bulletClient = BulletTrainClient.newBuilder()
+                .setApiKey("YOUR_ENV_API_KEY")
+                .withApiUrl("http://yoururl.com")
+                .build();
+```
+
+override full configuration with your own
+```java
+BulletTrainClient bulletClient  = BulletTrainClient.newBuilder()
+            .setApiKey("HZhvxupxpkcnUZ5atbpYES")
+            .withConfiguration(BulletTrainConfig.newBuilder()
+                    .baseURI("http://yoururl.com")
+                    .connectTimeout(200)
+                    .writeTimeout(5000)
+                    .readTimeout(5000)
+                    .build())
+            .build();
+
 ```
 
 ## Contributing
