@@ -261,6 +261,7 @@ public class BulletTrainClient {
 
     public static class Builder {
         private BulletTrainClient client;
+        private BulletTrainConfig configuration = BulletTrainConfig.newBuilder().build();
 
         private Builder() {
             client = new BulletTrainClient();
@@ -281,8 +282,36 @@ public class BulletTrainClient {
             }
         }
 
+        /**
+         * Override default BulletTrainConfig for BulletTrain API.
+         *
+         * @param config an BulletTrainConfig to override default one.
+         * @return the Builder
+         */
+        public Builder withConfiguration(BulletTrainConfig config) {
+            if (config != null) {
+                this.configuration = config;
+            }
+            return this;
+        }
+
+        /**
+         * Set the base URL for BulletTrain API, overriding default one.
+         *
+         * @param apiUrl the new base URI for the API.
+         * @return the Builder
+         */
+        public Builder withApiUrl(String apiUrl) {
+            if (apiUrl != null) {
+                this.configuration = BulletTrainConfig.newBuilder()
+                        .baseURI(apiUrl)
+                        .build();
+            }
+            return this;
+        }
+
         public BulletTrainClient build() {
-            client.defaultConfig = BulletTrainConfig.newBuilder().build();
+            client.defaultConfig = this.configuration;
             return client;
         }
     }
