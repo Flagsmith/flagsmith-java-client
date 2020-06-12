@@ -6,7 +6,7 @@
 
     <groupId>com.solidstategroup</groupId>
     <artifactId>bullet-train-client</artifactId>
-    <version>1.4</version>
+    <version>1.5</version>
     <packaging>jar</packaging>
 
     <name>Bullet Train Client</name>
@@ -31,16 +31,16 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/SolidStateGroup/bullet-train-java-client.git</connection>
-        <developerConnection>scm:git:ssh://github.com:SolidStateGroup/bullet-train-java-client.git</developerConnection>
-        <url>https://github.com/SolidStateGroup/bullet-train-java-client</url>
+        <connection>scm:git:git://github.com/BulletTrainHQ/bullet-train-java-client.git</connection>
+        <developerConnection>scm:git:ssh://github.com:BulletTrainHQ/bullet-train-java-client.git</developerConnection>
+        <url>https://github.com/BulletTrainHQ/bullet-train-java-client</url>
     </scm>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.8</java.version>
-        <jacksonVersion>2.9.9</jacksonVersion>
+        <jacksonVersion>2.10.1</jacksonVersion>
         <lombok.version>1.16.20</lombok.version>
     </properties>
 
@@ -106,7 +106,7 @@
     </distributionManagement>
 
     <build>
-        <finalName>bullet-train-client-${version}</finalName>
+        <finalName>bullet-train-client-${project.version}</finalName>
         <plugins>
 
             <plugin>

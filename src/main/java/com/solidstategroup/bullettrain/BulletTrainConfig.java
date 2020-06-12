@@ -25,9 +25,9 @@ public final class BulletTrainConfig {
 
     protected BulletTrainConfig(Builder builder) {
         this.baseURI = builder.baseURI;
-        this.flagsURI = builder.flagsURI;
-        this.identitiesURI = builder.identitiesURI;
-        this.traitsURI = builder.traitsURI;
+        this.flagsURI = this.baseURI.newBuilder("flags/").build();
+        this.identitiesURI = this.baseURI.newBuilder("identities/").build();
+        this.traitsURI = this.baseURI.newBuilder("traits/").build();
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(builder.connectTimeoutMillis, TimeUnit.MILLISECONDS)
                 .writeTimeout(builder.writeTimeoutMillis, TimeUnit.MILLISECONDS)
@@ -42,9 +42,6 @@ public final class BulletTrainConfig {
     public static class Builder {
         //private BulletTrainConfig config;
         private HttpUrl baseURI = DEFAULT_BASE_URI;
-        private HttpUrl flagsURI = baseURI.newBuilder("flags/").build();
-        private HttpUrl identitiesURI = baseURI.newBuilder("identities/").build();
-        private HttpUrl traitsURI = baseURI.newBuilder("traits/").build();
         private int connectTimeoutMillis = DEFAULT_CONNECT_TIMEOUT_MILLIS;
         private int writeTimeoutMillis = DEFAULT_WRITE_TIMEOUT_MILLIS;
         private int readTimeoutMillis = DEFAULT_READ_TIMEOUT_MILLIS;
