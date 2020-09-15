@@ -19,7 +19,7 @@ Add following dependencies to your project in `pom.xml`
 <dependency>
   <groupId>com.solidstategroup</groupId>
   <artifactId>bullet-train-client</artifactId>
-  <version>1.5</version>
+  <version>1.5.1</version>
 </dependency>
 ```
 
