@@ -238,7 +238,7 @@ public class BulletTrainClient {
      * @param traits a list of Trait object to be created or updated
      * @return a list of added Trait objects
      */
-    public List<Trait> addTraitsForIdentity(FeatureUser user, List<Trait> traits) {
+    public List<Trait> identifyUserWithTraits(FeatureUser user, List<Trait> traits) {
         // we are using identities endpoint to create bulk user Trait
         HttpUrl url = defaultConfig.identitiesURI;
 
@@ -246,15 +246,11 @@ public class BulletTrainClient {
             throw new IllegalArgumentException("Missing user Identifier");
         }
 
-        // in case we need to delete all the existing Traits
-        // we need to post empty list
-        if (traits == null) {
-            traits = new ArrayList<>();
-        }
-
         IdentityTraits identityTraits = new IdentityTraits();
         identityTraits.setIdentifier(user.getIdentifier());
-        identityTraits.setTraits(traits);
+        if (traits != null) {
+            identityTraits.setTraits(traits);
+        }
 
         MediaType JSON = MediaType.parse("application/json; charset=utf-8");
         RequestBody body = RequestBody.create(JSON, identityTraits.toString());
