@@ -143,7 +143,7 @@ public class BulletTrainClientTest {
         trait1.setValue("some value1");
 
         // When
-        List<Trait> traits = bulletClient.addTraitsForIdentity(null,  Arrays.asList(trait1));
+        List<Trait> traits = bulletClient.identifyUserWithTraits(null,  Arrays.asList(trait1));
 
         // Then
         // nothing return and exception thrown
@@ -165,7 +165,7 @@ public class BulletTrainClientTest {
         trait2.setValue("some value2");
 
         // When
-        List<Trait> traits = bulletClient.addTraitsForIdentity(user,  Arrays.asList(trait1, trait2));
+        List<Trait> traits = bulletClient.identifyUserWithTraits(user,  Arrays.asList(trait1, trait2));
 
         // Then
         assertTrue(traits.size() == 2, "Should have 2 traits returned");
@@ -175,32 +175,6 @@ public class BulletTrainClientTest {
 
         assertTrue(trait2.getKey().equals(traits.get(1).getKey()));
         assertTrue(trait2.getValue().equals(traits.get(1).getValue()));
-    }
-
-    @Test(groups = "integration")
-    public void testClient_When_Remove_Traits_For_Identity_Then_Success() {
-        // Given identity and user traits
-        FeatureUser user = new FeatureUser();
-        user.setIdentifier("another_user");
-
-        Trait trait1 = new Trait();
-        trait1.setKey("trait_1");
-        trait1.setValue("some value1");
-
-        Trait trait2 = new Trait();
-        trait2.setKey("trait_2");
-        trait2.setValue("some value2");
-
-        // Create Traits
-        List<Trait> traits = bulletClient.addTraitsForIdentity(user,  Arrays.asList(trait1, trait2));
-        assertTrue(traits.size() == 2, "Should have 2 traits returned");
-
-        // When
-        // update with null or empty should delete all traits
-        List<Trait> overrideTraits = bulletClient.addTraitsForIdentity(user,  null);
-
-        // Then
-        assertTrue(overrideTraits.size() == 0, "Should have returned no traits");
     }
 
 }
