@@ -79,13 +79,7 @@ public class BulletTrainClient {
      */
     public boolean hasFeatureFlag(String featureId) {
         List<Flag> featureFlags = getFeatureFlags();
-        for (Flag flag : featureFlags) {
-            if (flag.getFeature().getName().equals(featureId) && flag.isEnabled()) {
-                return true;
-            }
-        }
-
-        return false;
+        return hasFeatureFlagByName(featureId, featureFlags);
     }
 
     /**
@@ -97,12 +91,36 @@ public class BulletTrainClient {
      */
     public boolean hasFeatureFlag(String featureId, FeatureUser user) {
         List<Flag> featureFlags = getFeatureFlags(user);
+        return hasFeatureFlagByName(featureId, featureFlags);
+    }
+
+    /**
+     * Check if Feature flag exist and is enabled in a FlagsAndTraits
+     *
+     * @param featureId a unique feature name identifier
+     * @param flagsAndTraits flags and traits object
+     * @return true if feature flag exist and enabled, false otherwise
+     */
+    public static boolean hasFeatureFlag(String featureId, FlagsAndTraits flagsAndTraits) {
+        if (flagsAndTraits == null) {
+            return false;
+        }
+        return hasFeatureFlagByName(featureId, flagsAndTraits.getFlags());
+    }
+
+    /**
+     * Check if Feature flag exist and is enabled in a list of flags
+     *
+     * @param featureId a unique feature name identifier
+     * @param featureFlags a list of flags
+     * @return true if feature flag exist and enabled, false otherwise
+     */
+    private static boolean hasFeatureFlagByName(String featureId, List<Flag> featureFlags) {
         for (Flag flag : featureFlags) {
             if (flag.getFeature().getName().equals(featureId) && flag.isEnabled()) {
                 return true;
             }
         }
-
         return false;
     }
 
@@ -114,13 +132,7 @@ public class BulletTrainClient {
      */
     public String getFeatureFlagValue(String featureId) {
         List<Flag> featureFlags = getFeatureFlags();
-        for (Flag flag : featureFlags) {
-            if (flag.getFeature().getName().equals(featureId)) {
-                return flag.getStateValue();
-            }
-        }
-
-        return null;
+        return getFeatureFlagValueByName(featureId, featureFlags);
     }
 
     /**
@@ -132,6 +144,31 @@ public class BulletTrainClient {
      */
     public String getFeatureFlagValue(String featureId, FeatureUser user) {
         List<Flag> featureFlags = getFeatureFlags(user);
+        return getFeatureFlagValueByName(featureId, featureFlags);
+    }
+
+    /**
+     * Get Feature value (remote config) for given feature id and user
+     *
+     * @param featureId a unique feature name identifier
+     * @param flagsAndTraits flags and traits object
+     * @return a value for the feature or null if does not exist
+     */
+    public static String getFeatureFlagValue(String featureId, FlagsAndTraits flagsAndTraits) {
+        if (flagsAndTraits == null) {
+            return null;
+        }
+        return getFeatureFlagValueByName(featureId, flagsAndTraits.getFlags());
+    }
+
+    /**
+     * Get Feature value (remote config) for given feature id from a provided flag list.
+     *
+     * @param featureId a unique feature name identifier
+     * @param featureFlags list of feature flags
+     * @return a value for the Feature or null if feature does not exist
+     */
+    private static String getFeatureFlagValueByName(String featureId, List<Flag> featureFlags) {
         for (Flag flag : featureFlags) {
             if (flag.getFeature().getName().equals(featureId)) {
                 return flag.getStateValue();
@@ -140,7 +177,6 @@ public class BulletTrainClient {
 
         return null;
     }
-
 
     /**
      * Get user Trait for given user identity and trait key.
@@ -151,6 +187,31 @@ public class BulletTrainClient {
      */
     public Trait getTrait(FeatureUser user, String key) {
         List<Trait> traits = getUserTraits(user);
+        return getTraitByKey(key, traits);
+    }
+
+    /**
+     * Get user Trait from a given FlagsAndTraits and trait key.
+     *
+     * @param key  a unique user trait key
+     * @param flagsAndTraits flags and traits object
+     * @return a Trait object or null if does not exist
+     */
+    public static Trait getTrait(FlagsAndTraits flagsAndTraits, String key) {
+        if (flagsAndTraits == null) {
+            return null;
+        }
+        return getTraitByKey(key, flagsAndTraits.getTraits());
+    }
+
+    /**
+     * Get user Trait from a given list of traits and trait key.
+     *
+     * @param key  a unique user trait key
+     * @param traits list of traits
+     * @return a Trait object or null if does not exist
+     */
+    private static Trait getTraitByKey(String key, List<Trait> traits) {
         for (Trait trait : traits) {
             if (trait.getKey().equals(key)) {
                 return trait;
@@ -166,7 +227,27 @@ public class BulletTrainClient {
      */
     public List<Trait> getTraits(FeatureUser user, String... keys) {
         List<Trait> traits = getUserTraits(user);
+        return getTraitsByKeys(traits, keys);
+    }
 
+    /**
+     * Get a list of user Traits for user identity and trait keys
+     *
+     * @return a list of user Trait
+     */
+    public static List<Trait> getTraits(FlagsAndTraits flagsAndTraits, String... keys) {
+        if (flagsAndTraits == null) {
+            return null;
+        }
+        return getTraitsByKeys(flagsAndTraits.getTraits(), keys);
+    }
+
+    /**
+     * Get a list of user Traits from trait list and trait keys
+     *
+     * @return a list of user Trait
+     */
+    private static List<Trait> getTraitsByKeys(List<Trait> traits, String[] keys) {
         // if no keys provided return all the user traits
         if (keys == null || keys.length == 0) {
             return traits;
@@ -189,6 +270,16 @@ public class BulletTrainClient {
      * @return a list of user Traits
      */
     private List<Trait> getUserTraits(FeatureUser user) {
+        return getUserFlagsAndTraits(user).getTraits();
+    }
+
+    /**
+     * Get a list of existing user Traits and Flags for the given environment and identity user
+     *
+     * @param user a user in context
+     * @return a list of user Traits and Flags
+     */
+    public FlagsAndTraits getUserFlagsAndTraits(FeatureUser user) {
         HttpUrl url = defaultConfig.identitiesURI.newBuilder("")
                 .addEncodedQueryParameter("identifier", user.getIdentifier())
                 .build();
@@ -201,19 +292,16 @@ public class BulletTrainClient {
 
         Call call = defaultConfig.httpClient.newCall(request);
 
-        List<Trait> traits = new ArrayList<>();
+        FlagsAndTraits flagsAndTraits = new FlagsAndTraits();
         try (Response response = call.execute()) {
             if (response.isSuccessful()) {
                 ObjectMapper mapper = MapperFactory.getMappper();
-                FlagsAndTraits flagsAndTraits = mapper.readValue(response.body().string(), FlagsAndTraits.class);
-
-                traits = flagsAndTraits.getTraits();
+                flagsAndTraits = mapper.readValue(response.body().string(), FlagsAndTraits.class);
             }
         } catch (IOException io) {
         }
-        return traits;
+        return flagsAndTraits;
     }
-
 
     /**
      * Update user Trait for given user and Trait details.
