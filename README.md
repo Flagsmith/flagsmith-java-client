@@ -19,13 +19,13 @@ Add following dependencies to your project in `pom.xml`
 <dependency>
   <groupId>com.solidstategroup</groupId>
   <artifactId>bullet-train-client</artifactId>
-  <version>1.5</version>
+  <version>1.6</version>
 </dependency>
 ```
 
 ### Gradle
 ```groovy
-implementation 'com.solidstategroup:bullet-train-client:1.5'
+implementation 'com.solidstategroup:bullet-train-client:1.6'
 ```
 
 ## Usage
@@ -137,6 +137,22 @@ if (userTrait != null) {
 } else {
     // run the code that doesn't depend on the user trait
 }
+```
+
+**Flags and Traits**
+
+Or get flags and traits for a user in a single call:
+
+```Java
+FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+// get traits
+List<Trait> traits = bulletClient.getTraits(userFlagsAndTraits, "cookies_key");
+// or get a flag value
+String featureFlagValue = bulletClient.getFeatureFlagValue("font_size", userFlagsAndTraits);
+// or get flag enabled
+boolean enabled = bulletClient.hasFeatureFlag("hero", userFlagsAndTraits);
+
+// see above examples on how to evaluate flags and traits
 ```
 
 ## Override default configuration
