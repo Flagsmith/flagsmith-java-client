@@ -6,7 +6,7 @@
 
     <groupId>com.flagsmith</groupId>
     <artifactId>flagsmith-java-client</artifactId>
-    <version>1.6</version>
+    <version>2.0</version>
     <packaging>jar</packaging>
 
     <name>Flagsmith Java Client</name>
@@ -24,8 +24,8 @@
     <developers>
         <developer>
             <name>Pavlo Maksymchuk</name>
-            <email>pavlo@solidstategroup.com</email>
-            <organization>Solid State Group</organization>
+            <email>support@flagsmith.com</email>
+            <organization>Flagsmith</organization>
             <organizationUrl>https://www.flagsmith.com/</organizationUrl>
         </developer>
     </developers>
