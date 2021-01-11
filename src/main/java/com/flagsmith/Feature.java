@@ -1,10 +1,9 @@
-package com.solidstategroup.bullettrain;
+package com.flagsmith;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
@@ -13,30 +12,30 @@ import java.io.IOException;
 import java.io.Serializable;
 
 /**
- * Representation of the user trait model.
+ * Representation of the feature model of the feature Flag.
+ *
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Trait implements Serializable {
-    private FeatureUser identity;
+public class Feature implements Serializable {
 
-    @JsonProperty("trait_key")
-    private String key;
-    @JsonProperty("trait_value")
-    private String value;
+    private String name;
+    private String type; // either CONFIG or FLAG
+    private String description;
 
     @JsonIgnore
     public void parse(String data) throws IOException {
         ObjectMapper mapper = MapperFactory.getMappper();
-        Trait prototype = mapper.readValue(data, Trait.class);
+        Feature prototype = mapper.readValue(data, Feature.class);
         fromPrototype(prototype);
     }
 
     @JsonIgnore
-    private void fromPrototype(Trait prototype) throws IOException {
-        setKey(prototype.getKey());
-        setValue(prototype.getValue());
+    private void fromPrototype(Feature prototype) throws IOException {
+        setName(prototype.getName());
+        setType(prototype.getType());
+        setDescription(prototype.getDescription());
     }
 
     @JsonIgnore

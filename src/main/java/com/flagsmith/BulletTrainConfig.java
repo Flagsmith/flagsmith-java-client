@@ -1,4 +1,4 @@
-package com.solidstategroup.bullettrain;
+package com.flagsmith;
 
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;

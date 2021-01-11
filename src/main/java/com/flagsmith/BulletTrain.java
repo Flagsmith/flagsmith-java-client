@@ -1,4 +1,4 @@
-package com.solidstategroup.bullettrain;
+package com.flagsmith;
 
 /**
  * Created by Pavlo Maksymchuk.

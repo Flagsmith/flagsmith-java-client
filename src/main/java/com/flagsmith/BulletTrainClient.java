@@ -1,4 +1,4 @@
-package com.solidstategroup.bullettrain;
+package com.flagsmith;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.Call;

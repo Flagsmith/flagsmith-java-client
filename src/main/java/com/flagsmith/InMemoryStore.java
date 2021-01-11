@@ -1,4 +1,4 @@
-package com.solidstategroup.bullettrain;
+package com.flagsmith;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
