@@ -6,16 +6,16 @@ import okhttp3.OkHttpClient;
 import java.util.concurrent.TimeUnit;
 
 /**
- * A default configuration for the BulletTrain client SDK.
- *
+ * A default configuration for the Flagsmith client SDK.
+ * <p>
  * Created by Pavlo Maksymchuk.
  */
-public final class BulletTrainConfig {
+public final class FlagsmithConfig {
 
     private static final int DEFAULT_CONNECT_TIMEOUT_MILLIS = 2000;
     private static final int DEFAULT_WRITE_TIMEOUT_MILLIS = 5000;
     private static final int DEFAULT_READ_TIMEOUT_MILLIS = 5000;
-    private static final HttpUrl DEFAULT_BASE_URI = HttpUrl.parse("https://api.bullet-train.io/api/v1/");
+    private static final HttpUrl DEFAULT_BASE_URI = HttpUrl.parse("https://api.flagsmith.com/api/v1/");
     private final HttpUrl baseURI;
     final HttpUrl flagsURI;
     final HttpUrl identitiesURI;
@@ -23,7 +23,7 @@ public final class BulletTrainConfig {
 
     final OkHttpClient httpClient;
 
-    protected BulletTrainConfig(Builder builder) {
+    protected FlagsmithConfig(Builder builder) {
         this.baseURI = builder.baseURI;
         this.flagsURI = this.baseURI.newBuilder("flags/").build();
         this.identitiesURI = this.baseURI.newBuilder("identities/").build();
@@ -35,12 +35,11 @@ public final class BulletTrainConfig {
                 .build();
     }
 
-    public static BulletTrainConfig.Builder newBuilder() {
-        return new BulletTrainConfig.Builder();
+    public static FlagsmithConfig.Builder newBuilder() {
+        return new FlagsmithConfig.Builder();
     }
 
     public static class Builder {
-        //private BulletTrainConfig config;
         private HttpUrl baseURI = DEFAULT_BASE_URI;
         private int connectTimeoutMillis = DEFAULT_CONNECT_TIMEOUT_MILLIS;
         private int writeTimeoutMillis = DEFAULT_WRITE_TIMEOUT_MILLIS;
@@ -50,7 +49,7 @@ public final class BulletTrainConfig {
         }
 
         /**
-         * Set the base URL for BulletTrain API, overriding default one.
+         * Set the base URL for Flagsmith API, overriding default one.
          *
          * @param baseURI the new base URI for the API.
          * @return the Builder
@@ -95,8 +94,8 @@ public final class BulletTrainConfig {
             return this;
         }
 
-        public BulletTrainConfig build() {
-            return new BulletTrainConfig(this);
+        public FlagsmithConfig build() {
+            return new FlagsmithConfig(this);
         }
     }
 }
