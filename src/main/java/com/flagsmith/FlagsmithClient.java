@@ -14,9 +14,9 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * A client for Bullet Train API.
+ * A client for Flagsmith API.
  */
-public class BulletTrainClient {
+public class FlagsmithClient {
 
     private BulletTrainConfig defaultConfig;
     private static final String AUTH_HEADER = "X-Environment-Key";
@@ -24,7 +24,7 @@ public class BulletTrainClient {
     // an api key per environment
     private String apiKey;
 
-    private BulletTrainClient() {
+    private FlagsmithClient() {
     }
 
     /**
@@ -342,17 +342,17 @@ public class BulletTrainClient {
     }
 
 
-    public static BulletTrainClient.Builder newBuilder() {
-        return new BulletTrainClient.Builder();
+    public static FlagsmithClient.Builder newBuilder() {
+        return new FlagsmithClient.Builder();
     }
 
 
     public static class Builder {
-        private BulletTrainClient client;
+        private FlagsmithClient client;
         private BulletTrainConfig configuration = BulletTrainConfig.newBuilder().build();
 
         private Builder() {
-            client = new BulletTrainClient();
+            client = new FlagsmithClient();
         }
 
         /**
@@ -398,7 +398,7 @@ public class BulletTrainClient {
             return this;
         }
 
-        public BulletTrainClient build() {
+        public FlagsmithClient build() {
             client.defaultConfig = this.configuration;
             return client;
         }
