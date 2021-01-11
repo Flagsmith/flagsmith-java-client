@@ -7,6 +7,7 @@ import org.testng.annotations.Test;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
 
@@ -105,7 +106,99 @@ public class BulletTrainClientTest {
         List<Trait> userTraits = bulletClient.getTraits(user);
 
         assertNotNull(userTraits, "Should have user traits back");
-        assertTrue(userTraits.size() == 0, "Should have user traits back");
+        assertTrue(userTraits.isEmpty(), "Should have no user traits back");
+    }
+
+    @Test(groups = "integration")
+    public void testClient_When_Get_User_Traits_And_Flags_For_Keys_Then_Success() {
+        // context user
+        FeatureUser user = new FeatureUser();
+        user.setIdentifier("another_user");
+
+        FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+
+        assertNotNull(userFlagsAndTraits, "Should have user traits and flags back");
+        assertTrue(!userFlagsAndTraits.getFlags().isEmpty(), "Should have user flags back");
+        assertTrue(!userFlagsAndTraits.getTraits().isEmpty(), "Should have user traits back");
+
+        for (Trait trait : userFlagsAndTraits.getTraits()) {
+            assertNotNull(trait.getValue(), "Flag should have value for trait");
+        }
+        for (Flag flag : userFlagsAndTraits.getFlags()) {
+            assertNotNull(flag.getFeature(), "Flag should have feature");
+        }
+    }
+
+    @Test(groups = "integration")
+    public void testClient_When_Get_User_Traits_And_Flags_For_Invalid_User_Then_Return_Empty() {
+        // context user
+        FeatureUser user = new FeatureUser();
+        user.setIdentifier("invalid_users_another_user");
+
+        FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+
+        assertNotNull(userFlagsAndTraits, "Should have user traits and flags back, not null");
+        assertTrue(!userFlagsAndTraits.getFlags().isEmpty(), "Should have user flags back");
+        assertTrue(userFlagsAndTraits.getTraits().isEmpty(), "Should have no user traits back");
+
+        for (Flag flag : userFlagsAndTraits.getFlags()) {
+            assertNotNull(flag.getFeature(), "Flag should have feature");
+        }
+    }
+
+    @Test(groups = "integration")
+    public void testClient_When_Get_User_Trait_From_Traits_And_Flags_For_Keys_Then_Success() {
+        // context user
+        FeatureUser user = new FeatureUser();
+        user.setIdentifier("another_user");
+
+        FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+
+        Trait userTrait = bulletClient.getTrait(userFlagsAndTraits, "cookies_key");
+
+        assertNotNull(userTrait, "Should have user traits back");
+        assertNotNull(userTrait.getValue(), "Should have user traits value");
+    }
+
+    @Test(groups = "integration")
+    public void testClient_When_Get_User_Traits_From_Traits_And_Flags_For_Keys_Then_Success() {
+        // context user
+        FeatureUser user = new FeatureUser();
+        user.setIdentifier("another_user");
+
+        FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+
+        List<Trait> traits = bulletClient.getTraits(userFlagsAndTraits, "cookies_key");
+
+        assertNotNull(traits, "Should have user traits back");
+        assertNotNull(traits.size() == 1, "Should have 1 user trait");
+        assertNotNull(traits.get(0).getValue(), "Should have user trait value");
+    }
+
+    @Test(groups = "integration")
+    public void testClient_When_Get_User_FLag_Value_From_Traits_And_Flags_For_Keys_Then_Success() {
+        // context user
+        FeatureUser user = new FeatureUser();
+        user.setIdentifier("another_user");
+
+        FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+
+        String featureFlagValue = bulletClient.getFeatureFlagValue("font_size", userFlagsAndTraits);
+
+        assertEquals("12", featureFlagValue, "Should have feature 'font_size' with value '12'");
+    }
+
+    @Test(groups = "integration")
+    public void testClient_When_Get_User_FLag_Enabled_From_Traits_And_Flags_For_Keys_Then_Success() {
+        // context user
+        FeatureUser user = new FeatureUser();
+        user.setIdentifier("another_user");
+
+        FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+
+        boolean enabled = bulletClient.hasFeatureFlag("hero", userFlagsAndTraits);
+
+        assertTrue(enabled, "Should have feature 'hero' enabled");
     }
 
     @Test(groups = "integration")

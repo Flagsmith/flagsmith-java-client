@@ -19,13 +19,13 @@ Add following dependencies to your project in `pom.xml`
 <dependency>
   <groupId>com.solidstategroup</groupId>
   <artifactId>bullet-train-client</artifactId>
-  <version>1.5.1</version>
+  <version>1.6</version>
 </dependency>
 ```
 
 ### Gradle
 ```groovy
-implementation 'com.solidstategroup:bullet-train-client:1.5'
+implementation 'com.solidstategroup:bullet-train-client:1.6'
 ```
 
 ## Usage
@@ -33,35 +33,35 @@ implementation 'com.solidstategroup:bullet-train-client:1.5'
 
 **For full documentation visit [https://docs.bullet-train.io](https://docs.bullet-train.io)**
 
-Sign Up and create account at [https://bullet-train.io/](https://www.bullet-train.io/)
+Sign Up and create an account at [https://bullet-train.io/](https://www.bullet-train.io/)
 
-In your application initialise BulletTrain client with your API key
+In your application initialise the BulletTrain client with your API key:
 
-```java
+```Java
 BulletTrainClient bulletClient = BulletTrainClient.newBuilder()
                 .setApiKey("YOUR_ENV_API_KEY")
                 .build();
 ```
 
-To check if feature flag exist and enabled:
+To check if a feature flag exists and is enabled:
 
-```java
+```Java
 boolean featureEnabled = bulletClient.hasFeatureFlag("my_test_feature");
 if (featureEnabled) {
-    // run the code to execute enabled feature
+    // run the code that executes the enabled feature
 } else {
-    // run the code if feature switched off
+    // run the code that doesn't include the feature
 }
 ```
 
-To get configuration value for feature flag:
+To get configuration value for a feature flag:
 
-```java
+```Java
 String myRemoteConfig = bulletClient.getFeatureFlagValue("my_test_feature");
 if (myRemoteConfig != null) {    
-    // run the code to use remote config value
+    // run the code that uses the remote config value
 } else {
-    // run the code without remote config
+    // run the code that doesn't depend on the remote config value
 }
 ```
 
@@ -69,90 +69,106 @@ if (myRemoteConfig != null) {
 
 Identifying users allows you to target specific users from the [Bullet Train dashboard](https://www.bullet-train.io/).
 
-To check if feature exist for given user context:
+To check if feature a exists for given a user context:
 
-```java
+```Java
 User user = new User();
 user.setIdentifier("bullet_train_sample_user");
 boolean featureEnabled = bulletClient.hasFeatureFlag("my_test_feature", user);
 if (featureEnabled) {
-    // run the code to execute enabled feature for given user
+    // run the code that executes the enabled feature for a given user
 } else {
-    // run the code when feature switched off
+    // run the code that doesn't include the feature
 }
 ```
 
-To get configuration value for feature flag for given user context:
+To get the configuration value of a feature flag for a given user context:
 
-```java
+```Java
 String myRemoteConfig = bulletClient.getFeatureFlagValue("my_test_feature", user);
 if (myRemoteConfig != null) {    
-    // run the code to use remote config value
+    // run the code that uses the remote config value
 } else {
-    // run the code without remote config
+    // run the code tbat doesn't depend on the remote config value
 }
 ```
 
-To get user traits for given user context:
+To get user traits for a given user context:
 
-```java
+```Java
 List<Trait> userTraits = bulletClient.getTraits(user)
 if (userTraits != null && userTraits) {    
-    // run the code to use user traits
+    // run the code that expects the user traits
 } else {
-    // run the code without user traits
+    // run the code that doesn't depend on user traits
 }
 ```
 
-To get user trait for given user context and specific key:
+To get a user trait for a given user context and specific key:
 
-```java
+```Java
 Trait userTrait = bulletClient.getTrait(user, "cookies_key");
 if (userTrait != null) {    
-    // run the code to use user trait
+    // run the code that uses the user trait
 } else {
-    // run the code without user trait
+    // run the code that doesn't depend on the user trait
 }
 ```
 
-Or get user traits for given user context and specific keys:
+Or get the user traits for a given user context and specific keys:
 
-```java
+```Java
  List<Trait> userTraits = bulletClient.getTraits(user, "cookies_key", "other_trait");
 if (userTraits != null) {    
-    // run the code to use user traits
+    // run the code that uses the user traits
 } else {
-    // run the code without user traits
+    // run the code doesn't depend on user traits
 }
 ```
 
-To update value for user traits for given user context and specific keys:
+To update the value for user traits for a given user context and specific keys:
 
-```java
+```Java
  Trait userTrait = bulletClient.getTrait(user, "cookies_key");
 if (userTrait != null) {    
-    // update value for user trait
+    // update the value for a user trait
     userTrait.setValue("new value");
     Trait updated = bulletClient.updateTrait(user, userTrait);
 } else {
-    // run the code without user trait
+    // run the code that doesn't depend on the user trait
 }
+```
+
+**Flags and Traits**
+
+Or get flags and traits for a user in a single call:
+
+```Java
+FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+// get traits
+List<Trait> traits = bulletClient.getTraits(userFlagsAndTraits, "cookies_key");
+// or get a flag value
+String featureFlagValue = bulletClient.getFeatureFlagValue("font_size", userFlagsAndTraits);
+// or get flag enabled
+boolean enabled = bulletClient.hasFeatureFlag("hero", userFlagsAndTraits);
+
+// see above examples on how to evaluate flags and traits
 ```
 
 ## Override default configuration
 
-By default, client is using default configuration. You can override configuration as follows:
+By default, the client uses a default configuration. You can override the configuration as follows:
 
-override just API uri with your own one
-```java
+override just the default API URI with your own
+```Java
 BulletTrainClient bulletClient = BulletTrainClient.newBuilder()
                 .setApiKey("YOUR_ENV_API_KEY")
                 .withApiUrl("http://yoururl.com")
                 .build();
 ```
 
-override full configuration with your own
-```java
+override the full configuration with your own
+```Java
 BulletTrainClient bulletClient  = BulletTrainClient.newBuilder()
             .setApiKey("YOUR_ENV_API_KEY")
             .withConfiguration(BulletTrainConfig.newBuilder()
@@ -167,13 +183,13 @@ BulletTrainClient bulletClient  = BulletTrainClient.newBuilder()
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](https://gist.github.com/kyle-ssg/c36a03aebe492e45cbd3eefb21cb0486) for details on our code of conduct, and the process for submitting pull requests to us.
+Please read [CONTRIBUTING.md](https://gist.github.com/kyle-ssg/c36a03aebe492e45cbd3eefb21cb0486) for details on our Code of Conduct, and the process for submitting Pull Requests to us.
 
 ## Getting Help
 
-If you encounter a bug or feature request we would like to hear about it. Before you submit an issue please search existing issues in order to prevent duplicates. 
+If you encounter a bug, or have a feature request, we would like to hear about it. But, before you submit an issue, please search the [existing issues](https://github.com/BulletTrainHQ/bullet-train-java-client/issues) in order to prevent duplicates. 
 
 ## Get in touch
 
-If you have any questions about our projects you can email <a href="mailto:projects@solidstategroup.com">projects@solidstategroup.com</a>.
+If you have any questions about our projects you can email us at <a href="mailto:projects@solidstategroup.com">projects@solidstategroup.com</a>.
 
