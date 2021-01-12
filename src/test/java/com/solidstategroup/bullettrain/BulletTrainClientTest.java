@@ -4,6 +4,7 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.testng.Assert.assertEquals;
@@ -225,6 +226,48 @@ public class BulletTrainClientTest {
         Trait updated = bulletClient.updateTrait(user, userTrait);
         assertNotNull(updated, "Should have updated user traits back");
         assertTrue(updated.getValue().equals("new value"));
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class, groups = "integration")
+    public void testClient_When_Add_Traits_For_Identity_With_Missing_Identity_Then_Failed() {
+        // Given traits and no user Identity
+        Trait trait1 = new Trait();
+        trait1.setKey("trait_1");
+        trait1.setValue("some value1");
+
+        // When
+        List<Trait> traits = bulletClient.identifyUserWithTraits(null,  Arrays.asList(trait1));
+
+        // Then
+        // nothing return and exception thrown
+        assertTrue(traits.size() == 0, "Should not return any traits");
+    }
+
+    @Test(groups = "integration")
+    public void testClient_When_Add_Traits_For_Identity_Then_Success() {
+        // Given
+        FeatureUser user = new FeatureUser();
+        user.setIdentifier("another_user");
+
+        Trait trait1 = new Trait();
+        trait1.setKey("trait_1");
+        trait1.setValue("some value1");
+
+        Trait trait2 = new Trait();
+        trait2.setKey("trait_2");
+        trait2.setValue("some value2");
+
+        // When
+        List<Trait> traits = bulletClient.identifyUserWithTraits(user,  Arrays.asList(trait1, trait2));
+
+        // Then
+        assertTrue(traits.size() == 2, "Should have 2 traits returned");
+
+        assertTrue(trait1.getKey().equals(traits.get(0).getKey()));
+        assertTrue(trait1.getValue().equals(traits.get(0).getValue()));
+
+        assertTrue(trait2.getKey().equals(traits.get(1).getKey()));
+        assertTrue(trait2.getValue().equals(traits.get(1).getValue()));
     }
 
 }
