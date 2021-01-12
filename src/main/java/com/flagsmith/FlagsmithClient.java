@@ -309,6 +309,56 @@ public class FlagsmithClient {
         return postUserTraits(user, toUpdate);
     }
 
+    /**
+     * <p>
+     * Create or update a list of user Traits for given user identity.
+     * </p>
+     * <p>
+     * Please note this will override any existing identity with given list.
+     * </p>
+     *
+     * @param user   a user in context
+     * @param traits a list of Trait object to be created or updated
+     * @return a list of added Trait objects
+     */
+    public List<Trait> identifyUserWithTraits(FeatureUser user, List<Trait> traits) {
+        // we are using identities endpoint to create bulk user Trait
+        HttpUrl url = defaultConfig.identitiesURI;
+
+        if (user == null || (user.getIdentifier() == null || user.getIdentifier().length() < 1)) {
+            throw new IllegalArgumentException("Missing user Identifier");
+        }
+
+        IdentityTraits identityTraits = new IdentityTraits();
+        identityTraits.setIdentifier(user.getIdentifier());
+        if (traits != null) {
+            identityTraits.setTraits(traits);
+        }
+
+        MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+        RequestBody body = RequestBody.create(JSON, identityTraits.toString());
+
+        Request request = new Request.Builder()
+                .header(AUTH_HEADER, apiKey)
+                .addHeader(ACCEPT_HEADER, "application/json")
+                .post(body)
+                .url(url)
+                .build();
+
+        List<Trait> traitsData = new ArrayList<>();
+        Call call = defaultConfig.httpClient.newCall(request);
+        try (Response response = call.execute()) {
+            if (response.isSuccessful()) {
+                ObjectMapper mapper = MapperFactory.getMappper();
+                FlagsAndTraits flagsAndTraits = mapper.readValue(response.body().string(), FlagsAndTraits.class);
+
+                traitsData = flagsAndTraits.getTraits();
+            }
+        } catch (IOException io) {
+        }
+        return traitsData;
+    }
+
     private Trait postUserTraits(FeatureUser user, Trait toUpdate) {
         HttpUrl url = defaultConfig.traitsURI;
         toUpdate.setIdentity(user);
