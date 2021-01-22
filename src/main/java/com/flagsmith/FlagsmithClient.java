@@ -1,12 +1,7 @@
-package com.solidstategroup.bullettrain;
+package com.flagsmith;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.Call;
-import okhttp3.HttpUrl;
-import okhttp3.MediaType;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import okhttp3.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -14,17 +9,17 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * A client for Bullet Train API.
+ * A client for Flagsmith API.
  */
-public class BulletTrainClient {
+public class FlagsmithClient {
 
-    private BulletTrainConfig defaultConfig;
+    private FlagsmithConfig defaultConfig;
     private static final String AUTH_HEADER = "X-Environment-Key";
     private static final String ACCEPT_HEADER = "Accept";
     // an api key per environment
     private String apiKey;
 
-    private BulletTrainClient() {
+    private FlagsmithClient() {
     }
 
     /**
@@ -97,7 +92,7 @@ public class BulletTrainClient {
     /**
      * Check if Feature flag exist and is enabled in a FlagsAndTraits
      *
-     * @param featureId a unique feature name identifier
+     * @param featureId      a unique feature name identifier
      * @param flagsAndTraits flags and traits object
      * @return true if feature flag exist and enabled, false otherwise
      */
@@ -111,7 +106,7 @@ public class BulletTrainClient {
     /**
      * Check if Feature flag exist and is enabled in a list of flags
      *
-     * @param featureId a unique feature name identifier
+     * @param featureId    a unique feature name identifier
      * @param featureFlags a list of flags
      * @return true if feature flag exist and enabled, false otherwise
      */
@@ -150,7 +145,7 @@ public class BulletTrainClient {
     /**
      * Get Feature value (remote config) for given feature id and user
      *
-     * @param featureId a unique feature name identifier
+     * @param featureId      a unique feature name identifier
      * @param flagsAndTraits flags and traits object
      * @return a value for the feature or null if does not exist
      */
@@ -164,7 +159,7 @@ public class BulletTrainClient {
     /**
      * Get Feature value (remote config) for given feature id from a provided flag list.
      *
-     * @param featureId a unique feature name identifier
+     * @param featureId    a unique feature name identifier
      * @param featureFlags list of feature flags
      * @return a value for the Feature or null if feature does not exist
      */
@@ -193,7 +188,7 @@ public class BulletTrainClient {
     /**
      * Get user Trait from a given FlagsAndTraits and trait key.
      *
-     * @param key  a unique user trait key
+     * @param key            a unique user trait key
      * @param flagsAndTraits flags and traits object
      * @return a Trait object or null if does not exist
      */
@@ -207,7 +202,7 @@ public class BulletTrainClient {
     /**
      * Get user Trait from a given list of traits and trait key.
      *
-     * @param key  a unique user trait key
+     * @param key    a unique user trait key
      * @param traits list of traits
      * @return a Trait object or null if does not exist
      */
@@ -392,17 +387,17 @@ public class BulletTrainClient {
     }
 
 
-    public static BulletTrainClient.Builder newBuilder() {
-        return new BulletTrainClient.Builder();
+    public static FlagsmithClient.Builder newBuilder() {
+        return new FlagsmithClient.Builder();
     }
 
 
     public static class Builder {
-        private BulletTrainClient client;
-        private BulletTrainConfig configuration = BulletTrainConfig.newBuilder().build();
+        private FlagsmithClient client;
+        private FlagsmithConfig configuration = FlagsmithConfig.newBuilder().build();
 
         private Builder() {
-            client = new BulletTrainClient();
+            client = new FlagsmithClient();
         }
 
         /**
@@ -421,12 +416,12 @@ public class BulletTrainClient {
         }
 
         /**
-         * Override default BulletTrainConfig for BulletTrain API.
+         * Override default FlagsmithConfig for Flagsmith API.
          *
-         * @param config an BulletTrainConfig to override default one.
+         * @param config an FlagsmithConfig to override default one.
          * @return the Builder
          */
-        public Builder withConfiguration(BulletTrainConfig config) {
+        public Builder withConfiguration(FlagsmithConfig config) {
             if (config != null) {
                 this.configuration = config;
             }
@@ -434,21 +429,21 @@ public class BulletTrainClient {
         }
 
         /**
-         * Set the base URL for BulletTrain API, overriding default one.
+         * Set the base URL for Flagsmith API, overriding default one.
          *
          * @param apiUrl the new base URI for the API.
          * @return the Builder
          */
         public Builder withApiUrl(String apiUrl) {
             if (apiUrl != null) {
-                this.configuration = BulletTrainConfig.newBuilder()
+                this.configuration = FlagsmithConfig.newBuilder()
                         .baseURI(apiUrl)
                         .build();
             }
             return this;
         }
 
-        public BulletTrainClient build() {
+        public FlagsmithClient build() {
             client.defaultConfig = this.configuration;
             return client;
         }

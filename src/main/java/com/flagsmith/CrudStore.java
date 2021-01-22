@@ -1,4 +1,4 @@
-package com.solidstategroup.bullettrain;
+package com.flagsmith;
 
 /**
  * Interface for a basic store to support persistence for Flags
