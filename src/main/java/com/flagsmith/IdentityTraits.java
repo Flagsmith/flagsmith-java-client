@@ -1,4 +1,4 @@
-package com.solidstategroup.bullettrain;
+package com.flagsmith;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
