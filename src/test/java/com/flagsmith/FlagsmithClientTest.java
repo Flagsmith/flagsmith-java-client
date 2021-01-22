@@ -1,4 +1,4 @@
-package com.solidstategroup.bullettrain;
+package com.flagsmith;
 
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Ignore;
@@ -15,14 +15,14 @@ import static org.testng.Assert.assertTrue;
  * Unit tests are env specific and will probably will need to adjust keys, identities and
  * features ids etc as required.
  */
-public class BulletTrainClientTest {
+public class FlagsmithClientTest {
 
     private static final String API_KEY = "QjgYur4LQTwe5HpvbvhpzK";
-    BulletTrainClient bulletClient;
+    FlagsmithClient bulletClient;
 
     @BeforeTest
     public void init() {
-        bulletClient = BulletTrainClient.newBuilder()
+        bulletClient = FlagsmithClient.newBuilder()
                 .setApiKey(API_KEY)
                 .build();
     }

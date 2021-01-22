@@ -4,14 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.solidstategroup</groupId>
-    <artifactId>bullet-train-client</artifactId>
-    <version>1.6</version>
+    <groupId>com.flagsmith</groupId>
+    <artifactId>flagsmith-java-client</artifactId>
+    <version>2.0</version>
     <packaging>jar</packaging>
 
-    <name>Bullet Train Client</name>
-    <description>Bullet Train SDK for Android and Java applications</description>
-    <url>https://bullet-train.io</url>
+    <name>Flagsmith Java Client</name>
+    <description>Flagsmith SDK for Android and Java applications</description>
+    <url>https://www.flagsmith.com/</url>
 
     <licenses>
         <license>
@@ -24,16 +24,16 @@
     <developers>
         <developer>
             <name>Pavlo Maksymchuk</name>
-            <email>pavlo@solidstategroup.com</email>
-            <organization>Solid State Group</organization>
-            <organizationUrl>https://www.solidstategroup.com</organizationUrl>
+            <email>support@flagsmith.com</email>
+            <organization>Flagsmith</organization>
+            <organizationUrl>https://www.flagsmith.com/</organizationUrl>
         </developer>
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/BulletTrainHQ/bullet-train-java-client.git</connection>
-        <developerConnection>scm:git:ssh://github.com:BulletTrainHQ/bullet-train-java-client.git</developerConnection>
-        <url>https://github.com/BulletTrainHQ/bullet-train-java-client</url>
+        <connection>scm:git:git://github.com/Flagsmith/flagsmith-java-client.git</connection>
+        <developerConnection>scm:git:ssh://github.com:Flagsmith/flagsmith-java-client.git</developerConnection>
+        <url>https://github.com/Flagsmith/flagsmith-java-client</url>
     </scm>
 
     <properties>
@@ -106,7 +106,7 @@
     </distributionManagement>
 
     <build>
-        <finalName>bullet-train-client-${project.version}</finalName>
+        <finalName>flagsmith-java-client-${project.version}</finalName>
         <plugins>
 
             <plugin>

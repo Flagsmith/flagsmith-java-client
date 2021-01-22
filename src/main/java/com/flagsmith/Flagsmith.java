@@ -1,9 +1,9 @@
-package com.solidstategroup.bullettrain;
+package com.flagsmith;
 
 /**
  * Created by Pavlo Maksymchuk.
  */
-public class BulletTrain {
+public class Flagsmith {
 
     /**
      * Storage to persist feature within {@link CrudStore}.
