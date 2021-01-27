@@ -201,6 +201,19 @@ If your project does not already have SLF4J, then include an implementation, i.e
 </dependency>
 ```
 
+adding custom headers to all HTTP calls:
+
+```java
+final HashMap<String, String> customHeaders = new HashMap(){{
+    put("x-custom-header", "value1");
+    put("x-my-key", "value2");
+}};
+FlagsmithClient flagsmithClient = FlagsmithClient.newBuilder()
+    // other configuration as shown above
+    .withCustomHttpHeaders(customHeaders)
+    .build();
+```
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](https://gist.github.com/kyle-ssg/c36a03aebe492e45cbd3eefb21cb0486) for details on our Code of Conduct, and the process for submitting Pull Requests to us.

@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -26,6 +27,7 @@ public class FlagsmithClient {
     // an api key per environment
     private String apiKey;
     private Logger logger;
+    private HashMap<String, String> customHeaders;
 
     private FlagsmithClient() {
     }
@@ -55,9 +57,7 @@ public class FlagsmithClient {
                     .addEncodedPathSegment(user.getIdentifier());
         }
 
-        Request request = new Request.Builder()
-                .header(AUTH_HEADER, apiKey)
-                .addHeader(ACCEPT_HEADER, "application/json")
+        final Request request = this.newRequestBuilder()
                 .url(urlBuilder.build())
                 .build();
 
@@ -296,9 +296,7 @@ public class FlagsmithClient {
                 .addEncodedQueryParameter("identifier", user.getIdentifier())
                 .build();
 
-        Request request = new Request.Builder()
-                .header(AUTH_HEADER, apiKey)
-                .addHeader(ACCEPT_HEADER, "application/json")
+        final Request request = this.newRequestBuilder()
                 .url(url)
                 .build();
 
@@ -358,9 +356,7 @@ public class FlagsmithClient {
         MediaType JSON = MediaType.parse("application/json; charset=utf-8");
         RequestBody body = RequestBody.create(JSON, identityTraits.toString());
 
-        Request request = new Request.Builder()
-                .header(AUTH_HEADER, apiKey)
-                .addHeader(ACCEPT_HEADER, "application/json")
+        final Request request = this.newRequestBuilder()
                 .post(body)
                 .url(url)
                 .build();
@@ -389,9 +385,7 @@ public class FlagsmithClient {
         MediaType JSON = MediaType.parse("application/json; charset=utf-8");
         RequestBody body = RequestBody.create(JSON, toUpdate.toString());
 
-        Request request = new Request.Builder()
-                .header(AUTH_HEADER, apiKey)
-                .addHeader(ACCEPT_HEADER, "application/json")
+        Request request = this.newRequestBuilder()
                 .post(body)
                 .url(url)
                 .build();
@@ -415,6 +409,18 @@ public class FlagsmithClient {
 
     public static FlagsmithClient.Builder newBuilder() {
         return new FlagsmithClient.Builder();
+    }
+
+    private Request.Builder newRequestBuilder() {
+        final Request.Builder builder = new Request.Builder()
+            .header(AUTH_HEADER, apiKey)
+            .addHeader(ACCEPT_HEADER, "application/json");
+
+        if (this.customHeaders != null && !this.customHeaders.isEmpty()) {
+            this.customHeaders.forEach((k, v) -> builder.addHeader(k, v));
+        }
+
+        return builder;
     }
 
 
@@ -478,6 +484,17 @@ public class FlagsmithClient {
                         .baseURI(apiUrl)
                         .build();
             }
+            return this;
+        }
+
+        /**
+         * Add custom HTTP headers to the calls.
+         *
+         * @param customHeaders headers.
+         * @return the Builder
+         */
+        public Builder withCustomHttpHeaders(HashMap<String, String> customHeaders) {
+            this.client.customHeaders = customHeaders;
             return this;
         }
 

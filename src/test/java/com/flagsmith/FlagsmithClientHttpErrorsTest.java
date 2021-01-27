@@ -4,6 +4,7 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 import static org.testng.Assert.assertFalse;
@@ -14,6 +15,10 @@ import static org.testng.Assert.assertTrue;
 public class FlagsmithClientHttpErrorsTest {
 
     private static final String API_KEY = "bad-key";
+    private static final HashMap<String, String> customHeaders = new HashMap(){{
+        put("x-custom-header", "value1");
+        put("x-my-key", "value2");
+    }};
     FlagsmithClient bulletClient;
 
     @BeforeTest
@@ -21,6 +26,7 @@ public class FlagsmithClientHttpErrorsTest {
         bulletClient = FlagsmithClient.newBuilder()
                 .setApiKey(API_KEY)
                 .withApiUrl("http://bad-url")
+                .withCustomHttpHeaders(customHeaders)
                 .enableLogging()
                 .build();
     }
