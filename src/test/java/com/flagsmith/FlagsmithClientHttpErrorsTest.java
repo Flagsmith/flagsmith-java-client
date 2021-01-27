@@ -1,55 +1,40 @@
 package com.flagsmith;
 
 import org.testng.annotations.BeforeTest;
-import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 
-/**
- * Unit tests are env specific and will probably will need to adjust keys, identities and
- * features ids etc as required.
- */
-public class FlagsmithClientTest {
+public class FlagsmithClientHttpErrorsTest {
 
-    private static final String API_KEY = "QjgYur4LQTwe5HpvbvhpzK";
+    private static final String API_KEY = "bad-key";
     FlagsmithClient bulletClient;
 
     @BeforeTest
     public void init() {
         bulletClient = FlagsmithClient.newBuilder()
                 .setApiKey(API_KEY)
+                .withApiUrl("http://bad-url")
+                .enableLogging()
                 .build();
     }
 
     @Test(groups = "integration")
-    public void testClient_When_Get_Features_Then_Success() {
+    public void testClient_When_Get_Features_Then_Empty() {
         List<Flag> featureFlags = bulletClient.getFeatureFlags();
 
         assertNotNull(featureFlags, "Should feature flags back");
-        assertTrue(featureFlags.size() > 0, "Should have test featureFlags back");
-
-        for (Flag flag : featureFlags) {
-            assertNotNull(flag.getFeature(), "Flag should have feature");
-        }
-    }
-
-    @Ignore(value = "requires specific features enabled and exist per env")
-    @Test(groups = "integration")
-    public void testClient_When_Has_Feature_Then_Success() {
-        // This will return false
-        boolean featureEnabled = bulletClient.hasFeatureFlag("flag_feature");
-
-        assertTrue(featureEnabled, "Should have test featureFlags back");
+        assertTrue(featureFlags.isEmpty(), "Should not have test featureFlags back");
     }
 
     @Test(groups = "integration")
-    public void testClient_When_Get_Features_For_User_Then_Success() {
+    public void testClient_When_Get_Features_For_User_Then_Empty() {
         // context user
         FeatureUser user = new FeatureUser();
         user.setIdentifier("bullet_train_sample_user");
@@ -57,60 +42,45 @@ public class FlagsmithClientTest {
         List<Flag> featureFlags = bulletClient.getFeatureFlags(user);
 
         assertNotNull(featureFlags, "Should have feature flags back");
-        assertTrue(featureFlags.size() > 0, "Should have test featureFlags back");
-
-        for (Flag flag : featureFlags) {
-            assertNotNull(flag.getFeature(), "Flag should have feature");
-        }
+        assertTrue(featureFlags.isEmpty(), "Should not have test featureFlags back");
     }
 
 
     @Test(groups = "integration")
-    public void testClient_When_Get_User_Traits_Then_Success() {
+    public void testClient_When_Get_User_Traits_Then_Null() {
         // context user
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
 
         List<Trait> userTraits = bulletClient.getTraits(user);
 
-        assertNotNull(userTraits, "Should have user traits back");
-        assertTrue(userTraits.size() > 0, "Should have test featureFlags back");
-
-        for (Trait trait : userTraits) {
-            assertNotNull(trait.getValue(), "Flag should have value for trait");
-        }
+        assertNull(userTraits, "Should have user traits back");
     }
 
     @Test(groups = "integration")
-    public void testClient_When_Get_User_Traits_For_Keys_Then_Success() {
+    public void testClient_When_Get_User_Traits_For_Keys_Then_Null() {
         // context user
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
 
         List<Trait> userTraits = bulletClient.getTraits(user, "cookies_key");
 
-        assertNotNull(userTraits, "Should have user traits back");
-        assertTrue(userTraits.size() == 1, "Should have test featureFlags back");
-
-        for (Trait trait : userTraits) {
-            assertNotNull(trait.getValue(), "Flag should have value for trait");
-        }
+        assertNull(userTraits, "Should have user traits back");
     }
 
     @Test(groups = "integration")
-    public void testClient_When_Get_User_Traits_For_Invalid_User_Then_Return_Empty() {
+    public void testClient_When_Get_User_Traits_For_Invalid_User_Then_Return_Null() {
         // context user
         FeatureUser user = new FeatureUser();
         user.setIdentifier("invalid_users_another_user");
 
         List<Trait> userTraits = bulletClient.getTraits(user);
 
-        assertNotNull(userTraits, "Should have user traits back");
-        assertTrue(userTraits.isEmpty(), "Should have no user traits back");
+        assertNull(userTraits, "Should have user traits back");
     }
 
     @Test(groups = "integration")
-    public void testClient_When_Get_User_Traits_And_Flags_For_Keys_Then_Success() {
+    public void testClient_When_Get_User_Traits_And_Flags_For_Keys_Then_Null_Lists() {
         // context user
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
@@ -118,19 +88,12 @@ public class FlagsmithClientTest {
         FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
 
         assertNotNull(userFlagsAndTraits, "Should have user traits and flags back");
-        assertTrue(!userFlagsAndTraits.getFlags().isEmpty(), "Should have user flags back");
-        assertTrue(!userFlagsAndTraits.getTraits().isEmpty(), "Should have user traits back");
-
-        for (Trait trait : userFlagsAndTraits.getTraits()) {
-            assertNotNull(trait.getValue(), "Flag should have value for trait");
-        }
-        for (Flag flag : userFlagsAndTraits.getFlags()) {
-            assertNotNull(flag.getFeature(), "Flag should have feature");
-        }
+        assertNull(userFlagsAndTraits.getFlags(), "Should not have user flags back");
+        assertNull(userFlagsAndTraits.getTraits(), "Should not have user traits back");
     }
 
     @Test(groups = "integration")
-    public void testClient_When_Get_User_Traits_And_Flags_For_Invalid_User_Then_Return_Empty() {
+    public void testClient_When_Get_User_Traits_And_Flags_For_Invalid_User_Then_Return_Null_Lists() {
         // context user
         FeatureUser user = new FeatureUser();
         user.setIdentifier("invalid_users_another_user");
@@ -138,16 +101,12 @@ public class FlagsmithClientTest {
         FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
 
         assertNotNull(userFlagsAndTraits, "Should have user traits and flags back, not null");
-        assertTrue(!userFlagsAndTraits.getFlags().isEmpty(), "Should have user flags back");
-        assertTrue(userFlagsAndTraits.getTraits().isEmpty(), "Should have no user traits back");
-
-        for (Flag flag : userFlagsAndTraits.getFlags()) {
-            assertNotNull(flag.getFeature(), "Flag should have feature");
-        }
+        assertNull(userFlagsAndTraits.getFlags(), "Should not have user flags back");
+        assertNull(userFlagsAndTraits.getTraits(), "Should not have no user traits back");
     }
 
     @Test(groups = "integration")
-    public void testClient_When_Get_User_Trait_From_Traits_And_Flags_For_Keys_Then_Success() {
+    public void testClient_When_Get_User_Trait_From_Traits_And_Flags_For_Keys_Then_Null() {
         // context user
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
@@ -156,12 +115,11 @@ public class FlagsmithClientTest {
 
         Trait userTrait = bulletClient.getTrait(userFlagsAndTraits, "cookies_key");
 
-        assertNotNull(userTrait, "Should have user traits back");
-        assertNotNull(userTrait.getValue(), "Should have user traits value");
+        assertNull(userTrait, "Should not have user traits back");
     }
 
     @Test(groups = "integration")
-    public void testClient_When_Get_User_Traits_From_Traits_And_Flags_For_Keys_Then_Success() {
+    public void testClient_When_Get_User_Traits_From_Traits_And_Flags_For_Keys_Then_Null() {
         // context user
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
@@ -170,13 +128,11 @@ public class FlagsmithClientTest {
 
         List<Trait> traits = bulletClient.getTraits(userFlagsAndTraits, "cookies_key");
 
-        assertNotNull(traits, "Should have user traits back");
-        assertNotNull(traits.size() == 1, "Should have 1 user trait");
-        assertNotNull(traits.get(0).getValue(), "Should have user trait value");
+        assertNull(traits, "Should not have user traits back");
     }
 
     @Test(groups = "integration")
-    public void testClient_When_Get_User_FLag_Value_From_Traits_And_Flags_For_Keys_Then_Success() {
+    public void testClient_When_Get_User_FLag_Value_From_Traits_And_Flags_For_Keys_Then_Null() {
         // context user
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
@@ -185,11 +141,11 @@ public class FlagsmithClientTest {
 
         String featureFlagValue = bulletClient.getFeatureFlagValue("font_size", userFlagsAndTraits);
 
-        assertEquals("12", featureFlagValue, "Should have feature 'font_size' with value '12'");
+        assertNull(featureFlagValue, "Should not have feature");
     }
 
     @Test(groups = "integration")
-    public void testClient_When_Get_User_FLag_Enabled_From_Traits_And_Flags_For_Keys_Then_Success() {
+    public void testClient_When_Get_User_FLag_Enabled_From_Traits_And_Flags_For_Keys_Then_False() {
         // context user
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
@@ -198,34 +154,31 @@ public class FlagsmithClientTest {
 
         boolean enabled = bulletClient.hasFeatureFlag("hero", userFlagsAndTraits);
 
-        assertTrue(enabled, "Should have feature 'hero' enabled");
+        assertFalse(enabled, "Should not have feature enabled");
     }
 
     @Test(groups = "integration")
-    public void testClient_When_Get_User_Trait_Then_Success() {
+    public void testClient_When_Get_User_Trait_Then_Null() {
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
 
         Trait userTrait = bulletClient.getTrait(user, "cookies_key");
 
-        assertNotNull(userTrait, "Should have user traits back");
-        assertNotNull(userTrait.getValue(), "Should have user traits value");
+        assertNull(userTrait, "Should not have user traits back");
     }
 
 
     @Test(groups = "integration")
-    public void testClient_When_Get_User_Trait_Update_Then_Updated() {
+    public void testClient_When_Get_User_Trait_Update_Then_Null() {
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
 
-        Trait userTrait = bulletClient.getTrait(user, "cookies_key");
-        assertNotNull(userTrait, "Should have user traits back");
-        assertNotNull(userTrait.getValue(), "Should have user traits value");
-
+        Trait userTrait = new Trait();
+        userTrait.setIdentity(user);
+        userTrait.setKey("some_trait");
         userTrait.setValue("new value");
         Trait updated = bulletClient.updateTrait(user, userTrait);
-        assertNotNull(updated, "Should have updated user traits back");
-        assertTrue(updated.getValue().equals("new value"));
+        assertNull(updated, "Should not have updated user traits back");
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class, groups = "integration")
@@ -261,13 +214,7 @@ public class FlagsmithClientTest {
         List<Trait> traits = bulletClient.identifyUserWithTraits(user,  Arrays.asList(trait1, trait2));
 
         // Then
-        assertEquals(2, traits.size(), "Should have 2 traits returned");
-
-        assertTrue(trait1.getKey().equals(traits.get(0).getKey()));
-        assertTrue(trait1.getValue().equals(traits.get(0).getValue()));
-
-        assertTrue(trait2.getKey().equals(traits.get(1).getKey()));
-        assertTrue(trait2.getValue().equals(traits.get(1).getValue()));
+        assertTrue(traits.isEmpty(), "Should not have traits returned");
     }
 
 }

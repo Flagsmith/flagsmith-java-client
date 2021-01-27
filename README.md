@@ -19,13 +19,13 @@ Add following dependencies to your project in `pom.xml`
 <dependency>
   <groupId>com.flagsmith</groupId>
   <artifactId>flagsmith-java-client</artifactId>
-  <version>2.0</version>
+  <version>2.1</version>
 </dependency>
 ```
 
 ### Gradle
 ```groovy
-implementation 'com.flagsmith:flagsmith-java-client:2.0'
+implementation 'com.flagsmith:flagsmith-java-client:2.1'
 ```
 
 ## Usage
@@ -118,7 +118,7 @@ if (userTrait != null) {
 Or get the user traits for a given user context and specific keys:
 
 ```Java
- List<Trait> userTraits = flagsmithClient.getTraits(user, "cookies_key", "other_trait");
+List<Trait> userTraits = flagsmithClient.getTraits(user, "cookies_key", "other_trait");
 if (userTraits != null) {    
     // run the code that uses the user traits
 } else {
@@ -129,7 +129,7 @@ if (userTraits != null) {
 To update the value for user traits for a given user context and specific keys:
 
 ```Java
- Trait userTrait = flagsmithClient.getTrait(user, "cookies_key");
+Trait userTrait = flagsmithClient.getTrait(user, "cookies_key");
 if (userTrait != null) {    
     // update the value for a user trait
     userTrait.setValue("new value");
@@ -179,6 +179,26 @@ FlagsmithClient flagsmithClient = FlagsmithClient.newBuilder()
                     .build())
             .build();
 
+```
+
+logging is disabled by default. If you would like to enable it then call `.enableLogging()` on the client builder:
+
+```java
+FlagsmithClient flagsmithClient = FlagsmithClient.newBuilder()
+                // other configuration as shown above
+                .enableLogging()
+                .build();
+```
+
+Flagsmith uses [SLF4J](http://www.slf4j.org) and we only implement its API.
+If your project does not already have SLF4J, then include an implementation, i.e.:
+
+```xml
+<dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-simple</artifactId>
+    <version>${slf4j.version}</version>
+</dependency>
 ```
 
 ## Contributing
