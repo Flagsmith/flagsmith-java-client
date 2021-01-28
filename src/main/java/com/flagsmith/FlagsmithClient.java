@@ -1,11 +1,19 @@
 package com.flagsmith;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.*;
+import okhttp3.Call;
+import okhttp3.HttpUrl;
+import okhttp3.MediaType;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -18,6 +26,8 @@ public class FlagsmithClient {
     private static final String ACCEPT_HEADER = "Accept";
     // an api key per environment
     private String apiKey;
+    private Logger logger;
+    private HashMap<String, String> customHeaders;
 
     private FlagsmithClient() {
     }
@@ -47,9 +57,7 @@ public class FlagsmithClient {
                     .addEncodedPathSegment(user.getIdentifier());
         }
 
-        Request request = new Request.Builder()
-                .header(AUTH_HEADER, apiKey)
-                .addHeader(ACCEPT_HEADER, "application/json")
+        final Request request = this.newRequestBuilder()
                 .url(urlBuilder.build())
                 .build();
 
@@ -62,6 +70,9 @@ public class FlagsmithClient {
                         Flag[].class));
             }
         } catch (IOException io) {
+            if (logger != null) {
+                logger.error("Flagsmith: error when getting flags", io);
+            }
         }
         return featureFlags;
     }
@@ -111,9 +122,11 @@ public class FlagsmithClient {
      * @return true if feature flag exist and enabled, false otherwise
      */
     private static boolean hasFeatureFlagByName(String featureId, List<Flag> featureFlags) {
-        for (Flag flag : featureFlags) {
-            if (flag.getFeature().getName().equals(featureId) && flag.isEnabled()) {
-                return true;
+        if (featureFlags != null) {
+            for (Flag flag : featureFlags) {
+                if (flag.getFeature().getName().equals(featureId) && flag.isEnabled()) {
+                    return true;
+                }
             }
         }
         return false;
@@ -164,9 +177,11 @@ public class FlagsmithClient {
      * @return a value for the Feature or null if feature does not exist
      */
     private static String getFeatureFlagValueByName(String featureId, List<Flag> featureFlags) {
-        for (Flag flag : featureFlags) {
-            if (flag.getFeature().getName().equals(featureId)) {
-                return flag.getStateValue();
+        if (featureFlags != null) {
+            for (Flag flag : featureFlags) {
+                if (flag.getFeature().getName().equals(featureId)) {
+                    return flag.getStateValue();
+                }
             }
         }
 
@@ -207,9 +222,11 @@ public class FlagsmithClient {
      * @return a Trait object or null if does not exist
      */
     private static Trait getTraitByKey(String key, List<Trait> traits) {
-        for (Trait trait : traits) {
-            if (trait.getKey().equals(key)) {
-                return trait;
+        if (traits != null) {
+            for (Trait trait : traits) {
+                if (trait.getKey().equals(key)) {
+                    return trait;
+                }
             }
         }
         return null;
@@ -244,7 +261,7 @@ public class FlagsmithClient {
      */
     private static List<Trait> getTraitsByKeys(List<Trait> traits, String[] keys) {
         // if no keys provided return all the user traits
-        if (keys == null || keys.length == 0) {
+        if (keys == null || keys.length == 0 || traits == null) {
             return traits;
         }
 
@@ -279,9 +296,7 @@ public class FlagsmithClient {
                 .addEncodedQueryParameter("identifier", user.getIdentifier())
                 .build();
 
-        Request request = new Request.Builder()
-                .header(AUTH_HEADER, apiKey)
-                .addHeader(ACCEPT_HEADER, "application/json")
+        final Request request = this.newRequestBuilder()
                 .url(url)
                 .build();
 
@@ -294,6 +309,9 @@ public class FlagsmithClient {
                 flagsAndTraits = mapper.readValue(response.body().string(), FlagsAndTraits.class);
             }
         } catch (IOException io) {
+            if (logger != null) {
+                logger.error("Flagsmith: error when getting identities", io);
+            }
         }
         return flagsAndTraits;
     }
@@ -338,9 +356,7 @@ public class FlagsmithClient {
         MediaType JSON = MediaType.parse("application/json; charset=utf-8");
         RequestBody body = RequestBody.create(JSON, identityTraits.toString());
 
-        Request request = new Request.Builder()
-                .header(AUTH_HEADER, apiKey)
-                .addHeader(ACCEPT_HEADER, "application/json")
+        final Request request = this.newRequestBuilder()
                 .post(body)
                 .url(url)
                 .build();
@@ -355,6 +371,9 @@ public class FlagsmithClient {
                 traitsData = flagsAndTraits.getTraits();
             }
         } catch (IOException io) {
+            if (logger != null) {
+                logger.error("Flagsmith: error when posting identities", io);
+            }
         }
         return traitsData;
     }
@@ -366,9 +385,7 @@ public class FlagsmithClient {
         MediaType JSON = MediaType.parse("application/json; charset=utf-8");
         RequestBody body = RequestBody.create(JSON, toUpdate.toString());
 
-        Request request = new Request.Builder()
-                .header(AUTH_HEADER, apiKey)
-                .addHeader(ACCEPT_HEADER, "application/json")
+        Request request = this.newRequestBuilder()
                 .post(body)
                 .url(url)
                 .build();
@@ -382,6 +399,9 @@ public class FlagsmithClient {
                 return trait;
             }
         } catch (IOException io) {
+            if (logger != null) {
+                logger.error("Flagsmith: error when posting traits", io);
+            }
         }
         return null;
     }
@@ -389,6 +409,18 @@ public class FlagsmithClient {
 
     public static FlagsmithClient.Builder newBuilder() {
         return new FlagsmithClient.Builder();
+    }
+
+    private Request.Builder newRequestBuilder() {
+        final Request.Builder builder = new Request.Builder()
+            .header(AUTH_HEADER, apiKey)
+            .addHeader(ACCEPT_HEADER, "application/json");
+
+        if (this.customHeaders != null && !this.customHeaders.isEmpty()) {
+            this.customHeaders.forEach((k, v) -> builder.addHeader(k, v));
+        }
+
+        return builder;
     }
 
 
@@ -416,6 +448,18 @@ public class FlagsmithClient {
         }
 
         /**
+         * Enables logging, the project importing this module must include an implementation slf4j in their pom.
+         *
+         * @return the Builder
+         */
+        public Builder enableLogging() {
+            if (this.client.logger == null) {
+                this.client.logger = LoggerFactory.getLogger(FlagsmithClient.class);
+            }
+            return this;
+        }
+
+        /**
          * Override default FlagsmithConfig for Flagsmith API.
          *
          * @param config an FlagsmithConfig to override default one.
@@ -440,6 +484,17 @@ public class FlagsmithClient {
                         .baseURI(apiUrl)
                         .build();
             }
+            return this;
+        }
+
+        /**
+         * Add custom HTTP headers to the calls.
+         *
+         * @param customHeaders headers.
+         * @return the Builder
+         */
+        public Builder withCustomHttpHeaders(HashMap<String, String> customHeaders) {
+            this.client.customHeaders = customHeaders;
             return this;
         }
 
