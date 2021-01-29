@@ -3,6 +3,8 @@ package com.flagsmith;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509TrustManager;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -28,11 +30,14 @@ public final class FlagsmithConfig {
         this.flagsURI = this.baseURI.newBuilder("flags/").build();
         this.identitiesURI = this.baseURI.newBuilder("identities/").build();
         this.traitsURI = this.baseURI.newBuilder("traits/").build();
-        this.httpClient = new OkHttpClient.Builder()
-                .connectTimeout(builder.connectTimeoutMillis, TimeUnit.MILLISECONDS)
-                .writeTimeout(builder.writeTimeoutMillis, TimeUnit.MILLISECONDS)
-                .readTimeout(builder.readTimeoutMillis, TimeUnit.MILLISECONDS)
-                .build();
+        OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder()
+            .connectTimeout(builder.connectTimeoutMillis, TimeUnit.MILLISECONDS)
+            .writeTimeout(builder.writeTimeoutMillis, TimeUnit.MILLISECONDS)
+            .readTimeout(builder.readTimeoutMillis, TimeUnit.MILLISECONDS);
+        if (builder.sslSocketFactory != null && builder.trustManager != null) {
+            httpBuilder = httpBuilder.sslSocketFactory(builder.sslSocketFactory, builder.trustManager);
+        }
+        this.httpClient = httpBuilder.build();
     }
 
     public static FlagsmithConfig.Builder newBuilder() {
@@ -44,6 +49,8 @@ public final class FlagsmithConfig {
         private int connectTimeoutMillis = DEFAULT_CONNECT_TIMEOUT_MILLIS;
         private int writeTimeoutMillis = DEFAULT_WRITE_TIMEOUT_MILLIS;
         private int readTimeoutMillis = DEFAULT_READ_TIMEOUT_MILLIS;
+        private SSLSocketFactory sslSocketFactory;
+        private X509TrustManager trustManager;
 
         private Builder() {
         }
@@ -91,6 +98,19 @@ public final class FlagsmithConfig {
          */
         public Builder readTimeout(int readTimeoutMillis) {
             this.readTimeoutMillis = readTimeoutMillis;
+            return this;
+        }
+
+        /**
+         * Added custom SSL certificate.
+         *
+         * @param sslSocketFactory SSL factory
+         * @param trustManager X509TrustManager trust manager
+         * @return the Builder
+         */
+        public Builder sslSocketFactory(SSLSocketFactory sslSocketFactory, X509TrustManager trustManager) {
+            this.sslSocketFactory = sslSocketFactory;
+            this.trustManager = trustManager;
             return this;
         }
 
