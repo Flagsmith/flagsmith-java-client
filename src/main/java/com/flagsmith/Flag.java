@@ -39,7 +39,7 @@ public class Flag implements Serializable {
     }
 
     @JsonIgnore
-    private void fromPrototype(Flag prototype) throws IOException {
+    private void fromPrototype(Flag prototype) {
         setFeature(prototype.getFeature());
         setStateValue(prototype.getStateValue());
         setEnabled(prototype.isEnabled());

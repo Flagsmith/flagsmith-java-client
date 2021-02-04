@@ -34,7 +34,7 @@ public class Trait implements Serializable {
     }
 
     @JsonIgnore
-    private void fromPrototype(Trait prototype) throws IOException {
+    private void fromPrototype(Trait prototype) {
         setKey(prototype.getKey());
         setValue(prototype.getValue());
     }
