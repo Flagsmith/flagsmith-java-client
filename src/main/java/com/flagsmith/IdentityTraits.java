@@ -31,7 +31,7 @@ public class IdentityTraits implements Serializable {
     }
 
     @JsonIgnore
-    private void fromPrototype(IdentityTraits prototype) throws IOException {
+    private void fromPrototype(IdentityTraits prototype) {
         setIdentifier(prototype.getIdentifier());
         setTraits(prototype.getTraits());
     }

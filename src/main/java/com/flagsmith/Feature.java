@@ -32,7 +32,7 @@ public class Feature implements Serializable {
     }
 
     @JsonIgnore
-    private void fromPrototype(Feature prototype) throws IOException {
+    private void fromPrototype(Feature prototype) {
         setName(prototype.getName());
         setType(prototype.getType());
         setDescription(prototype.getDescription());

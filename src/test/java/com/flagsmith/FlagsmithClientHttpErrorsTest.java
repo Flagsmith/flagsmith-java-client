@@ -27,7 +27,7 @@ public class FlagsmithClientHttpErrorsTest {
                 .setApiKey(API_KEY)
                 .withApiUrl("http://bad-url")
                 .withCustomHttpHeaders(customHeaders)
-                .enableLogging()
+                .enableLogging(FlagsmithLoggerLevel.INFO)
                 .build();
     }
 
@@ -222,5 +222,4 @@ public class FlagsmithClientHttpErrorsTest {
         // Then
         assertTrue(traits.isEmpty(), "Should not have traits returned");
     }
-
 }

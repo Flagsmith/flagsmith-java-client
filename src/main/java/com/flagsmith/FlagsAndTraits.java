@@ -31,7 +31,7 @@ public class FlagsAndTraits implements Serializable {
     }
 
     @JsonIgnore
-    private void fromPrototype(FlagsAndTraits prototype) throws IOException {
+    private void fromPrototype(FlagsAndTraits prototype) {
         setFlags(prototype.getFlags());
         setTraits(prototype.getTraits());
     }

@@ -7,7 +7,6 @@ import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
@@ -26,7 +25,7 @@ public class FlagsmithClient {
     private static final String ACCEPT_HEADER = "Accept";
     // an api key per environment
     private String apiKey;
-    private Logger logger;
+    private final FlagsmithLogger logger = new FlagsmithLogger();
     private HashMap<String, String> customHeaders;
 
     private FlagsmithClient() {
@@ -68,12 +67,13 @@ public class FlagsmithClient {
                 ObjectMapper mapper = MapperFactory.getMappper();
                 featureFlags = Arrays.asList(mapper.readValue(response.body().string(),
                         Flag[].class));
+            } else {
+                logger.httpError(request, response);
             }
         } catch (IOException io) {
-            if (logger != null) {
-                logger.error("Flagsmith: error when getting flags", io);
-            }
+            logger.httpError(request, io);
         }
+        logger.info("Got feature flags for user = {}, flags = {}", user, featureFlags);
         return featureFlags;
     }
 
@@ -307,12 +307,13 @@ public class FlagsmithClient {
             if (response.isSuccessful()) {
                 ObjectMapper mapper = MapperFactory.getMappper();
                 flagsAndTraits = mapper.readValue(response.body().string(), FlagsAndTraits.class);
+            } else {
+                logger.httpError(request, response);
             }
         } catch (IOException io) {
-            if (logger != null) {
-                logger.error("Flagsmith: error when getting identities", io);
-            }
+            logger.httpError(request, io);
         }
+        logger.info("Got feature flags & traits for user = {}, flagsAndTraits = {}", user, flagsAndTraits);
         return flagsAndTraits;
     }
 
@@ -369,12 +370,13 @@ public class FlagsmithClient {
                 FlagsAndTraits flagsAndTraits = mapper.readValue(response.body().string(), FlagsAndTraits.class);
 
                 traitsData = flagsAndTraits.getTraits();
+            } else {
+                logger.httpError(request, response);
             }
         } catch (IOException io) {
-            if (logger != null) {
-                logger.error("Flagsmith: error when posting identities", io);
-            }
+            logger.httpError(request, io);
         }
+        logger.info("Got traits for user = {}, traits = {}", user, traitsData);
         return traitsData;
     }
 
@@ -390,20 +392,20 @@ public class FlagsmithClient {
                 .url(url)
                 .build();
 
+        Trait trait = null;
         Call call = defaultConfig.httpClient.newCall(request);
         try (Response response = call.execute()) {
             if (response.isSuccessful()) {
                 ObjectMapper mapper = MapperFactory.getMappper();
-                Trait trait = mapper.readValue(response.body().string(), Trait.class);
-
-                return trait;
+                trait = mapper.readValue(response.body().string(), Trait.class);
+            } else {
+                logger.httpError(request, response);
             }
         } catch (IOException io) {
-            if (logger != null) {
-                logger.error("Flagsmith: error when posting traits", io);
-            }
+            logger.httpError(request, io);
         }
-        return null;
+        logger.info("Updated trait for user = {}, new trait = {}, updated trait = {}", user, toUpdate, trait);
+        return trait;
     }
 
 
@@ -450,12 +452,21 @@ public class FlagsmithClient {
         /**
          * Enables logging, the project importing this module must include an implementation slf4j in their pom.
          *
+         * @param level log error level.
+         * @return the Builder
+         */
+        public Builder enableLogging(FlagsmithLoggerLevel level) {
+            this.client.logger.setLogger(LoggerFactory.getLogger(FlagsmithClient.class), level);
+            return this;
+        }
+
+        /**
+         * Enables logging, the project importing this module must include an implementation slf4j in their pom.
+         *
          * @return the Builder
          */
         public Builder enableLogging() {
-            if (this.client.logger == null) {
-                this.client.logger = LoggerFactory.getLogger(FlagsmithClient.class);
-            }
+            this.client.logger.setLogger(LoggerFactory.getLogger(FlagsmithClient.class));
             return this;
         }
 
