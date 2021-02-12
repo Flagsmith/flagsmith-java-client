@@ -15,6 +15,7 @@ The client library is available from the Central Maven Repository and can be add
 ### Maven
 
 Add following dependencies to your project in `pom.xml`
+
 ```xml
 <dependency>
   <groupId>com.flagsmith</groupId>
@@ -24,12 +25,14 @@ Add following dependencies to your project in `pom.xml`
 ```
 
 ### Gradle
+
 ```groovy
 implementation 'com.flagsmith:flagsmith-java-client:2.3'
 ```
 
 ## Usage
-**Retrieving feature flags for your project**
+
+### Retrieving feature flags for your project
 
 **For full documentation visit [https://docs.flagsmith.com/](https://docs.flagsmith.com/)**
 
@@ -65,7 +68,7 @@ if (myRemoteConfig != null) {
 }
 ```
 
-**Identifying users**
+### Identifying users
 
 Identifying users allows you to target specific users from the [Flagsmith dashboard](https://www.flagsmith.com/).
 
@@ -139,7 +142,7 @@ if (userTrait != null) {
 }
 ```
 
-**Flags and Traits**
+### Flags and Traits
 
 Or get flags and traits for a user in a single call:
 
@@ -159,7 +162,8 @@ boolean enabled = flagsmithClient.hasFeatureFlag("hero", userFlagsAndTraits);
 
 By default, the client uses a default configuration. You can override the configuration as follows:
 
-override just the default API URI with your own
+Override just the default API URI with your own:
+
 ```Java
 FlagsmithClient flagsmithClient = FlagsmithClient.newBuilder()
                 .setApiKey("YOUR_ENV_API_KEY")
@@ -167,7 +171,8 @@ FlagsmithClient flagsmithClient = FlagsmithClient.newBuilder()
                 .build();
 ```
 
-override the full configuration with your own
+Override the full configuration with your own
+
 ```Java
 FlagsmithClient flagsmithClient = FlagsmithClient.newBuilder()
             .setApiKey("YOUR_ENV_API_KEY")
@@ -181,7 +186,7 @@ FlagsmithClient flagsmithClient = FlagsmithClient.newBuilder()
 
 ```
 
-logging is disabled by default. If you would like to enable it then call `.enableLogging()` on the client builder:
+Logging is disabled by default. If you would like to enable it then call `.enableLogging()` on the client builder:
 
 ```java
 FlagsmithClient flagsmithClient = FlagsmithClient.newBuilder()
@@ -220,12 +225,11 @@ Please read [CONTRIBUTING.md](https://gist.github.com/kyle-ssg/c36a03aebe492e45c
 
 ## Getting Help
 
-If you encounter a bug, or have a feature request, we would like to hear about it. But, before you submit an issue, please search the [existing issues](https://github.com/Flagsmith/flagsmith-java-client/issues) in order to prevent duplicates. 
+If you encounter a bug, or have a feature request, we would like to hear about it. But, before you submit an issue, please search the [existing issues](https://github.com/Flagsmith/flagsmith-java-client/issues) in order to prevent duplicates.
 
 ## Get in touch
 
 If you have any questions about our projects you can email us at <a href="mailto:support@flagsmith.com">support@flagsmith.com</a>.
-
 
 ## Useful links
 
@@ -236,4 +240,3 @@ If you have any questions about our projects you can email us at <a href="mailto
 [Code Examples](https://github.com/Flagsmith/flagsmith-docs)
 
 [Youtube Tutorials](https://www.youtube.com/channel/UCki7GZrOdZZcsV9rAIRchCw)
-
