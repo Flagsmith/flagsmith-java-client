@@ -15,10 +15,10 @@ public class IdentityTraitTest {
     private static final String json = "{\n" +
             "  \"identifier\": \"test \",\n" +
             "  \"traits\": [\n" +
-            "    \"my_trait\": 123,\n" +
-            "    \"my_other_trait\": \"string value\",\n" +
-            "  }\n" +
-            "]";
+            "    {\"my_trait\": 123},\n" +
+            "    {\"my_other_trait\": \"string value\"}\n" +
+            "  \n" +
+            "]}";
 
     @Test(groups = "integration")
     public void test_When_Parsed_Then_Success() throws IOException {
