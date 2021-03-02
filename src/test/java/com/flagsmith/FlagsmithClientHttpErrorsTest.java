@@ -1,5 +1,6 @@
 package com.flagsmith;
 
+import java.util.Collections;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
@@ -119,7 +120,7 @@ public class FlagsmithClientHttpErrorsTest {
 
         FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
 
-        Trait userTrait = bulletClient.getTrait(userFlagsAndTraits, "cookies_key");
+        Trait userTrait = FlagsmithClient.getTrait(userFlagsAndTraits, "cookies_key");
 
         assertNull(userTrait, "Should not have user traits back");
     }
@@ -132,7 +133,7 @@ public class FlagsmithClientHttpErrorsTest {
 
         FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
 
-        List<Trait> traits = bulletClient.getTraits(userFlagsAndTraits, "cookies_key");
+        List<Trait> traits = FlagsmithClient.getTraits(userFlagsAndTraits, "cookies_key");
 
         assertNull(traits, "Should not have user traits back");
     }
@@ -145,7 +146,7 @@ public class FlagsmithClientHttpErrorsTest {
 
         FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
 
-        String featureFlagValue = bulletClient.getFeatureFlagValue("font_size", userFlagsAndTraits);
+        String featureFlagValue = FlagsmithClient.getFeatureFlagValue("font_size", userFlagsAndTraits);
 
         assertNull(featureFlagValue, "Should not have feature");
     }
@@ -158,7 +159,7 @@ public class FlagsmithClientHttpErrorsTest {
 
         FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
 
-        boolean enabled = bulletClient.hasFeatureFlag("hero", userFlagsAndTraits);
+        boolean enabled = FlagsmithClient.hasFeatureFlag("hero", userFlagsAndTraits);
 
         assertFalse(enabled, "Should not have feature enabled");
     }
@@ -195,7 +196,7 @@ public class FlagsmithClientHttpErrorsTest {
         trait1.setValue("some value1");
 
         // When
-        List<Trait> traits = bulletClient.identifyUserWithTraits(null,  Arrays.asList(trait1));
+        List<Trait> traits = bulletClient.identifyUserWithTraits(null, Collections.singletonList(trait1));
 
         // Then
         // nothing return and exception thrown
