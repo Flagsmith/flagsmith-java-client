@@ -47,6 +47,17 @@ public class FlagsmithClient {
      * @return a list of feature flags
      */
     public List<Flag> getFeatureFlags(FeatureUser user) {
+        return getFeatureFlags(user, false);
+    }
+
+    /**
+     * Get a list of existing Features for the given environment and user
+     *
+     * @param user a user in context
+     * @param doThrow throw exceptions or fail silently
+     * @return a list of feature flags
+     */
+    public List<Flag> getFeatureFlags(FeatureUser user, boolean doThrow) {
         HttpUrl.Builder urlBuilder;
         if (user == null) {
             urlBuilder = defaultConfig.flagsURI.newBuilder()
@@ -68,10 +79,10 @@ public class FlagsmithClient {
                 featureFlags = Arrays.asList(mapper.readValue(response.body().string(),
                         Flag[].class));
             } else {
-                logger.httpError(request, response);
+                logger.httpError(request, response, doThrow);
             }
         } catch (IOException io) {
-            logger.httpError(request, io);
+            logger.httpError(request, io, doThrow);
         }
         logger.info("Got feature flags for user = {}, flags = {}", user, featureFlags);
         return featureFlags;
@@ -287,11 +298,23 @@ public class FlagsmithClient {
 
     /**
      * Get a list of existing user Traits and Flags for the given environment and identity user
+     * It fails silently if there is an error
      *
      * @param user a user in context
-     * @return a list of user Traits and Flags
+     * @return a list of user Traits and Flags or empty FlagsAndTraits
      */
     public FlagsAndTraits getUserFlagsAndTraits(FeatureUser user) {
+        return getUserFlagsAndTraits(user, false);
+    }
+
+    /**
+     * Get a list of existing user Traits and Flags for the given environment and identity user
+     *
+     * @param user a user in context
+     * @param doThrow indicates if errors should throw an exception or fail silently
+     * @return a list of user Traits and Flags
+     */
+    public FlagsAndTraits getUserFlagsAndTraits(FeatureUser user, boolean doThrow) {
         HttpUrl url = defaultConfig.identitiesURI.newBuilder("")
                 .addEncodedQueryParameter("identifier", user.getIdentifier())
                 .build();
@@ -308,10 +331,10 @@ public class FlagsmithClient {
                 ObjectMapper mapper = MapperFactory.getMappper();
                 flagsAndTraits = mapper.readValue(response.body().string(), FlagsAndTraits.class);
             } else {
-                logger.httpError(request, response);
+                logger.httpError(request, response, doThrow);
             }
         } catch (IOException io) {
-            logger.httpError(request, io);
+            logger.httpError(request, io, doThrow);
         }
         logger.info("Got feature flags & traits for user = {}, flagsAndTraits = {}", user, flagsAndTraits);
         return flagsAndTraits;
@@ -325,7 +348,19 @@ public class FlagsmithClient {
      * @return a Trait object or null if does not exist
      */
     public Trait updateTrait(FeatureUser user, Trait toUpdate) {
-        return postUserTraits(user, toUpdate);
+        return updateTrait(user, toUpdate, false);
+    }
+
+    /**
+     * Update user Trait for given user and Trait details.
+     *
+     * @param toUpdate a user trait to update
+     * @param user     a user in context
+     * @param doThrow  throw exceptions or fail silently
+     * @return a Trait object or null if does not exist
+     */
+    public Trait updateTrait(FeatureUser user, Trait toUpdate, boolean doThrow) {
+        return postUserTraits(user, toUpdate, doThrow);
     }
 
     /**
@@ -341,6 +376,23 @@ public class FlagsmithClient {
      * @return a list of added Trait objects
      */
     public List<Trait> identifyUserWithTraits(FeatureUser user, List<Trait> traits) {
+        return identifyUserWithTraits(user, traits, false);
+    }
+
+    /**
+     * <p>
+     * Create or update a list of user Traits for given user identity.
+     * </p>
+     * <p>
+     * Please note this will override any existing identity with given list.
+     * </p>
+     *
+     * @param user   a user in context
+     * @param traits a list of Trait object to be created or updated
+     * @param doThrow throw exceptions or fail silently
+     * @return a list of added Trait objects
+     */
+    public List<Trait> identifyUserWithTraits(FeatureUser user, List<Trait> traits, boolean doThrow) {
         // we are using identities endpoint to create bulk user Trait
         HttpUrl url = defaultConfig.identitiesURI;
 
@@ -371,16 +423,16 @@ public class FlagsmithClient {
 
                 traitsData = flagsAndTraits.getTraits();
             } else {
-                logger.httpError(request, response);
+                logger.httpError(request, response, doThrow);
             }
         } catch (IOException io) {
-            logger.httpError(request, io);
+            logger.httpError(request, io, doThrow);
         }
         logger.info("Got traits for user = {}, traits = {}", user, traitsData);
         return traitsData;
     }
 
-    private Trait postUserTraits(FeatureUser user, Trait toUpdate) {
+    private Trait postUserTraits(FeatureUser user, Trait toUpdate, boolean doThrow) {
         HttpUrl url = defaultConfig.traitsURI;
         toUpdate.setIdentity(user);
 
@@ -399,10 +451,10 @@ public class FlagsmithClient {
                 ObjectMapper mapper = MapperFactory.getMappper();
                 trait = mapper.readValue(response.body().string(), Trait.class);
             } else {
-                logger.httpError(request, response);
+                logger.httpError(request, response, doThrow);
             }
         } catch (IOException io) {
-            logger.httpError(request, io);
+            logger.httpError(request, io, doThrow);
         }
         logger.info("Updated trait for user = {}, new trait = {}, updated trait = {}", user, toUpdate, trait);
         return trait;
