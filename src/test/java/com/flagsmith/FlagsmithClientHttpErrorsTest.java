@@ -20,11 +20,11 @@ public class FlagsmithClientHttpErrorsTest {
         put("x-custom-header", "value1");
         put("x-my-key", "value2");
     }};
-    FlagsmithClient bulletClient;
+    FlagsmithClient flagsmithClient;
 
     @BeforeTest
     public void init() {
-        bulletClient = FlagsmithClient.newBuilder()
+        flagsmithClient = FlagsmithClient.newBuilder()
                 .setApiKey(API_KEY)
                 .withApiUrl("http://bad-url")
                 .withCustomHttpHeaders(customHeaders)
@@ -34,7 +34,7 @@ public class FlagsmithClientHttpErrorsTest {
 
     @Test(groups = "integration")
     public void testClient_When_Get_Features_Then_Empty() {
-        List<Flag> featureFlags = bulletClient.getFeatureFlags();
+        List<Flag> featureFlags = flagsmithClient.getFeatureFlags();
 
         assertNotNull(featureFlags, "Should feature flags back");
         assertTrue(featureFlags.isEmpty(), "Should not have test featureFlags back");
@@ -46,12 +46,20 @@ public class FlagsmithClientHttpErrorsTest {
         FeatureUser user = new FeatureUser();
         user.setIdentifier("bullet_train_sample_user");
 
-        List<Flag> featureFlags = bulletClient.getFeatureFlags(user);
+        List<Flag> featureFlags = flagsmithClient.getFeatureFlags(user);
 
         assertNotNull(featureFlags, "Should have feature flags back");
         assertTrue(featureFlags.isEmpty(), "Should not have test featureFlags back");
     }
 
+    @Test(groups = "integration", expectedExceptions = FlagsmithException.class)
+    public void testClient_When_Get_Features_For_User_Then_Throw() {
+        // context user
+        FeatureUser user = new FeatureUser();
+        user.setIdentifier("bullet_train_sample_user");
+
+        flagsmithClient.getFeatureFlags(user, true);
+    }
 
     @Test(groups = "integration")
     public void testClient_When_Get_User_Traits_Then_Null() {
@@ -59,7 +67,7 @@ public class FlagsmithClientHttpErrorsTest {
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
 
-        List<Trait> userTraits = bulletClient.getTraits(user);
+        List<Trait> userTraits = flagsmithClient.getTraits(user);
 
         assertNull(userTraits, "Should have user traits back");
     }
@@ -70,7 +78,7 @@ public class FlagsmithClientHttpErrorsTest {
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
 
-        List<Trait> userTraits = bulletClient.getTraits(user, "cookies_key");
+        List<Trait> userTraits = flagsmithClient.getTraits(user, "cookies_key");
 
         assertNull(userTraits, "Should have user traits back");
     }
@@ -81,7 +89,7 @@ public class FlagsmithClientHttpErrorsTest {
         FeatureUser user = new FeatureUser();
         user.setIdentifier("invalid_users_another_user");
 
-        List<Trait> userTraits = bulletClient.getTraits(user);
+        List<Trait> userTraits = flagsmithClient.getTraits(user);
 
         assertNull(userTraits, "Should have user traits back");
     }
@@ -92,7 +100,7 @@ public class FlagsmithClientHttpErrorsTest {
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
 
-        FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+        FlagsAndTraits userFlagsAndTraits = flagsmithClient.getUserFlagsAndTraits(user);
 
         assertNotNull(userFlagsAndTraits, "Should have user traits and flags back");
         assertNull(userFlagsAndTraits.getFlags(), "Should not have user flags back");
@@ -105,11 +113,35 @@ public class FlagsmithClientHttpErrorsTest {
         FeatureUser user = new FeatureUser();
         user.setIdentifier("invalid_users_another_user");
 
-        FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+        FlagsAndTraits userFlagsAndTraits = flagsmithClient.getUserFlagsAndTraits(user);
 
         assertNotNull(userFlagsAndTraits, "Should have user traits and flags back, not null");
         assertNull(userFlagsAndTraits.getFlags(), "Should not have user flags back");
         assertNull(userFlagsAndTraits.getTraits(), "Should not have no user traits back");
+    }
+
+    @Test(groups = "integration", expectedExceptions = FlagsmithException.class)
+    public void testClient_When_Get_User_Traits_And_Flags_Then_Throw() {
+        // context user
+        FeatureUser user = new FeatureUser();
+        user.setIdentifier("another_user");
+
+        flagsmithClient.getUserFlagsAndTraits(user, true);
+    }
+
+    @Test(groups = "integration", expectedExceptions = FlagsmithException.class)
+    public void testClient_When_Get_User_Traits_And_Flags_Then_Throw_evenIfLoggingDisabled() {
+        // context user
+        FeatureUser user = new FeatureUser();
+        user.setIdentifier("another_user");
+
+        flagsmithClient = FlagsmithClient.newBuilder()
+            .setApiKey(API_KEY)
+            .withApiUrl("http://bad-url")
+            .withCustomHttpHeaders(customHeaders)
+            .build();
+
+        flagsmithClient.getUserFlagsAndTraits(user, true);
     }
 
     @Test(groups = "integration")
@@ -118,7 +150,7 @@ public class FlagsmithClientHttpErrorsTest {
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
 
-        FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+        FlagsAndTraits userFlagsAndTraits = flagsmithClient.getUserFlagsAndTraits(user);
 
         Trait userTrait = FlagsmithClient.getTrait(userFlagsAndTraits, "cookies_key");
 
@@ -131,7 +163,7 @@ public class FlagsmithClientHttpErrorsTest {
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
 
-        FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+        FlagsAndTraits userFlagsAndTraits = flagsmithClient.getUserFlagsAndTraits(user);
 
         List<Trait> traits = FlagsmithClient.getTraits(userFlagsAndTraits, "cookies_key");
 
@@ -144,7 +176,7 @@ public class FlagsmithClientHttpErrorsTest {
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
 
-        FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+        FlagsAndTraits userFlagsAndTraits = flagsmithClient.getUserFlagsAndTraits(user);
 
         String featureFlagValue = FlagsmithClient.getFeatureFlagValue("font_size", userFlagsAndTraits);
 
@@ -157,7 +189,7 @@ public class FlagsmithClientHttpErrorsTest {
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
 
-        FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+        FlagsAndTraits userFlagsAndTraits = flagsmithClient.getUserFlagsAndTraits(user);
 
         boolean enabled = FlagsmithClient.hasFeatureFlag("hero", userFlagsAndTraits);
 
@@ -169,7 +201,7 @@ public class FlagsmithClientHttpErrorsTest {
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
 
-        Trait userTrait = bulletClient.getTrait(user, "cookies_key");
+        Trait userTrait = flagsmithClient.getTrait(user, "cookies_key");
 
         assertNull(userTrait, "Should not have user traits back");
     }
@@ -184,8 +216,21 @@ public class FlagsmithClientHttpErrorsTest {
         userTrait.setIdentity(user);
         userTrait.setKey("some_trait");
         userTrait.setValue("new value");
-        Trait updated = bulletClient.updateTrait(user, userTrait);
+        Trait updated = flagsmithClient.updateTrait(user, userTrait);
         assertNull(updated, "Should not have updated user traits back");
+    }
+
+
+    @Test(groups = "integration", expectedExceptions = FlagsmithException.class)
+    public void testClient_When_Get_User_Trait_Update_Then_Throw() {
+        FeatureUser user = new FeatureUser();
+        user.setIdentifier("another_user");
+
+        Trait userTrait = new Trait();
+        userTrait.setIdentity(user);
+        userTrait.setKey("some_trait");
+        userTrait.setValue("new value");
+        flagsmithClient.updateTrait(user, userTrait, true);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class, groups = "integration")
@@ -196,7 +241,7 @@ public class FlagsmithClientHttpErrorsTest {
         trait1.setValue("some value1");
 
         // When
-        List<Trait> traits = bulletClient.identifyUserWithTraits(null, Collections.singletonList(trait1));
+        List<Trait> traits = flagsmithClient.identifyUserWithTraits(null, Collections.singletonList(trait1));
 
         // Then
         // nothing return and exception thrown
@@ -218,9 +263,23 @@ public class FlagsmithClientHttpErrorsTest {
         trait2.setValue("some value2");
 
         // When
-        List<Trait> traits = bulletClient.identifyUserWithTraits(user,  Arrays.asList(trait1, trait2));
+        List<Trait> traits = flagsmithClient.identifyUserWithTraits(user,  Arrays.asList(trait1, trait2));
 
         // Then
         assertTrue(traits.isEmpty(), "Should not have traits returned");
+    }
+
+    @Test(groups = "integration", expectedExceptions = FlagsmithException.class)
+    public void testClient_When_Add_Traits_For_Identity_Then_Throw() {
+        // Given
+        FeatureUser user = new FeatureUser();
+        user.setIdentifier("another_user");
+
+        Trait trait1 = new Trait();
+        trait1.setKey("trait_1");
+        trait1.setValue("some value1");
+
+        // When
+        flagsmithClient.identifyUserWithTraits(user,  Arrays.asList(trait1), true);
     }
 }

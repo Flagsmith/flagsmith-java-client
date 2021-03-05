@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 
+import static java.text.MessageFormat.format;
+
 public class FlagsmithLogger {
   private Logger logger;
   private FlagsmithLoggerLevel level = FlagsmithLoggerLevel.ERROR;
@@ -19,26 +21,48 @@ public class FlagsmithLogger {
     this.logger = logger;
   }
 
-  public void httpError(Request request, Response response) {
-    if (logger != null) {
-      String body = null;
-      try {
-        body = response.body().string();
-      } catch (IOException e) {
-      }
-      logger.error("Flagsmith: error when getting flags. Request: {}, Response: {} body[{}]", request.url(), response, body);
+  public void httpError(Request request, Response response, boolean doThrow) {
+    if (!isLoggingEnabled(FlagsmithLoggerLevel.ERROR) && !doThrow) {
+      return;
+    }
+
+    String body = null;
+    try {
+      body = response.body().string();
+    } catch (IOException e) {
+    }
+
+    String errorMessage = format("Flagsmith: error when getting flags. Request: {0}, Response: {1} body[{2}]",
+        request.url(), response, body);
+
+    if (doThrow) {
+      throw new FlagsmithException(errorMessage);
+    } else {
+      logger.error(errorMessage);
     }
   }
 
-  public void httpError(Request request, IOException io) {
-    if (logger != null) {
+  public void httpError(Request request, IOException io, boolean doReThrow) {
+    if (doReThrow) {
+      throw new FlagsmithException(io);
+    } else if (isLoggingEnabled(FlagsmithLoggerLevel.ERROR)) {
       logger.error("Flagsmith: error when getting flags. Request: {}", request.url(), io);
     }
   }
 
+  public void error(String var1, Object... var2) {
+    if (isLoggingEnabled(FlagsmithLoggerLevel.ERROR)) {
+      logger.error("Flagsmith: " + var1, var2);
+    }
+  }
+
   public void info(String var1, Object... var2) {
-    if (logger != null && FlagsmithLoggerLevel.INFO.getValue() >= level.getValue()) {
+    if (isLoggingEnabled(FlagsmithLoggerLevel.INFO)) {
       logger.info("Flagsmith: " + var1, var2);
     }
+  }
+
+  private boolean isLoggingEnabled(FlagsmithLoggerLevel loggerLevel) {
+    return logger != null && loggerLevel.getValue() >= level.getValue();
   }
 }
