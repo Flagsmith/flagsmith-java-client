@@ -20,7 +20,7 @@ public class IdentityTraitTest {
             "  \n" +
             "]}";
 
-    @Test(groups = "integration")
+    @Test(groups = "unit")
     public void test_When_Parsed_Then_Success() throws IOException {
 
         IdentityTraits trait = new IdentityTraits();
