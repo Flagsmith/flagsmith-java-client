@@ -16,8 +16,10 @@ import static com.flagsmith.FlagsmithTestHelper.flag;
 import static com.flagsmith.FlagsmithTestHelper.switchFlag;
 import static com.flagsmith.FlagsmithTestHelper.switchFlagForUser;
 import static com.flagsmith.FlagsmithTestHelper.trait;
+import static com.flagsmith.FlagsmithTestHelper.traitValueWhenUserAlreadyExists;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertNull;
 
 /**
  * Unit tests are env specific and will probably will need to adjust keys, identities and
@@ -439,5 +441,50 @@ public class FlagsmithClientTest {
                         trait(null, "trait_1", "some value1"),
                         trait(null, "trait_2", "some value2")
                 );
+    }
+
+    @Test(groups = "integration")
+    public void testClient_When_Add_Traits_For_Identity_To_Existing_Identity_Then_Success() {
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+            "testClient_When_Add_Traits_For_Identity_Then_Success",
+            "TEST");
+
+        final FeatureUser user = featureUser("i-am-user-with-traits");
+
+        List<Trait> traits = environment.client.identifyUserWithTraits(user, Arrays.asList(
+            trait(null, "trait_1", "some value1"),
+            trait(null, "trait_2", "some value2")));
+
+        assertThat(traits)
+            .hasSize(2)
+            .containsExactlyInAnyOrder(
+                trait(null, "trait_1", "some value1"),
+                trait(null, "trait_2", "some value2")
+            );
+
+        // Update existing identity
+        traits = environment.client.identifyUserWithTraits(user, Arrays.asList(
+            trait(null, "extra_trait", "extra value"),
+            trait(null, "trait_1", "updated value1"),
+            trait(null, "trait_2", "some value2")));
+
+        assertThat(traits)
+            .hasSize(3)
+            .containsExactlyInAnyOrder(
+                trait(null, "extra_trait", traitValueWhenUserAlreadyExists("extra value")),
+                trait(null, "trait_1", traitValueWhenUserAlreadyExists("updated value1")),
+                trait(null, "trait_2", traitValueWhenUserAlreadyExists("some value2"))
+            );
+    }
+
+    @Test(groups = "integration")
+    public void testClient_When_Cache_Disabled_Return_Null() {
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+            "testClient_When_Cache_Disabled_Return_Null",
+            "TEST");
+
+        FlagsmithCache cache = environment.client.getCache();
+
+        assertNull(cache);
     }
 }

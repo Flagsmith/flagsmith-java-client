@@ -26,6 +26,15 @@ public class Trait implements Serializable {
     @JsonProperty("trait_value")
     private String value;
 
+    public Trait() {
+    }
+
+    public Trait(FeatureUser identity, String key, String value) {
+        this.identity = identity;
+        this.key = key;
+        this.value = value;
+    }
+
     @JsonIgnore
     public void parse(String data) throws IOException {
         ObjectMapper mapper = MapperFactory.getMappper();
@@ -37,6 +46,7 @@ public class Trait implements Serializable {
     private void fromPrototype(Trait prototype) {
         setKey(prototype.getKey());
         setValue(prototype.getValue());
+        setIdentity(prototype.getIdentity());
     }
 
     @JsonIgnore

@@ -14,15 +14,24 @@ import static com.flagsmith.IntegrationSuiteTest.BACKEND_PORT;
 public class FlagsmithTestHelper {
 
   public static ProjectEnvironment createProjectEnvironment(String projectName, String environmentName) {
+    return createProjectEnvironment(projectName, environmentName, false);
+  }
+
+  public static ProjectEnvironment createProjectEnvironment(String projectName, String environmentName, boolean cached) {
     final int projectId = createProject(projectName, IntegrationSuiteTest.TestData.organisationId);
 
     final Map<String, Object> environment = createEnvironment(environmentName, projectId);
     final String environmentApiKey = (String) environment.get("api_key");
 
-    final FlagsmithClient client = FlagsmithClient.newBuilder()
+    FlagsmithClient.Builder clientBuilder = FlagsmithClient.newBuilder()
         .withApiUrl(String.format("http://localhost:%d/api/v1/", IntegrationSuiteTest.TestData.backend.getMappedPort(BACKEND_PORT)))
-        .setApiKey(environmentApiKey)
-        .build();
+        .setApiKey(environmentApiKey);
+    if (cached) {
+      clientBuilder.withCache(FlagsmithCacheConfig.newBuilder()
+          .maxSize(2)
+          .build());
+    }
+    final FlagsmithClient client = clientBuilder.build();
     return new ProjectEnvironment(environmentApiKey, projectId, client);
   }
 
@@ -294,5 +303,11 @@ public class FlagsmithTestHelper {
     return new Headers(
         new Header("Content-type", "application/json"),
         new Header("Authorization", "Token " + IntegrationSuiteTest.TestData.token));
+  }
+
+  // This seems to be a bug in the API
+  // Once fixed, we would expect to see only the value
+  public static String traitValueWhenUserAlreadyExists(String val) {
+    return "{'type': 'unicode', 'value': '" + val + "'}";
   }
 }
