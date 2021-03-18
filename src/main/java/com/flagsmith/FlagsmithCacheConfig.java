@@ -70,6 +70,10 @@ public final class FlagsmithCacheConfig {
       return cache.stats();
     }
 
+    public FlagsAndTraits getIfPresent(String key) {
+      return cache.getIfPresent(key);
+    }
+
     public Cache<String, FlagsAndTraits> getCache() {
       return cache;
     }

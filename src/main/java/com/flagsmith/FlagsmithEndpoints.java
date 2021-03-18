@@ -16,7 +16,7 @@ import java.util.List;
 
 class FlagsmithEndpoints implements FlagsmithSDK {
 
-  final FlagsmithLogger logger;
+  private final FlagsmithLogger logger;
   private final FlagsmithConfig defaultConfig;
   private final HashMap<String, String> customHeaders;
   private static final String AUTH_HEADER = "X-Environment-Key";
@@ -68,6 +68,8 @@ class FlagsmithEndpoints implements FlagsmithSDK {
 
   @Override
   public FlagsAndTraits getUserFlagsAndTraits(FeatureUser user, boolean doThrow) {
+    assertValidUser(user);
+
     HttpUrl url = defaultConfig.identitiesURI.newBuilder("")
         .addEncodedQueryParameter("identifier", user.getIdentifier())
         .build();
@@ -95,12 +97,10 @@ class FlagsmithEndpoints implements FlagsmithSDK {
 
   @Override
   public FlagsAndTraits identifyUserWithTraits(FeatureUser user, List<Trait> traits, boolean doThrow) {
+    assertValidUser(user);
+
     // we are using identities endpoint to create bulk user Trait
     HttpUrl url = defaultConfig.identitiesURI;
-
-    if (user == null || (user.getIdentifier() == null || user.getIdentifier().length() < 1)) {
-      throw new IllegalArgumentException("Missing user Identifier");
-    }
 
     IdentityTraits identityTraits = new IdentityTraits();
     identityTraits.setIdentifier(user.getIdentifier());
@@ -159,6 +159,10 @@ class FlagsmithEndpoints implements FlagsmithSDK {
     }
     logger.info("Updated trait for user = {}, new trait = {}, updated trait = {}", user, toUpdate, trait);
     return trait;
+  }
+
+  public FlagsmithLogger getLogger() {
+    return logger;
   }
 
   private Request.Builder newRequestBuilder() {

@@ -420,7 +420,20 @@ public class FlagsmithClientTest {
                 environment.client.identifyUserWithTraits(null,
                         Collections.singletonList(trait(null, "x", "y"))))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Missing user Identifier");
+                .hasMessage("user is marked non-null but is null");
+    }
+
+    @Test(groups = "integration")
+    public void testClient_When_Add_Traits_For_Identity_With_Missing_User_Identifier_Then_Failed() {
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+            "testClient_When_Add_Traits_For_Identity_With_Missing_Identity_Then_Failed",
+            "TEST");
+
+        assertThatThrownBy(() ->
+            environment.client.identifyUserWithTraits(new FeatureUser(),
+                Collections.singletonList(trait(null, "x", "y"))))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Missing user identifier");
     }
 
     @Test(groups = "integration")

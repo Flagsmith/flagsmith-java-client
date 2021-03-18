@@ -209,8 +209,7 @@ public class FlagsmithClient {
      * @return a list of user Trait
      */
     public List<Trait> getTraits(FeatureUser user, String... keys) {
-        List<Trait> traits = getUserTraits(user);
-        return getTraitsByKeys(traits, keys);
+        return getTraitsByKeys(getUserTraits(user), keys);
     }
 
     /**
@@ -219,10 +218,7 @@ public class FlagsmithClient {
      * @return a list of user Trait
      */
     public static List<Trait> getTraits(FlagsAndTraits flagsAndTraits, String... keys) {
-        if (flagsAndTraits == null) {
-            return null;
-        }
-        return getTraitsByKeys(flagsAndTraits.getTraits(), keys);
+        return flagsAndTraits == null ? null : getTraitsByKeys(flagsAndTraits.getTraits(), keys);
     }
 
     /**
@@ -334,6 +330,11 @@ public class FlagsmithClient {
         return flagsmithSDK.identifyUserWithTraits(user, traits, doThrow).getTraits();
     }
 
+    /**
+     * This method returns a Flagsmith cache object that encapsulates methods to manipulate the cache.
+     *
+     * @return if enabled - a flagsmith cache object that exposes methods to manipulate the cache, otherwise null.
+     */
     public FlagsmithCache getCache() {
         return this.flagsmithSDK.getCache();
     }
@@ -441,7 +442,7 @@ public class FlagsmithClient {
         }
 
         public FlagsmithClient build() {
-            FlagsmithEndpoints flagsmithEndpoints = new FlagsmithEndpoints(this.configuration, this.customHeaders, client.logger, apiKey);
+            final FlagsmithEndpoints flagsmithEndpoints = new FlagsmithEndpoints(this.configuration, this.customHeaders, client.logger, apiKey);
             if (cacheConfig != null) {
                 this.client.flagsmithSDK = new FlagsmithCachedEndpoints(cacheConfig.cache, flagsmithEndpoints);
             } else {

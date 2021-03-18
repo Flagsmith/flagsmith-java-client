@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.testng.Assert.assertNull;
 
 @Test(groups = "integration")
 public class FlagsmithCachedClientTest {
@@ -35,6 +36,10 @@ public class FlagsmithCachedClientTest {
   private FeatureUser user2;
   private FeatureUser user3;
   private boolean user2feature1initValue = true;
+
+  // User 2 initial trait
+  private static final String user2traitKey = "foo1";
+  private static final String user2traitVal = "xxx";
 
   @BeforeMethod(groups = "integration")
   public void setup() {
@@ -63,7 +68,7 @@ public class FlagsmithCachedClientTest {
 
     switchFlagForUser(featureId, userId2, user2feature1initValue, environment.apiKey);
 
-    assignTraitToUserIdentity(user2.getIdentifier(), "foo1", "xxx", environment.apiKey);
+    assignTraitToUserIdentity(user2.getIdentifier(), user2traitKey, user2traitVal, environment.apiKey);
     assignTraitToUserIdentity("mr-user-999", "foo2", "yyy", environment.apiKey);
 
     clientCache = environment.client.getCache();
@@ -102,6 +107,8 @@ public class FlagsmithCachedClientTest {
 
     clientCache.invalidate(user1.getIdentifier());
     assertEquals(1, clientCache.estimatedSize());
+    assertNull(clientCache.getIfPresent(user1.getIdentifier()));
+    assertNotNull(clientCache.getIfPresent(user2.getIdentifier()));
   }
 
   @Test(groups = "integration")
@@ -109,15 +116,21 @@ public class FlagsmithCachedClientTest {
     // Act: cache populated with 1 entry
     environment.client.getUserFlagsAndTraits(user1);
     assertEquals(1, clientCache.estimatedSize());
+    assertNotNull(clientCache.getIfPresent(user1.getIdentifier()));
 
     // Act: cache populated with 2 entries
     environment.client.getFeatureFlags(user2);
     assertEquals(2, clientCache.estimatedSize());
+    assertNotNull(clientCache.getIfPresent(user1.getIdentifier()));
+    assertNotNull(clientCache.getIfPresent(user2.getIdentifier()));
 
     // Act: cache remains with 2 entries
     environment.client.getUserFlagsAndTraits(user3);
     clientCache.cleanUp();
     assertEquals(2, clientCache.estimatedSize());
+    assertNull(clientCache.getIfPresent(user1.getIdentifier()));
+    assertNotNull(clientCache.getIfPresent(user2.getIdentifier()));
+    assertNotNull(clientCache.getIfPresent(user3.getIdentifier()));
   }
 
   @Test(groups = "integration")
@@ -186,6 +199,12 @@ public class FlagsmithCachedClientTest {
     assertEquals(1, clientCache.estimatedSize());
     assertNotNull(flagsAndTraits1);
 
+    createFeature(new FlagsmithTestHelper.FlagFeature(
+        "a-new-flag",
+        null,
+        environment.projectId,
+        false));
+
     final FlagsAndTraits flagsAndTraits1Again = environment.client.getUserFlagsAndTraits(user1);
     assertEquals(1, clientCache.estimatedSize());
     assertNotNull(flagsAndTraits1Again);
@@ -194,48 +213,50 @@ public class FlagsmithCachedClientTest {
 
   @Test(groups = "integration")
   public void testClient_When_Get_User_Traits_And_Flags_Then_Refetches_Only_If_Not_Present() {
-    // Act: cache populated with 2 entries
+    // Cache populated with 2 entries
     environment.client.getUserFlagsAndTraits(user3);
-    FlagsAndTraits flagsAndTraits2 = environment.client.getUserFlagsAndTraits(user2);
+    final FlagsAndTraits flagsAndTraitsFromApi1stCall = environment.client.getUserFlagsAndTraits(user2);
     assertEquals(2, clientCache.estimatedSize());
 
-    // Act: get flags from cache instead of reading new values from API
-    final boolean newFlagValue = !user2feature1initValue;
-    switchFlagForUser(featureId, userId2, newFlagValue, environment.apiKey);
-    assignTraitToUserIdentity("mr-user-2", "trait2", "new-trait-val", environment.apiKey);
-    final FlagsAndTraits flagsAndTraits2Again = environment.client.getUserFlagsAndTraits(user2);
-    assertEquals(2, clientCache.estimatedSize());
-    assertEquals(flagsAndTraits2, flagsAndTraits2Again);
-
-    assertNotNull(flagsAndTraits2);
-    assertThat(flagsAndTraits2.getFlags())
+    assertNotNull(flagsAndTraitsFromApi1stCall);
+    assertThat(flagsAndTraitsFromApi1stCall.getFlags())
         .hasSize(2)
         .containsExactlyInAnyOrder(
             flag("Flag to be enabled for the user", null, true),
             flag("Other Flag", null, false)
         );
-    assertThat(flagsAndTraits2.getTraits())
+    assertThat(flagsAndTraitsFromApi1stCall.getTraits())
         .hasSize(1)
-        .contains(trait(null, "foo1", "xxx"));
+        .contains(trait(null, user2traitKey, user2traitVal));
 
-    // Act: clean cache should fetch new traits
+    // Modify existing flag value and assign a new trait to user 2 in the API
+    final boolean newFlagValue = !user2feature1initValue;
+    switchFlagForUser(featureId, userId2, newFlagValue, environment.apiKey);
+    assignTraitToUserIdentity("mr-user-2", "trait2", "new-trait-val", environment.apiKey);
+
+    // Get flags from cache instead of reading new values from API
+    final FlagsAndTraits flagsAndTraitsFromCache2ndCall = environment.client.getUserFlagsAndTraits(user2);
+    assertEquals(2, clientCache.estimatedSize());
+    assertEquals(flagsAndTraitsFromApi1stCall, flagsAndTraitsFromCache2ndCall);
+
+    // Clean cache should fetch new flag value and traits
     clientCache.invalidate("mr-user-2");
     assertEquals(1, clientCache.estimatedSize());
-    flagsAndTraits2 = environment.client.getUserFlagsAndTraits(user2);
+    final FlagsAndTraits flagsAndTraitsFromApi3rdCall = environment.client.getUserFlagsAndTraits(user2);
     assertEquals(2, clientCache.estimatedSize());
-    assertNotEquals(flagsAndTraits2, flagsAndTraits2Again);
+    assertNotEquals(flagsAndTraitsFromApi3rdCall, flagsAndTraitsFromCache2ndCall);
 
-    assertNotNull(flagsAndTraits2);
-    assertThat(flagsAndTraits2.getFlags())
+    assertNotNull(flagsAndTraitsFromApi3rdCall);
+    assertThat(flagsAndTraitsFromApi3rdCall.getFlags())
         .hasSize(2)
         .containsExactlyInAnyOrder(
             flag("Flag to be enabled for the user", null, newFlagValue),
             flag("Other Flag", null, false)
         );
-    assertThat(flagsAndTraits2.getTraits())
+    assertThat(flagsAndTraitsFromApi3rdCall.getTraits())
         .hasSize(2)
         .containsExactlyInAnyOrder(
-            trait(null, "foo1", "xxx"),
+            trait(null, user2traitKey, user2traitVal),
             trait(null, "trait2", "new-trait-val")
         );
   }
@@ -244,17 +265,17 @@ public class FlagsmithCachedClientTest {
   public void testClient_When_Get_User_Trait_Update_Then_Cached() {
     assertEquals(0, clientCache.estimatedSize());
 
-    final Trait trait1 = environment.client.getTrait(user2, "foo1");
+    final Trait trait1 = environment.client.getTrait(user2, user2traitKey);
 
     assertEquals(1, clientCache.estimatedSize());
     assertNotNull(trait1);
-    assertEquals("foo1", trait1.getKey());
-    assertEquals("xxx", trait1.getValue());
+    assertEquals(user2traitKey, trait1.getKey());
+    assertEquals(user2traitVal, trait1.getValue());
   }
 
   @Test(groups = "integration")
   public void testClient_When_Get_User_Trait_Update_Then_Not_Cached() {
-    final String traitKey = "foo1";
+    final String traitKey = user2traitKey;
 
     environment.client.updateTrait(user2, trait(user2.getIdentifier(), traitKey, "new value"));
     assertEquals(0, clientCache.estimatedSize());
@@ -267,20 +288,19 @@ public class FlagsmithCachedClientTest {
   @Test(groups = "integration")
   public void testClient_When_Get_User_Trait_Update_Then_Updated_Although_Cached() {
     // Arrange
-    final String traitKey = "foo1";
     assignTraitToUserIdentity(user2.getIdentifier(), "unchanged", "stable-value", environment.apiKey);
 
-    assertThat(environment.client.getTrait(user2, traitKey))
-        .isEqualTo(trait(null, traitKey, "xxx"));
+    assertThat(environment.client.getTrait(user2, user2traitKey))
+        .isEqualTo(trait(null, user2traitKey, user2traitVal));
     assertEquals(1, clientCache.estimatedSize());
 
     // Act
-    environment.client.updateTrait(user2, trait(user2.getIdentifier(), traitKey, "new value"));
+    environment.client.updateTrait(user2, trait(user2.getIdentifier(), user2traitKey, "new value"));
     assertEquals(0, clientCache.estimatedSize());
 
     // Assert
-    assertThat(environment.client.getTrait(user2, traitKey))
-        .isEqualTo(trait(null, traitKey, "new value"));
+    assertThat(environment.client.getTrait(user2, user2traitKey))
+        .isEqualTo(trait(null, user2traitKey, "new value"));
     assertEquals(1, clientCache.estimatedSize());
 
     assertThat(environment.client.getTrait(user2, "unchanged"))
@@ -291,33 +311,31 @@ public class FlagsmithCachedClientTest {
   @Test(groups = "integration")
   public void testClient_When_Get_User_Trait_Update_Then_Dont_Update_When_Trait_Unchanged() {
     // Arrange
-    final String traitKey = "foo1";
-    final String traitValOld = "xxx";
     final String traitValNew = "new-val";
 
     // get and cache value from API
-    assertThat(environment.client.getTrait(user2, traitKey))
-        .isEqualTo(trait(null, traitKey, traitValOld));
+    assertThat(environment.client.getTrait(user2, user2traitKey))
+        .isEqualTo(trait(null, user2traitKey, user2traitVal));
     assertEquals(1, clientCache.estimatedSize());
 
     // modify value in API only, old value still cached
-    assignTraitToUserIdentity(user2.getIdentifier(), traitKey, traitValNew, environment.apiKey);
+    assignTraitToUserIdentity(user2.getIdentifier(), user2traitKey, traitValNew, environment.apiKey);
     assignTraitToUserIdentity(user2.getIdentifier(), "unchanged", "stable-value", environment.apiKey);
 
     // cache remains the same
-    environment.client.updateTrait(user2, trait(user2.getIdentifier(), traitKey, traitValOld));
+    environment.client.updateTrait(user2, trait(user2.getIdentifier(), user2traitKey, user2traitVal));
     assertEquals(1, clientCache.estimatedSize());
 
     // get cached old value
-    assertThat(environment.client.getTrait(user2, traitKey))
-        .isEqualTo(trait(null, traitKey, traitValOld));
+    assertThat(environment.client.getTrait(user2, user2traitKey))
+        .isEqualTo(trait(null, user2traitKey, user2traitVal));
     assertEquals(1, clientCache.estimatedSize());
     clientCache.invalidateAll();
     assertEquals(0, clientCache.estimatedSize());
 
     // get new value from API
-    assertThat(environment.client.getTrait(user2, traitKey))
-        .isEqualTo(trait(null, traitKey, traitValNew));
+    assertThat(environment.client.getTrait(user2, user2traitKey))
+        .isEqualTo(trait(null, user2traitKey, traitValNew));
     assertEquals(1, clientCache.estimatedSize());
 
     assertThat(environment.client.getTrait(user2, "unchanged"))
@@ -334,7 +352,7 @@ public class FlagsmithCachedClientTest {
     assertThat(traits)
         .hasSize(3)
         .containsExactlyInAnyOrder(
-            trait(null, "foo1", "xxx"),
+            trait(null, user2traitKey, user2traitVal),
             trait(null, "trait_1", traitValueWhenUserAlreadyExists("some value1")),
             trait(null, "trait_2", traitValueWhenUserAlreadyExists("some value2"))
         );
@@ -347,7 +365,7 @@ public class FlagsmithCachedClientTest {
     assertThat(traits)
         .hasSize(4)
         .containsExactlyInAnyOrder(
-            trait(null, "foo1", "xxx"),
+            trait(null, user2traitKey, user2traitVal),
             trait(null, "trait_1", traitValueWhenUserAlreadyExists("updated value1")),
             trait(null, "trait_2", traitValueWhenUserAlreadyExists("updated value2")),
             trait(null, "trait_3", traitValueWhenUserAlreadyExists("updated value3"))
