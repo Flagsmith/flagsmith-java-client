@@ -442,11 +442,11 @@ public class FlagsmithClient {
         }
 
         public FlagsmithClient build() {
-            final FlagsmithEndpoints flagsmithEndpoints = new FlagsmithEndpoints(this.configuration, this.customHeaders, client.logger, apiKey);
+            final FlagsmithAPIWrapper flagsmithAPIWrapper = new FlagsmithAPIWrapper(this.configuration, this.customHeaders, client.logger, apiKey);
             if (cacheConfig != null) {
-                this.client.flagsmithSDK = new FlagsmithCachedEndpoints(cacheConfig.cache, flagsmithEndpoints);
+                this.client.flagsmithSDK = new FlagsmithCachedAPIWrapper(cacheConfig.cache, flagsmithAPIWrapper);
             } else {
-                this.client.flagsmithSDK = flagsmithEndpoints;
+                this.client.flagsmithSDK = flagsmithAPIWrapper;
             }
             return this.client;
         }

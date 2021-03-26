@@ -14,7 +14,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-class FlagsmithEndpoints implements FlagsmithSDK {
+class FlagsmithAPIWrapper implements FlagsmithSDK {
 
   private final FlagsmithLogger logger;
   private final FlagsmithConfig defaultConfig;
@@ -24,10 +24,10 @@ class FlagsmithEndpoints implements FlagsmithSDK {
   // an api key per environment
   private final String apiKey;
 
-  public FlagsmithEndpoints(final FlagsmithConfig defaultConfig,
-                            final HashMap<String, String> customHeaders,
-                            final FlagsmithLogger logger,
-                            final String apiKey) {
+  public FlagsmithAPIWrapper(final FlagsmithConfig defaultConfig,
+                             final HashMap<String, String> customHeaders,
+                             final FlagsmithLogger logger,
+                             final String apiKey) {
     this.defaultConfig = defaultConfig;
     this.customHeaders = customHeaders;
     this.logger = logger;

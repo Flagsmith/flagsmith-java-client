@@ -2,29 +2,29 @@ package com.flagsmith;
 
 import java.util.List;
 
-class FlagsmithCachedEndpoints implements FlagsmithSDK {
-  private final FlagsmithEndpoints flagsmithEndpoints;
+class FlagsmithCachedAPIWrapper implements FlagsmithSDK {
+  private final FlagsmithAPIWrapper flagsmithAPIWrapper;
   private final FlagsmithCacheConfig.FlagsmithInternalCache cache;
 
-  public FlagsmithCachedEndpoints(final FlagsmithCacheConfig.FlagsmithInternalCache cache, final FlagsmithEndpoints flagsmithEndpoints) {
+  public FlagsmithCachedAPIWrapper(final FlagsmithCacheConfig.FlagsmithInternalCache cache, final FlagsmithAPIWrapper flagsmithAPIWrapper) {
     this.cache = cache;
-    this.flagsmithEndpoints = flagsmithEndpoints;
+    this.flagsmithAPIWrapper = flagsmithAPIWrapper;
   }
 
   @Override
   public FlagsAndTraits getFeatureFlags(FeatureUser user, boolean doThrow) {
     if (user == null) {
       // not caching project flags yet
-      return flagsmithEndpoints.getFeatureFlags(null, doThrow);
+      return flagsmithAPIWrapper.getFeatureFlags(null, doThrow);
     }
     assertValidUser(user);
-    return cache.getCache().get(user.getIdentifier(), k -> flagsmithEndpoints.getFeatureFlags(user, doThrow));
+    return cache.getCache().get(user.getIdentifier(), k -> flagsmithAPIWrapper.getFeatureFlags(user, doThrow));
   }
 
   @Override
   public FlagsAndTraits getUserFlagsAndTraits(FeatureUser user, boolean doThrow) {
     assertValidUser(user);
-    return cache.getCache().get(user.getIdentifier(), k -> flagsmithEndpoints.getUserFlagsAndTraits(user, doThrow));
+    return cache.getCache().get(user.getIdentifier(), k -> flagsmithAPIWrapper.getUserFlagsAndTraits(user, doThrow));
   }
 
   @Override
@@ -36,18 +36,18 @@ class FlagsmithCachedEndpoints implements FlagsmithSDK {
     if (flagsAndTraits != null &&
         flagsAndTraits.getTraits() != null &&
         flagsAndTraits.getTraits().contains(newTrait)) {
-      flagsmithEndpoints.getLogger().info("User trait unchanged for user {}, trait: {}", user.getIdentifier(), toUpdate);
+      flagsmithAPIWrapper.getLogger().info("User trait unchanged for user {}, trait: {}", user.getIdentifier(), toUpdate);
       return toUpdate;
     }
     // cache exists but does not match the target trait, lets invalidate this cache entry
     cache.getCache().invalidate(user.getIdentifier());
-    return flagsmithEndpoints.postUserTraits(user, toUpdate, doThrow);
+    return flagsmithAPIWrapper.postUserTraits(user, toUpdate, doThrow);
   }
 
   @Override
   public FlagsAndTraits identifyUserWithTraits(FeatureUser user, List<Trait> traits, boolean doThrow) {
     assertValidUser(user);
-    FlagsAndTraits flagsAndTraits = flagsmithEndpoints.identifyUserWithTraits(user, traits, doThrow);
+    FlagsAndTraits flagsAndTraits = flagsmithAPIWrapper.identifyUserWithTraits(user, traits, doThrow);
     cache.getCache().put(user.getIdentifier(), flagsAndTraits);
     return flagsAndTraits;
   }

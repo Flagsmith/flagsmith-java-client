@@ -9,6 +9,9 @@ import java.util.concurrent.TimeUnit;
 public final class FlagsmithCacheConfig {
 
   final FlagsmithInternalCache cache;
+  private static final int DEFAULT_MAX_SIZE = 10;
+  private static final int DEFAULT_EXPIRE_AFTER_WRITE = 5;
+  private static final TimeUnit DEFAULT_EXPIRE_AFTER_WRITE_TIMEUNIT = TimeUnit.MINUTES;
 
   private FlagsmithCacheConfig(Builder builder) {
     Caffeine<Object, Object> caffeineBuilder = Caffeine.newBuilder();
@@ -28,14 +31,10 @@ public final class FlagsmithCacheConfig {
           .maximumSize(builder.maxSize);
     }
 
-    if (builder.maxWeight > -1) {
-      caffeineBuilder = caffeineBuilder
-          .maximumWeight(builder.maxWeight);
-    }
-
     if (builder.recordStats) {
       caffeineBuilder = caffeineBuilder.recordStats();
     }
+
     this.cache = new FlagsmithInternalCache(caffeineBuilder.build());
   }
 
@@ -80,12 +79,11 @@ public final class FlagsmithCacheConfig {
   }
 
   public static class Builder {
-    private TimeUnit expireAfterWriteTimeUnit;
-    private int expireAfterWrite = -1;
+    private TimeUnit expireAfterWriteTimeUnit = DEFAULT_EXPIRE_AFTER_WRITE_TIMEUNIT;
+    private int expireAfterWrite = DEFAULT_EXPIRE_AFTER_WRITE;
     private TimeUnit expireAfterAccessTimeUnit;
     private int expireAfterAccess = -1;
-    private int maxSize = -1;
-    private int maxWeight = -1;
+    private int maxSize = DEFAULT_MAX_SIZE;
     private boolean recordStats = false;
 
     private Builder() {
@@ -131,18 +129,6 @@ public final class FlagsmithCacheConfig {
      */
     public Builder maxSize(int maxSize) {
       this.maxSize = maxSize;
-      return this;
-    }
-
-    /**
-     * Specifies the maximum weight of entries the cache may contain.
-     *
-     * @param maxWeight weight. When size is zero, elements will be evicted immediately after being loaded into the cache.
-     *                This can be useful in testing, or to disable caching temporarily without a code change.
-     * @return the Builder
-     */
-    public Builder maxWeight(int maxWeight) {
-      this.maxWeight = maxWeight;
       return this;
     }
 
