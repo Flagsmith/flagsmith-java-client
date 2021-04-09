@@ -29,9 +29,8 @@ public class FlagTest {
             "    \"identity\": null\n" +
             "  }";
 
-    @Test(groups = "integration")
+    @Test(groups = "unit")
     public void test_When_Parsed_Then_Success() throws IOException {
-
         Flag flag = new Flag();
         flag.parse(json);
 

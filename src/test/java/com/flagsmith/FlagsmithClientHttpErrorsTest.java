@@ -1,10 +1,11 @@
 package com.flagsmith;
 
-import java.util.Collections;
-import org.testng.annotations.BeforeTest;
+import org.junit.Assert;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -22,7 +23,7 @@ public class FlagsmithClientHttpErrorsTest {
     }};
     FlagsmithClient flagsmithClient;
 
-    @BeforeTest
+    @BeforeMethod(groups = "integration-offline")
     public void init() {
         flagsmithClient = FlagsmithClient.newBuilder()
                 .setApiKey(API_KEY)
@@ -32,7 +33,7 @@ public class FlagsmithClientHttpErrorsTest {
                 .build();
     }
 
-    @Test(groups = "integration")
+    @Test(groups = "integration-offline")
     public void testClient_When_Get_Features_Then_Empty() {
         List<Flag> featureFlags = flagsmithClient.getFeatureFlags();
 
@@ -40,7 +41,7 @@ public class FlagsmithClientHttpErrorsTest {
         assertTrue(featureFlags.isEmpty(), "Should not have test featureFlags back");
     }
 
-    @Test(groups = "integration")
+    @Test(groups = "integration-offline")
     public void testClient_When_Get_Features_For_User_Then_Empty() {
         // context user
         FeatureUser user = new FeatureUser();
@@ -52,7 +53,7 @@ public class FlagsmithClientHttpErrorsTest {
         assertTrue(featureFlags.isEmpty(), "Should not have test featureFlags back");
     }
 
-    @Test(groups = "integration", expectedExceptions = FlagsmithException.class)
+    @Test(groups = "integration-offline", expectedExceptions = FlagsmithException.class)
     public void testClient_When_Get_Features_For_User_Then_Throw() {
         // context user
         FeatureUser user = new FeatureUser();
@@ -61,7 +62,7 @@ public class FlagsmithClientHttpErrorsTest {
         flagsmithClient.getFeatureFlags(user, true);
     }
 
-    @Test(groups = "integration")
+    @Test(groups = "integration-offline")
     public void testClient_When_Get_User_Traits_Then_Null() {
         // context user
         FeatureUser user = new FeatureUser();
@@ -69,10 +70,11 @@ public class FlagsmithClientHttpErrorsTest {
 
         List<Trait> userTraits = flagsmithClient.getTraits(user);
 
-        assertNull(userTraits, "Should have user traits back");
+        assertNotNull(userTraits, "Should not have null user traits back");
+        assertTrue(userTraits.isEmpty(), "Should not have user traits back");
     }
 
-    @Test(groups = "integration")
+    @Test(groups = "integration-offline")
     public void testClient_When_Get_User_Traits_For_Keys_Then_Null() {
         // context user
         FeatureUser user = new FeatureUser();
@@ -80,10 +82,11 @@ public class FlagsmithClientHttpErrorsTest {
 
         List<Trait> userTraits = flagsmithClient.getTraits(user, "cookies_key");
 
-        assertNull(userTraits, "Should have user traits back");
+        assertNotNull(userTraits, "Should not have null user traits back");
+        assertTrue(userTraits.isEmpty(), "Should not have user traits back");
     }
 
-    @Test(groups = "integration")
+    @Test(groups = "integration-offline")
     public void testClient_When_Get_User_Traits_For_Invalid_User_Then_Return_Null() {
         // context user
         FeatureUser user = new FeatureUser();
@@ -91,10 +94,11 @@ public class FlagsmithClientHttpErrorsTest {
 
         List<Trait> userTraits = flagsmithClient.getTraits(user);
 
-        assertNull(userTraits, "Should have user traits back");
+        assertNotNull(userTraits, "Should not have null user traits back");
+        assertTrue(userTraits.isEmpty(), "Should not have user traits back");
     }
 
-    @Test(groups = "integration")
+    @Test(groups = "integration-offline")
     public void testClient_When_Get_User_Traits_And_Flags_For_Keys_Then_Null_Lists() {
         // context user
         FeatureUser user = new FeatureUser();
@@ -102,12 +106,14 @@ public class FlagsmithClientHttpErrorsTest {
 
         FlagsAndTraits userFlagsAndTraits = flagsmithClient.getUserFlagsAndTraits(user);
 
-        assertNotNull(userFlagsAndTraits, "Should have user traits and flags back");
-        assertNull(userFlagsAndTraits.getFlags(), "Should not have user flags back");
-        assertNull(userFlagsAndTraits.getTraits(), "Should not have user traits back");
+        assertNotNull(userFlagsAndTraits, "Should have user traits and flags back, not null");
+        assertNotNull(userFlagsAndTraits.getFlags(), "Should not have null user flags back");
+        assertTrue(userFlagsAndTraits.getFlags().isEmpty(), "Should not have user flags back");
+        assertNotNull(userFlagsAndTraits.getTraits(), "Should not have null user traits back");
+        assertTrue(userFlagsAndTraits.getTraits().isEmpty(), "Should not have user traits back");
     }
 
-    @Test(groups = "integration")
+    @Test(groups = "integration-offline")
     public void testClient_When_Get_User_Traits_And_Flags_For_Invalid_User_Then_Return_Null_Lists() {
         // context user
         FeatureUser user = new FeatureUser();
@@ -116,11 +122,13 @@ public class FlagsmithClientHttpErrorsTest {
         FlagsAndTraits userFlagsAndTraits = flagsmithClient.getUserFlagsAndTraits(user);
 
         assertNotNull(userFlagsAndTraits, "Should have user traits and flags back, not null");
-        assertNull(userFlagsAndTraits.getFlags(), "Should not have user flags back");
-        assertNull(userFlagsAndTraits.getTraits(), "Should not have no user traits back");
+        assertNotNull(userFlagsAndTraits.getFlags(), "Should not have null user flags back");
+        assertTrue(userFlagsAndTraits.getFlags().isEmpty(), "Should not have user flags back");
+        assertNotNull(userFlagsAndTraits.getTraits(), "Should not have null user traits back");
+        assertTrue(userFlagsAndTraits.getTraits().isEmpty(), "Should not have user traits back");
     }
 
-    @Test(groups = "integration", expectedExceptions = FlagsmithException.class)
+    @Test(groups = "integration-offline", expectedExceptions = FlagsmithException.class)
     public void testClient_When_Get_User_Traits_And_Flags_Then_Throw() {
         // context user
         FeatureUser user = new FeatureUser();
@@ -129,7 +137,7 @@ public class FlagsmithClientHttpErrorsTest {
         flagsmithClient.getUserFlagsAndTraits(user, true);
     }
 
-    @Test(groups = "integration", expectedExceptions = FlagsmithException.class)
+    @Test(groups = "integration-offline", expectedExceptions = FlagsmithException.class)
     public void testClient_When_Get_User_Traits_And_Flags_Then_Throw_evenIfLoggingDisabled() {
         // context user
         FeatureUser user = new FeatureUser();
@@ -144,7 +152,21 @@ public class FlagsmithClientHttpErrorsTest {
         flagsmithClient.getUserFlagsAndTraits(user, true);
     }
 
-    @Test(groups = "integration")
+    @Test(groups = "integration-offline", expectedExceptions = FlagsmithException.class)
+    public void testClient_When_Cached_Get_User_Traits_And_Flags_Then_Throw() {
+        FeatureUser user = new FeatureUser();
+        user.setIdentifier("another_user");
+
+        flagsmithClient = FlagsmithClient.newBuilder()
+            .setApiKey(API_KEY)
+            .withApiUrl("http://bad-url")
+            .withCache(FlagsmithCacheConfig.newBuilder().build())
+            .build();
+
+        flagsmithClient.getUserFlagsAndTraits(user, true);
+    }
+
+    @Test(groups = "integration-offline")
     public void testClient_When_Get_User_Trait_From_Traits_And_Flags_For_Keys_Then_Null() {
         // context user
         FeatureUser user = new FeatureUser();
@@ -157,7 +179,7 @@ public class FlagsmithClientHttpErrorsTest {
         assertNull(userTrait, "Should not have user traits back");
     }
 
-    @Test(groups = "integration")
+    @Test(groups = "integration-offline")
     public void testClient_When_Get_User_Traits_From_Traits_And_Flags_For_Keys_Then_Null() {
         // context user
         FeatureUser user = new FeatureUser();
@@ -165,12 +187,13 @@ public class FlagsmithClientHttpErrorsTest {
 
         FlagsAndTraits userFlagsAndTraits = flagsmithClient.getUserFlagsAndTraits(user);
 
-        List<Trait> traits = FlagsmithClient.getTraits(userFlagsAndTraits, "cookies_key");
+        List<Trait> userTraits = FlagsmithClient.getTraits(userFlagsAndTraits, "cookies_key");
 
-        assertNull(traits, "Should not have user traits back");
+        assertNotNull(userTraits, "Should not have null user traits back");
+        assertTrue(userTraits.isEmpty(), "Should not have user traits back");
     }
 
-    @Test(groups = "integration")
+    @Test(groups = "integration-offline")
     public void testClient_When_Get_User_FLag_Value_From_Traits_And_Flags_For_Keys_Then_Null() {
         // context user
         FeatureUser user = new FeatureUser();
@@ -183,7 +206,7 @@ public class FlagsmithClientHttpErrorsTest {
         assertNull(featureFlagValue, "Should not have feature");
     }
 
-    @Test(groups = "integration")
+    @Test(groups = "integration-offline")
     public void testClient_When_Get_User_FLag_Enabled_From_Traits_And_Flags_For_Keys_Then_False() {
         // context user
         FeatureUser user = new FeatureUser();
@@ -196,7 +219,7 @@ public class FlagsmithClientHttpErrorsTest {
         assertFalse(enabled, "Should not have feature enabled");
     }
 
-    @Test(groups = "integration")
+    @Test(groups = "integration-offline")
     public void testClient_When_Get_User_Trait_Then_Null() {
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
@@ -207,7 +230,7 @@ public class FlagsmithClientHttpErrorsTest {
     }
 
 
-    @Test(groups = "integration")
+    @Test(groups = "integration-offline")
     public void testClient_When_Get_User_Trait_Update_Then_Null() {
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
@@ -221,7 +244,7 @@ public class FlagsmithClientHttpErrorsTest {
     }
 
 
-    @Test(groups = "integration", expectedExceptions = FlagsmithException.class)
+    @Test(groups = "integration-offline", expectedExceptions = FlagsmithException.class)
     public void testClient_When_Get_User_Trait_Update_Then_Throw() {
         FeatureUser user = new FeatureUser();
         user.setIdentifier("another_user");
@@ -233,7 +256,7 @@ public class FlagsmithClientHttpErrorsTest {
         flagsmithClient.updateTrait(user, userTrait, true);
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class, groups = "integration")
+    @Test(expectedExceptions = IllegalArgumentException.class, groups = "integration-offline")
     public void testClient_When_Add_Traits_For_Identity_With_Missing_Identity_Then_Failed() {
         // Given traits and no user Identity
         Trait trait1 = new Trait();
@@ -248,7 +271,7 @@ public class FlagsmithClientHttpErrorsTest {
         assertTrue(traits.size() == 0, "Should not return any traits");
     }
 
-    @Test(groups = "integration")
+    @Test(groups = "integration-offline")
     public void testClient_When_Add_Traits_For_Identity_Then_Success() {
         // Given
         FeatureUser user = new FeatureUser();
@@ -269,7 +292,7 @@ public class FlagsmithClientHttpErrorsTest {
         assertTrue(traits.isEmpty(), "Should not have traits returned");
     }
 
-    @Test(groups = "integration", expectedExceptions = FlagsmithException.class)
+    @Test(groups = "integration-offline", expectedExceptions = FlagsmithException.class)
     public void testClient_When_Add_Traits_For_Identity_Then_Throw() {
         // Given
         FeatureUser user = new FeatureUser();
@@ -281,5 +304,12 @@ public class FlagsmithClientHttpErrorsTest {
 
         // When
         flagsmithClient.identifyUserWithTraits(user,  Arrays.asList(trait1), true);
+    }
+
+    @Test(groups = "integration-offline")
+    public void testClient_When_Cache_Disabled_Return_Null() {
+        FlagsmithCache cache = flagsmithClient.getCache();
+
+        Assert.assertNull(cache);
     }
 }
