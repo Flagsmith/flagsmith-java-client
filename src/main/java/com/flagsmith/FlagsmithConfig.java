@@ -1,6 +1,7 @@
 package com.flagsmith;
 
 import okhttp3.HttpUrl;
+import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -37,6 +38,9 @@ public final class FlagsmithConfig {
         if (builder.sslSocketFactory != null && builder.trustManager != null) {
             httpBuilder = httpBuilder.sslSocketFactory(builder.sslSocketFactory, builder.trustManager);
         }
+        if (builder.interceptor != null) {
+            httpBuilder = httpBuilder.addInterceptor(builder.interceptor);
+        }
         this.httpClient = httpBuilder.build();
     }
 
@@ -51,6 +55,7 @@ public final class FlagsmithConfig {
         private int readTimeoutMillis = DEFAULT_READ_TIMEOUT_MILLIS;
         private SSLSocketFactory sslSocketFactory;
         private X509TrustManager trustManager;
+        private Interceptor interceptor;
 
         private Builder() {
         }
@@ -111,6 +116,17 @@ public final class FlagsmithConfig {
         public Builder sslSocketFactory(SSLSocketFactory sslSocketFactory, X509TrustManager trustManager) {
             this.sslSocketFactory = sslSocketFactory;
             this.trustManager = trustManager;
+            return this;
+        }
+
+        /**
+         * Add a custom HTTP interceptor.
+         *
+         * @param interceptor the HTTP interceptor
+         * @return the Builder
+         */
+        public Builder addHttpInterceptor(Interceptor interceptor) {
+            this.interceptor = interceptor;
             return this;
         }
 

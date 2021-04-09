@@ -16,7 +16,6 @@ import static com.flagsmith.FlagsmithTestHelper.flag;
 import static com.flagsmith.FlagsmithTestHelper.switchFlag;
 import static com.flagsmith.FlagsmithTestHelper.switchFlagForUser;
 import static com.flagsmith.FlagsmithTestHelper.trait;
-import static com.flagsmith.FlagsmithTestHelper.traitValueWhenUserAlreadyExists;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertNull;
@@ -484,9 +483,9 @@ public class FlagsmithClientTest {
         assertThat(traits)
             .hasSize(3)
             .containsExactlyInAnyOrder(
-                trait(null, "extra_trait", traitValueWhenUserAlreadyExists("extra value")),
-                trait(null, "trait_1", traitValueWhenUserAlreadyExists("updated value1")),
-                trait(null, "trait_2", traitValueWhenUserAlreadyExists("some value2"))
+                trait(null, "extra_trait", "extra value"),
+                trait(null, "trait_1", "updated value1"),
+                trait(null, "trait_2", "some value2")
             );
     }
 

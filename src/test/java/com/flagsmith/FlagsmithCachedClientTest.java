@@ -16,7 +16,6 @@ import static com.flagsmith.FlagsmithTestHelper.featureUser;
 import static com.flagsmith.FlagsmithTestHelper.flag;
 import static com.flagsmith.FlagsmithTestHelper.switchFlagForUser;
 import static com.flagsmith.FlagsmithTestHelper.trait;
-import static com.flagsmith.FlagsmithTestHelper.traitValueWhenUserAlreadyExists;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -353,8 +352,8 @@ public class FlagsmithCachedClientTest {
         .hasSize(3)
         .containsExactlyInAnyOrder(
             trait(null, user2traitKey, user2traitVal),
-            trait(null, "trait_1", traitValueWhenUserAlreadyExists("some value1")),
-            trait(null, "trait_2", traitValueWhenUserAlreadyExists("some value2"))
+            trait(null, "trait_1", "some value1"),
+            trait(null, "trait_2", "some value2")
         );
 
     traits = environment.client.identifyUserWithTraits(user2, Arrays.asList(
@@ -366,9 +365,9 @@ public class FlagsmithCachedClientTest {
         .hasSize(4)
         .containsExactlyInAnyOrder(
             trait(null, user2traitKey, user2traitVal),
-            trait(null, "trait_1", traitValueWhenUserAlreadyExists("updated value1")),
-            trait(null, "trait_2", traitValueWhenUserAlreadyExists("updated value2")),
-            trait(null, "trait_3", traitValueWhenUserAlreadyExists("updated value3"))
+            trait(null, "trait_1", "updated value1"),
+            trait(null, "trait_2", "updated value2"),
+            trait(null, "trait_3", "updated value3")
         );
   }
 }
