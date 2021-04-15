@@ -344,7 +344,7 @@ public class FlagsmithClientTest {
         final FeatureUser user = featureUser("mr-user");
 
         final FlagsAndTraits flagsAndTraits = environment.client.getUserFlagsAndTraits(user);
-        final String fontSize = FlagsmithClient.getFeatureFlagValue("font_size", flagsAndTraits);
+        final String fontSize = environment.client.getFeatureFlagValue("font_size", flagsAndTraits);
         assertThat(fontSize)
                 .isEqualTo("11pt");
     }
@@ -368,7 +368,7 @@ public class FlagsmithClientTest {
         final FeatureUser user = featureUser("mr-user");
 
         final FlagsAndTraits flagsAndTraits = environment.client.getUserFlagsAndTraits(user);
-        final boolean enabled = FlagsmithClient.hasFeatureFlag("The Flag", flagsAndTraits);
+        final boolean enabled = environment.client.hasFeatureFlag("The Flag", flagsAndTraits);
         assertThat(enabled)
                 .isTrue();
     }
@@ -465,27 +465,30 @@ public class FlagsmithClientTest {
 
         List<Trait> traits = environment.client.identifyUserWithTraits(user, Arrays.asList(
             trait(null, "trait_1", "some value1"),
-            trait(null, "trait_2", "some value2")));
-
-        assertThat(traits)
-            .hasSize(2)
-            .containsExactlyInAnyOrder(
-                trait(null, "trait_1", "some value1"),
-                trait(null, "trait_2", "some value2")
-            );
-
-        // Update existing identity
-        traits = environment.client.identifyUserWithTraits(user, Arrays.asList(
-            trait(null, "extra_trait", "extra value"),
-            trait(null, "trait_1", "updated value1"),
-            trait(null, "trait_2", "some value2")));
+            trait(null, "trait_2", "some value2"),
+            trait(null, "trait_3", "some value3")));
 
         assertThat(traits)
             .hasSize(3)
             .containsExactlyInAnyOrder(
+                trait(null, "trait_1", "some value1"),
+                trait(null, "trait_2", "some value2"),
+                trait(null, "trait_3", "some value3")
+            );
+
+        // Update existing identity (trait 2 is missing on purpose)
+        traits = environment.client.identifyUserWithTraits(user, Arrays.asList(
+            trait(null, "extra_trait", "extra value"),
+            trait(null, "trait_1", "updated value1"),
+            trait(null, "trait_3", "some value3")));
+
+        assertThat(traits)
+            .hasSize(4)
+            .containsExactlyInAnyOrder(
                 trait(null, "extra_trait", "extra value"),
                 trait(null, "trait_1", "updated value1"),
-                trait(null, "trait_2", "some value2")
+                trait(null, "trait_2", "some value2"),
+                trait(null, "trait_3", "some value3")
             );
     }
 
