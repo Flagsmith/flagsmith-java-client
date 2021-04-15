@@ -33,7 +33,7 @@ public class IntegrationSuiteTest {
         .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("flagsmith-db")));
     postgres.start();
 
-    TestData.backend = new GenericContainer<>(DockerImageName.parse("flagsmith/flagsmith-api:v2-5-2"))
+    TestData.backend = new GenericContainer<>(DockerImageName.parse("flagsmith/flagsmith-api:latest"))
         .withNetwork(network)
         .withNetworkAliases("flagsmith-be")
         .withEnv("DJANGO_ALLOWED_HOSTS", "*")

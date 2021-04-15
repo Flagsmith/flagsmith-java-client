@@ -304,10 +304,4 @@ public class FlagsmithTestHelper {
         new Header("Content-type", "application/json"),
         new Header("Authorization", "Token " + IntegrationSuiteTest.TestData.token));
   }
-
-  // This seems to be a bug in the API
-  // Once fixed, we would expect to see only the value
-  public static String traitValueWhenUserAlreadyExists(String val) {
-    return "{'type': 'unicode', 'value': '" + val + "'}";
-  }
 }
