@@ -32,4 +32,14 @@ public class FlagsmithConfigTest {
     assertEquals(6666, flagsmithConfig.httpClient.writeTimeoutMillis());
     assertEquals(1234, flagsmithConfig.httpClient.connectTimeoutMillis());
   }
+
+  @Test(groups = "unit")
+  public void configTest_multipleInterceptors() {
+    final FlagsmithConfig flagsmithConfig = FlagsmithConfig.newBuilder()
+        .addHttpInterceptor(new MockInterceptor())
+        .addHttpInterceptor(new MockInterceptor())
+        .build();
+
+    assertEquals(2, flagsmithConfig.httpClient.interceptors().size());
+  }
 }

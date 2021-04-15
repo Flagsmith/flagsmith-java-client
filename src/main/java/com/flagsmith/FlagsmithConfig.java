@@ -6,6 +6,8 @@ import okhttp3.OkHttpClient;
 
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -38,8 +40,8 @@ public final class FlagsmithConfig {
         if (builder.sslSocketFactory != null && builder.trustManager != null) {
             httpBuilder = httpBuilder.sslSocketFactory(builder.sslSocketFactory, builder.trustManager);
         }
-        if (builder.interceptor != null) {
-            httpBuilder = httpBuilder.addInterceptor(builder.interceptor);
+        for (final Interceptor interceptor: builder.interceptors) {
+            httpBuilder = httpBuilder.addInterceptor(interceptor);
         }
         this.httpClient = httpBuilder.build();
     }
@@ -55,7 +57,7 @@ public final class FlagsmithConfig {
         private int readTimeoutMillis = DEFAULT_READ_TIMEOUT_MILLIS;
         private SSLSocketFactory sslSocketFactory;
         private X509TrustManager trustManager;
-        private Interceptor interceptor;
+        private final List<Interceptor> interceptors = new ArrayList<>();
 
         private Builder() {
         }
@@ -126,7 +128,7 @@ public final class FlagsmithConfig {
          * @return the Builder
          */
         public Builder addHttpInterceptor(Interceptor interceptor) {
-            this.interceptor = interceptor;
+            this.interceptors.add(interceptor);
             return this;
         }
 
