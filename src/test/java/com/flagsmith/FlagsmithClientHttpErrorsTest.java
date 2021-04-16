@@ -201,7 +201,7 @@ public class FlagsmithClientHttpErrorsTest {
 
         FlagsAndTraits userFlagsAndTraits = flagsmithClient.getUserFlagsAndTraits(user);
 
-        String featureFlagValue = FlagsmithClient.getFeatureFlagValue("font_size", userFlagsAndTraits);
+        String featureFlagValue = flagsmithClient.getFeatureFlagValue("font_size", userFlagsAndTraits);
 
         assertNull(featureFlagValue, "Should not have feature");
     }
@@ -214,7 +214,7 @@ public class FlagsmithClientHttpErrorsTest {
 
         FlagsAndTraits userFlagsAndTraits = flagsmithClient.getUserFlagsAndTraits(user);
 
-        boolean enabled = FlagsmithClient.hasFeatureFlag("hero", userFlagsAndTraits);
+        boolean enabled = flagsmithClient.hasFeatureFlag("hero", userFlagsAndTraits);
 
         assertFalse(enabled, "Should not have feature enabled");
     }

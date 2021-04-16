@@ -1,11 +1,14 @@
 package com.flagsmith;
 
+import lombok.NonNull;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * A client for Flagsmith API.
@@ -14,6 +17,8 @@ public class FlagsmithClient {
 
     private final FlagsmithLogger logger = new FlagsmithLogger();
     private FlagsmithSDK flagsmithSDK;
+    private Predicate<String> defaultFlagPredicate = (String flagName) -> false;
+    private Function<String, String> defaultFlagValueFunc = (String flagName) -> null;
 
     private FlagsmithClient() {
     }
@@ -78,9 +83,9 @@ public class FlagsmithClient {
      * @param flagsAndTraits flags and traits object
      * @return true if feature flag exist and enabled, false otherwise
      */
-    public static boolean hasFeatureFlag(String featureId, FlagsAndTraits flagsAndTraits) {
+    public boolean hasFeatureFlag(String featureId, FlagsAndTraits flagsAndTraits) {
         if (flagsAndTraits == null) {
-            return false;
+            return defaultFlagPredicate.test(featureId);
         }
         return hasFeatureFlagByName(featureId, flagsAndTraits.getFlags());
     }
@@ -92,15 +97,15 @@ public class FlagsmithClient {
      * @param featureFlags a list of flags
      * @return true if feature flag exist and enabled, false otherwise
      */
-    private static boolean hasFeatureFlagByName(String featureId, List<Flag> featureFlags) {
+    private boolean hasFeatureFlagByName(String featureId, List<Flag> featureFlags) {
         if (featureFlags != null) {
             for (Flag flag : featureFlags) {
-                if (flag.getFeature().getName().equals(featureId) && flag.isEnabled()) {
-                    return true;
+                if (flag.getFeature().getName().equals(featureId)) {
+                    return flag.isEnabled();
                 }
             }
         }
-        return false;
+        return defaultFlagPredicate.test(featureId);
     }
 
     /**
@@ -133,9 +138,9 @@ public class FlagsmithClient {
      * @param flagsAndTraits flags and traits object
      * @return a value for the feature or null if does not exist
      */
-    public static String getFeatureFlagValue(String featureId, FlagsAndTraits flagsAndTraits) {
+    public String getFeatureFlagValue(String featureId, FlagsAndTraits flagsAndTraits) {
         if (flagsAndTraits == null) {
-            return null;
+            return defaultFlagValueFunc.apply(featureId);
         }
         return getFeatureFlagValueByName(featureId, flagsAndTraits.getFlags());
     }
@@ -147,7 +152,7 @@ public class FlagsmithClient {
      * @param featureFlags list of feature flags
      * @return a value for the Feature or null if feature does not exist
      */
-    private static String getFeatureFlagValueByName(String featureId, List<Flag> featureFlags) {
+    private String getFeatureFlagValueByName(String featureId, List<Flag> featureFlags) {
         if (featureFlags != null) {
             for (Flag flag : featureFlags) {
                 if (flag.getFeature().getName().equals(featureId)) {
@@ -156,7 +161,7 @@ public class FlagsmithClient {
             }
         }
 
-        return null;
+        return defaultFlagValueFunc.apply(featureId);
     }
 
     /**
@@ -367,6 +372,32 @@ public class FlagsmithClient {
                 this.apiKey = apiKey;
                 return this;
             }
+        }
+
+        /**
+         * When a flag does not exist in Flagsmith or there is an error, the SDK will return false by default.
+         * If you would like to override this default behaviour, you can use this method.
+         * Default: (String flagName) -> false;
+         *
+         * @param defaultFlagPredicate the new predicate to use as default flag boolean values
+         * @return the Builder
+         */
+        public Builder setDefaultFlagPredicate(@NonNull Predicate<String> defaultFlagPredicate) {
+            this.client.defaultFlagPredicate = defaultFlagPredicate;
+            return this;
+        }
+
+        /**
+         * When a flag does not exist in Flagsmith or there is an error, the SDK will return null by default.
+         * If you would like to override this default behaviour, you can use this method.
+         * Default: (String flagName) -> null;
+         *
+         * @param defaultFlagValueFunction the new function to use as default flag string values
+         * @return the Builder
+         */
+        public Builder setDefaultFlagValueFunction(@NonNull Function<String, String> defaultFlagValueFunction) {
+            this.client.defaultFlagValueFunc = defaultFlagValueFunction;
+            return this;
         }
 
         /**
