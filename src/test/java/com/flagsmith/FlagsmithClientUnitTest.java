@@ -12,7 +12,7 @@ public class FlagsmithClientUnitTest {
 
   private FlagsmithClient.Builder builder;
 
-  @BeforeMethod(groups = "integration-offline")
+  @BeforeMethod(groups = "unit")
   public void init() {
     builder = FlagsmithClient.newBuilder()
         .setApiKey("API_KEY")
@@ -26,7 +26,7 @@ public class FlagsmithClientUnitTest {
     final FlagsAndTraits flagsAndTraits = null;
 
     // Act
-    boolean enabled = flagsmithClient.hasFeatureFlag("hero", flagsAndTraits);
+    final boolean enabled = flagsmithClient.hasFeatureFlag("hero", flagsAndTraits);
 
     // Assert
     assertFalse(enabled, "Should not have feature enabled");
@@ -35,16 +35,17 @@ public class FlagsmithClientUnitTest {
   @Test(groups = "unit")
   public void hasFeatureFlag_nullInput_returnTrue() {
     // Arrange
+    final String featureId = "hero";
     final FlagsmithClient flagsmithClient = builder
         .setDefaultFlagPredicate((String flagName) -> {
-          assertEquals("hero", flagName);
+          assertEquals(featureId, flagName);
           return true;
         })
         .build();
     final FlagsAndTraits flagsAndTraits = null;
 
     // Act
-    boolean enabled = flagsmithClient.hasFeatureFlag("hero", flagsAndTraits);
+    final boolean enabled = flagsmithClient.hasFeatureFlag(featureId, flagsAndTraits);
 
     // Assert
     assertTrue(enabled, "Should have feature enabled");
@@ -56,7 +57,7 @@ public class FlagsmithClientUnitTest {
     final FlagsmithClient flagsmithClient = builder.build();
 
     // Act
-    boolean enabled = flagsmithClient.hasFeatureFlag("hero");
+    final boolean enabled = flagsmithClient.hasFeatureFlag("hero");
 
     // Assert
     assertFalse(enabled, "Should not have feature enabled");
@@ -65,14 +66,15 @@ public class FlagsmithClientUnitTest {
   @Test(groups = "unit")
   public void hasFeatureFlag_nameOnly_returnTrue() {
     // Arrange
+    final String featureId = "hero";
     final FlagsmithClient flagsmithClient = builder
         .setDefaultFlagPredicate((String flagName) -> {
-          assertEquals("hero", flagName);
+          assertEquals(featureId, flagName);
           return true;
         }).build();
 
     // Act
-    boolean enabled = flagsmithClient.hasFeatureFlag("hero");
+    final boolean enabled = flagsmithClient.hasFeatureFlag(featureId);
 
     // Assert
     assertTrue(enabled, "Should have feature enabled");
@@ -85,7 +87,7 @@ public class FlagsmithClientUnitTest {
     final FlagsAndTraits flagsAndTraits = null;
 
     // Act
-    String value = flagsmithClient.getFeatureFlagValue("hero", flagsAndTraits);
+    final String value = flagsmithClient.getFeatureFlagValue("hero", flagsAndTraits);
 
     // Assert
     assertNull(value);
@@ -94,19 +96,21 @@ public class FlagsmithClientUnitTest {
   @Test(groups = "unit")
   public void getFeatureFlagValue_nullInput_returnTrue() {
     // Arrange
+    final String expectedValue = "value";
+    final String featureId = "hero";
     final FlagsmithClient flagsmithClient = builder
         .setDefaultFlagValueFunction((String flagName) -> {
-          assertEquals("hero", flagName);
-          return "value";
+          assertEquals(featureId, flagName);
+          return expectedValue;
         })
         .build();
     final FlagsAndTraits flagsAndTraits = null;
 
     // Act
-    String value = flagsmithClient.getFeatureFlagValue("hero", flagsAndTraits);
+    final String value = flagsmithClient.getFeatureFlagValue(featureId, flagsAndTraits);
 
     // Assert
-    assertEquals("value", value);
+    assertEquals(expectedValue, value);
   }
 
   @Test(groups = "unit")
@@ -115,7 +119,7 @@ public class FlagsmithClientUnitTest {
     final FlagsmithClient flagsmithClient = builder.build();
 
     // Act
-    String value = flagsmithClient.getFeatureFlagValue("hero");
+    final String value = flagsmithClient.getFeatureFlagValue("hero");
 
     // Assert
     assertNull(value);
@@ -124,16 +128,18 @@ public class FlagsmithClientUnitTest {
   @Test(groups = "unit")
   public void getFeatureFlagValue_nameOnly_returnTrue() {
     // Arrange
+    final String expectedValue = "value";
+    final String featureId = "hero";
     final FlagsmithClient flagsmithClient = builder
         .setDefaultFlagValueFunction((String flagName) -> {
-          assertEquals("hero", flagName);
-          return "value";
+          assertEquals(featureId, flagName);
+          return expectedValue;
         }).build();
 
     // Act
-    String value = flagsmithClient.getFeatureFlagValue("hero");
+    final String value = flagsmithClient.getFeatureFlagValue(featureId);
 
     // Assert
-    assertEquals("value", value);
+    assertEquals(expectedValue, value);
   }
 }
