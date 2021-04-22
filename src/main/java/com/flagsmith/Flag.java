@@ -34,7 +34,7 @@ public class Flag implements Serializable {
   /**
    * Parses given string into Flag object.
    *
-   * @param data a json data representing flag
+   * @param data a json string representing flag
    * @throws IOException when failed to parse data
    */
   @JsonIgnore
