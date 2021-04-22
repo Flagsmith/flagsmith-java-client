@@ -27,3 +27,17 @@ If you have any questions about our projects you can email <a href="mailto:suppo
 [Website](https://www.flagsmith.com/)
 
 [Documentation](https://docs.flagsmith.com/)
+
+## Code Style formatting
+
+We are using [Google Java Style](https://github.com/google/google-java-format) for code formatting.
+To add it to IntelliJ go to your IDE's settings and select the Plugins category. Click the
+Marketplace tab, search for the google-java-format plugin, and click the Install button.
+
+The plugin will be disabled by default. To enable it in the current project, go to IntelliJ
+IDEA→Preferences...→Other Settings→google-java-format Settings on macOS) and check the Enable
+google-java-format checkbox. (A notification will be presented when you first open a project
+offering to do this for you.)
+
+When enabled, it will replace the normal Reformat Code action, which can be triggered from the Code
+menu or with the `Ctrl-Alt-L` (by default) keyboard shortcut.
