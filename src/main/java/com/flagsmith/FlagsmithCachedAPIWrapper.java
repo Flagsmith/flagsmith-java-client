@@ -3,28 +3,32 @@ package com.flagsmith;
 import java.util.List;
 
 class FlagsmithCachedAPIWrapper implements FlagsmithSDK {
-  private final FlagsmithAPIWrapper flagsmithAPIWrapper;
+
+  private final FlagsmithAPIWrapper flagsmithApiWrapper;
   private final FlagsmithCacheConfig.FlagsmithInternalCache cache;
 
-  public FlagsmithCachedAPIWrapper(final FlagsmithCacheConfig.FlagsmithInternalCache cache, final FlagsmithAPIWrapper flagsmithAPIWrapper) {
+  public FlagsmithCachedAPIWrapper(final FlagsmithCacheConfig.FlagsmithInternalCache cache,
+      final FlagsmithAPIWrapper flagsmithApiWrapper) {
     this.cache = cache;
-    this.flagsmithAPIWrapper = flagsmithAPIWrapper;
+    this.flagsmithApiWrapper = flagsmithApiWrapper;
   }
 
   @Override
   public FlagsAndTraits getFeatureFlags(FeatureUser user, boolean doThrow) {
     if (user == null) {
       // not caching project flags yet
-      return flagsmithAPIWrapper.getFeatureFlags(null, doThrow);
+      return flagsmithApiWrapper.getFeatureFlags(null, doThrow);
     }
     assertValidUser(user);
-    return cache.getCache().get(user.getIdentifier(), k -> flagsmithAPIWrapper.getFeatureFlags(user, doThrow));
+    return cache.getCache()
+        .get(user.getIdentifier(), k -> flagsmithApiWrapper.getFeatureFlags(user, doThrow));
   }
 
   @Override
   public FlagsAndTraits getUserFlagsAndTraits(FeatureUser user, boolean doThrow) {
     assertValidUser(user);
-    return cache.getCache().get(user.getIdentifier(), k -> flagsmithAPIWrapper.getUserFlagsAndTraits(user, doThrow));
+    return cache.getCache()
+        .get(user.getIdentifier(), k -> flagsmithApiWrapper.getUserFlagsAndTraits(user, doThrow));
   }
 
   @Override
@@ -33,21 +37,24 @@ class FlagsmithCachedAPIWrapper implements FlagsmithSDK {
     final FlagsAndTraits flagsAndTraits = cache.getCache().getIfPresent(user.getIdentifier());
     final Trait newTrait = new Trait(null, toUpdate.getKey(), toUpdate.getValue());
     // if the trait already has the same value, then there is no need to update it
-    if (flagsAndTraits != null &&
-        flagsAndTraits.getTraits() != null &&
-        flagsAndTraits.getTraits().contains(newTrait)) {
-      flagsmithAPIWrapper.getLogger().info("User trait unchanged for user {}, trait: {}", user.getIdentifier(), toUpdate);
+    if (flagsAndTraits != null
+        && flagsAndTraits.getTraits() != null
+        && flagsAndTraits.getTraits().contains(newTrait)) {
+      flagsmithApiWrapper.getLogger()
+          .info("User trait unchanged for user {}, trait: {}", user.getIdentifier(), toUpdate);
       return toUpdate;
     }
     // cache exists but does not match the target trait, lets invalidate this cache entry
     cache.getCache().invalidate(user.getIdentifier());
-    return flagsmithAPIWrapper.postUserTraits(user, toUpdate, doThrow);
+    return flagsmithApiWrapper.postUserTraits(user, toUpdate, doThrow);
   }
 
   @Override
-  public FlagsAndTraits identifyUserWithTraits(FeatureUser user, List<Trait> traits, boolean doThrow) {
+  public FlagsAndTraits identifyUserWithTraits(FeatureUser user, List<Trait> traits,
+      boolean doThrow) {
     assertValidUser(user);
-    FlagsAndTraits flagsAndTraits = flagsmithAPIWrapper.identifyUserWithTraits(user, traits, doThrow);
+    FlagsAndTraits flagsAndTraits = flagsmithApiWrapper
+        .identifyUserWithTraits(user, traits, doThrow);
     cache.getCache().put(user.getIdentifier(), flagsAndTraits);
     return flagsAndTraits;
   }
