@@ -33,14 +33,18 @@ jobs:
         # Override automatic language detection by changing the below list
         # Supported options are ['csharp', 'cpp', 'go', 'java', 'javascript', 'python']
         language: ['java']
+        distribution: [ 'zulu', 'adopt' ]
+        java: [ '8' ]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-      - name: Setup Java JDK
-        uses: actions/setup-java@v1
+
+      - name: Set up JDK (${{ matrix.java }} ${{ matrix.distribution }})
+        uses: actions/setup-java@v2
         with:
-          java-version: 1.8
+          distribution: ${{ matrix.distribution }}
+          java-version: ${{ matrix.java }}
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v1
