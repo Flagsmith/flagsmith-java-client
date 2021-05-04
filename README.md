@@ -1,3 +1,7 @@
+[![Download](https://img.shields.io/maven-central/v/com.flagsmith/flagsmith-java-client)](https://mvnrepository.com/artifact/com.flagsmith/flagsmith-java-client)
+![build](https://github.com/Flagsmith/flagsmith-java-client/actions/workflows/maven.yml/badge.svg)
+![coverage](./.github/badges/jacoco.svg)
+
 <img width="100%" src="https://raw.githubusercontent.com/SolidStateGroup/bullet-train-frontend/master/hero.png"/>
 
 # Flagsmith Java SDK

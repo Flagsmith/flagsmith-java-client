@@ -1,0 +1,58 @@
+# This action runs GitHub's industry-leading static analysis engine, CodeQL, against a repository's source
+# code to find security vulnerabilities. It then automatically uploads the results to GitHub so they can be
+# displayed in the repository's security tab.
+#
+name: "CodeQL"
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [master]
+  schedule:
+    #        ┌───────────── minute (0 - 59)
+    #        │ ┌───────────── hour (0 - 23)
+    #        │ │ ┌───────────── day of the month (1 - 31)
+    #        │ │ │ ┌───────────── month (1 - 12 or JAN-DEC)
+    #        │ │ │ │ ┌───────────── day of the week (0 - 6 or SUN-SAT)
+    #        │ │ │ │ │
+    #        │ │ │ │ │
+    #        │ │ │ │ │
+    #        * * * * *
+    - cron: '0 0 * * 4'
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Override automatic language detection by changing the below list
+        # Supported options are ['csharp', 'cpp', 'go', 'java', 'javascript', 'python']
+        language: ['java']
+        distribution: [ 'zulu', 'adopt' ]
+        java: [ '8' ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up JDK (${{ matrix.java }} ${{ matrix.distribution }})
+        uses: actions/setup-java@v2
+        with:
+          distribution: ${{ matrix.distribution }}
+          java-version: ${{ matrix.java }}
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v1
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v1
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v1
