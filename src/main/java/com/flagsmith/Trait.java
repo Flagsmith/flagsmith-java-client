@@ -35,8 +35,8 @@ public class Trait implements Serializable {
    * All arguments constructor.
    *
    * @param identity an Identity user
-   * @param key a trait key
-   * @param value a trait value
+   * @param key      a trait key
+   * @param value    a trait value
    */
   public Trait(FeatureUser identity, String key, String value) {
     this.identity = identity;
