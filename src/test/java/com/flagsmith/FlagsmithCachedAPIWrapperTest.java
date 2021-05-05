@@ -1,12 +1,5 @@
 package com.flagsmith;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
-
-import java.util.ArrayList;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
@@ -17,6 +10,12 @@ import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertThrows;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import java.util.ArrayList;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
 @Test(groups = "unit")
 public class FlagsmithCachedAPIWrapperTest {
@@ -122,7 +121,8 @@ public class FlagsmithCachedAPIWrapperTest {
   @Test(groups = "unit")
   public void getUserFlagsAndTraits_nullUserIdentifier() {
     // Act
-    assertThrows(IllegalArgumentException.class, () -> sut.getUserFlagsAndTraits(new FeatureUser(), true));
+    assertThrows(IllegalArgumentException.class,
+        () -> sut.getUserFlagsAndTraits(new FeatureUser(), true));
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).getUserFlagsAndTraits(any(), anyBoolean());
@@ -185,7 +185,8 @@ public class FlagsmithCachedAPIWrapperTest {
   @Test(groups = "unit")
   public void postUserTraits_nullUserIdentifier() {
     // Act
-    assertThrows(IllegalArgumentException.class, () -> sut.postUserTraits(new FeatureUser(), new Trait(), true));
+    assertThrows(IllegalArgumentException.class,
+        () -> sut.postUserTraits(new FeatureUser(), new Trait(), true));
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).postUserTraits(any(), any(), anyBoolean());
@@ -288,7 +289,8 @@ public class FlagsmithCachedAPIWrapperTest {
   @Test(groups = "unit")
   public void identifyUserWithTraits_nullUser() {
     // Act
-    assertThrows(IllegalArgumentException.class, () -> sut.identifyUserWithTraits(null, new ArrayList<>(), true));
+    assertThrows(IllegalArgumentException.class,
+        () -> sut.identifyUserWithTraits(null, new ArrayList<>(), true));
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).identifyUserWithTraits(any(), any(), anyBoolean());
@@ -299,7 +301,8 @@ public class FlagsmithCachedAPIWrapperTest {
   @Test(groups = "unit")
   public void identifyUserWithTraits_nullUserIdentifier() {
     // Act
-    assertThrows(IllegalArgumentException.class, () -> sut.identifyUserWithTraits(new FeatureUser(), new ArrayList<>(), true));
+    assertThrows(IllegalArgumentException.class,
+        () -> sut.identifyUserWithTraits(new FeatureUser(), new ArrayList<>(), true));
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).identifyUserWithTraits(any(), any(), anyBoolean());

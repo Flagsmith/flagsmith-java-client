@@ -1,15 +1,14 @@
 package com.flagsmith;
 
-import com.github.benmanes.caffeine.cache.Policy;
-import org.testng.annotations.Test;
-
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
-
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
+
+import com.github.benmanes.caffeine.cache.Policy;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
+import org.testng.annotations.Test;
 
 @Test(groups = "unit")
 public class FlagsmithCacheConfigTest {
@@ -20,7 +19,8 @@ public class FlagsmithCacheConfigTest {
   @Test(groups = "unit")
   public void testNewBuilder_defaults() {
     final FlagsmithCacheConfig flagsmithCacheConfig = FlagsmithCacheConfig.newBuilder().build();
-    final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache().policy();
+    final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache()
+        .policy();
 
     assertNotNull(cachePolicy);
     assertFalse(cachePolicy.isRecordingStats());
@@ -34,7 +34,8 @@ public class FlagsmithCacheConfigTest {
 
   private void verifyDefaultAfterWrite(Policy<String, FlagsAndTraits> cachePolicy) {
     assertTrue(cachePolicy.expireAfterWrite().isPresent());
-    assertEquals(DEFAULT_EXPIRE_AFTER_WRITE, cachePolicy.expireAfterWrite().get().getExpiresAfter());
+    assertEquals(DEFAULT_EXPIRE_AFTER_WRITE,
+        cachePolicy.expireAfterWrite().get().getExpiresAfter());
   }
 
   @Test(groups = "unit")
@@ -43,7 +44,8 @@ public class FlagsmithCacheConfigTest {
         .newBuilder()
         .expireAfterWrite(30, TimeUnit.SECONDS)
         .build();
-    final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache().policy();
+    final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache()
+        .policy();
 
     assertNotNull(cachePolicy);
     assertFalse(cachePolicy.isRecordingStats());
@@ -62,7 +64,8 @@ public class FlagsmithCacheConfigTest {
         .newBuilder()
         .expireAfterAccess(20, TimeUnit.HOURS)
         .build();
-    final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache().policy();
+    final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache()
+        .policy();
 
     assertNotNull(cachePolicy);
     assertFalse(cachePolicy.isRecordingStats());
@@ -81,7 +84,8 @@ public class FlagsmithCacheConfigTest {
         .newBuilder()
         .maxSize(210)
         .build();
-    final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache().policy();
+    final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache()
+        .policy();
 
     assertNotNull(cachePolicy);
     assertFalse(cachePolicy.isRecordingStats());
@@ -101,7 +105,8 @@ public class FlagsmithCacheConfigTest {
         .newBuilder()
         .recordStats()
         .build();
-    final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache().policy();
+    final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache()
+        .policy();
 
     assertNotNull(cachePolicy);
     assertFalse(cachePolicy.refreshAfterWrite().isPresent());
@@ -111,7 +116,8 @@ public class FlagsmithCacheConfigTest {
     assertTrue(cachePolicy.isRecordingStats());
 
     assertTrue(cachePolicy.expireAfterWrite().isPresent());
-    assertEquals(DEFAULT_EXPIRE_AFTER_WRITE, cachePolicy.expireAfterWrite().get().getExpiresAfter());
+    assertEquals(DEFAULT_EXPIRE_AFTER_WRITE,
+        cachePolicy.expireAfterWrite().get().getExpiresAfter());
 
     verifyDefaultMaxSize(cachePolicy);
   }
@@ -123,7 +129,8 @@ public class FlagsmithCacheConfigTest {
         .maxSize(250)
         .recordStats()
         .build();
-    final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache().policy();
+    final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache()
+        .policy();
 
     assertNotNull(cachePolicy);
     assertFalse(cachePolicy.refreshAfterWrite().isPresent());

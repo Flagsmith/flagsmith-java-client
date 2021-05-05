@@ -1,13 +1,5 @@
 package com.flagsmith;
 
-import com.github.benmanes.caffeine.cache.stats.CacheStats;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
-
-import java.util.Arrays;
-import java.util.List;
-
 import static com.flagsmith.FlagsmithTestHelper.assignTraitToUserIdentity;
 import static com.flagsmith.FlagsmithTestHelper.createFeature;
 import static com.flagsmith.FlagsmithTestHelper.createProjectEnvironment;
@@ -21,6 +13,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.testng.Assert.assertNull;
+
+import com.github.benmanes.caffeine.cache.stats.CacheStats;
+import java.util.Arrays;
+import java.util.List;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
 @Test(groups = "integration")
 public class FlagsmithCachedClientTest {
@@ -67,7 +66,8 @@ public class FlagsmithCachedClientTest {
 
     switchFlagForUser(featureId, userId2, user2feature1initValue, environment.apiKey);
 
-    assignTraitToUserIdentity(user2.getIdentifier(), user2traitKey, user2traitVal, environment.apiKey);
+    assignTraitToUserIdentity(user2.getIdentifier(), user2traitKey, user2traitVal,
+        environment.apiKey);
     assignTraitToUserIdentity("mr-user-999", "foo2", "yyy", environment.apiKey);
 
     clientCache = environment.client.getCache();
@@ -214,7 +214,8 @@ public class FlagsmithCachedClientTest {
   public void testClient_When_Get_User_Traits_And_Flags_Then_Refetches_Only_If_Not_Present() {
     // Cache populated with 2 entries
     environment.client.getUserFlagsAndTraits(user3);
-    final FlagsAndTraits flagsAndTraitsFromApi1stCall = environment.client.getUserFlagsAndTraits(user2);
+    final FlagsAndTraits flagsAndTraitsFromApi1stCall = environment.client
+        .getUserFlagsAndTraits(user2);
     assertEquals(2, clientCache.estimatedSize());
 
     assertNotNull(flagsAndTraitsFromApi1stCall);
@@ -234,14 +235,16 @@ public class FlagsmithCachedClientTest {
     assignTraitToUserIdentity("mr-user-2", "trait2", "new-trait-val", environment.apiKey);
 
     // Get flags from cache instead of reading new values from API
-    final FlagsAndTraits flagsAndTraitsFromCache2ndCall = environment.client.getUserFlagsAndTraits(user2);
+    final FlagsAndTraits flagsAndTraitsFromCache2ndCall = environment.client
+        .getUserFlagsAndTraits(user2);
     assertEquals(2, clientCache.estimatedSize());
     assertEquals(flagsAndTraitsFromApi1stCall, flagsAndTraitsFromCache2ndCall);
 
     // Clean cache should fetch new flag value and traits
     clientCache.invalidate("mr-user-2");
     assertEquals(1, clientCache.estimatedSize());
-    final FlagsAndTraits flagsAndTraitsFromApi3rdCall = environment.client.getUserFlagsAndTraits(user2);
+    final FlagsAndTraits flagsAndTraitsFromApi3rdCall = environment.client
+        .getUserFlagsAndTraits(user2);
     assertEquals(2, clientCache.estimatedSize());
     assertNotEquals(flagsAndTraitsFromApi3rdCall, flagsAndTraitsFromCache2ndCall);
 
@@ -287,7 +290,8 @@ public class FlagsmithCachedClientTest {
   @Test(groups = "integration")
   public void testClient_When_Get_User_Trait_Update_Then_Updated_Although_Cached() {
     // Arrange
-    assignTraitToUserIdentity(user2.getIdentifier(), "unchanged", "stable-value", environment.apiKey);
+    assignTraitToUserIdentity(user2.getIdentifier(), "unchanged", "stable-value",
+        environment.apiKey);
 
     assertThat(environment.client.getTrait(user2, user2traitKey))
         .isEqualTo(trait(null, user2traitKey, user2traitVal));
@@ -318,11 +322,14 @@ public class FlagsmithCachedClientTest {
     assertEquals(1, clientCache.estimatedSize());
 
     // modify value in API only, old value still cached
-    assignTraitToUserIdentity(user2.getIdentifier(), user2traitKey, traitValNew, environment.apiKey);
-    assignTraitToUserIdentity(user2.getIdentifier(), "unchanged", "stable-value", environment.apiKey);
+    assignTraitToUserIdentity(user2.getIdentifier(), user2traitKey, traitValNew,
+        environment.apiKey);
+    assignTraitToUserIdentity(user2.getIdentifier(), "unchanged", "stable-value",
+        environment.apiKey);
 
     // cache remains the same
-    environment.client.updateTrait(user2, trait(user2.getIdentifier(), user2traitKey, user2traitVal));
+    environment.client
+        .updateTrait(user2, trait(user2.getIdentifier(), user2traitKey, user2traitVal));
     assertEquals(1, clientCache.estimatedSize());
 
     // get cached old value
