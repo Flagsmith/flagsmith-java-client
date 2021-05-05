@@ -1,32 +1,24 @@
 package com.flagsmith;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.Call;
-import okhttp3.HttpUrl;
-import okhttp3.MediaType;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import lombok.NonNull;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * A client for Flagsmith API.
  */
 public class FlagsmithClient {
 
-    private FlagsmithConfig defaultConfig;
-    private static final String AUTH_HEADER = "X-Environment-Key";
-    private static final String ACCEPT_HEADER = "Accept";
-    // an api key per environment
-    private String apiKey;
     private final FlagsmithLogger logger = new FlagsmithLogger();
-    private HashMap<String, String> customHeaders;
+    private FlagsmithSDK flagsmithSDK;
+    private Predicate<String> defaultFlagPredicate = (String flagName) -> false;
+    private Function<String, String> defaultFlagValueFunc = (String flagName) -> null;
 
     private FlagsmithClient() {
     }
@@ -47,34 +39,18 @@ public class FlagsmithClient {
      * @return a list of feature flags
      */
     public List<Flag> getFeatureFlags(FeatureUser user) {
-        HttpUrl.Builder urlBuilder;
-        if (user == null) {
-            urlBuilder = defaultConfig.flagsURI.newBuilder()
-                    .addEncodedQueryParameter("page", "1");
-        } else {
-            urlBuilder = defaultConfig.flagsURI.newBuilder("")
-                    .addEncodedPathSegment(user.getIdentifier());
-        }
+        return getFeatureFlags(user, false);
+    }
 
-        final Request request = this.newRequestBuilder()
-                .url(urlBuilder.build())
-                .build();
-
-        Call call = defaultConfig.httpClient.newCall(request);
-        List<Flag> featureFlags = new ArrayList<>();
-        try (Response response = call.execute()) {
-            if (response.isSuccessful()) {
-                ObjectMapper mapper = MapperFactory.getMappper();
-                featureFlags = Arrays.asList(mapper.readValue(response.body().string(),
-                        Flag[].class));
-            } else {
-                logger.httpError(request, response);
-            }
-        } catch (IOException io) {
-            logger.httpError(request, io);
-        }
-        logger.info("Got feature flags for user = {}, flags = {}", user, featureFlags);
-        return featureFlags;
+    /**
+     * Get a list of existing Features for the given environment and user
+     *
+     * @param user a user in context
+     * @param doThrow throw exceptions or fail silently
+     * @return a list of feature flags
+     */
+    public List<Flag> getFeatureFlags(FeatureUser user, boolean doThrow) {
+        return this.flagsmithSDK.getFeatureFlags(user, doThrow).getFlags();
     }
 
     /**
@@ -107,9 +83,9 @@ public class FlagsmithClient {
      * @param flagsAndTraits flags and traits object
      * @return true if feature flag exist and enabled, false otherwise
      */
-    public static boolean hasFeatureFlag(String featureId, FlagsAndTraits flagsAndTraits) {
+    public boolean hasFeatureFlag(String featureId, FlagsAndTraits flagsAndTraits) {
         if (flagsAndTraits == null) {
-            return false;
+            return defaultFlagPredicate.test(featureId);
         }
         return hasFeatureFlagByName(featureId, flagsAndTraits.getFlags());
     }
@@ -121,15 +97,15 @@ public class FlagsmithClient {
      * @param featureFlags a list of flags
      * @return true if feature flag exist and enabled, false otherwise
      */
-    private static boolean hasFeatureFlagByName(String featureId, List<Flag> featureFlags) {
+    private boolean hasFeatureFlagByName(String featureId, List<Flag> featureFlags) {
         if (featureFlags != null) {
             for (Flag flag : featureFlags) {
-                if (flag.getFeature().getName().equals(featureId) && flag.isEnabled()) {
-                    return true;
+                if (flag.getFeature().getName().equals(featureId)) {
+                    return flag.isEnabled();
                 }
             }
         }
-        return false;
+        return defaultFlagPredicate.test(featureId);
     }
 
     /**
@@ -162,9 +138,9 @@ public class FlagsmithClient {
      * @param flagsAndTraits flags and traits object
      * @return a value for the feature or null if does not exist
      */
-    public static String getFeatureFlagValue(String featureId, FlagsAndTraits flagsAndTraits) {
+    public String getFeatureFlagValue(String featureId, FlagsAndTraits flagsAndTraits) {
         if (flagsAndTraits == null) {
-            return null;
+            return defaultFlagValueFunc.apply(featureId);
         }
         return getFeatureFlagValueByName(featureId, flagsAndTraits.getFlags());
     }
@@ -176,7 +152,7 @@ public class FlagsmithClient {
      * @param featureFlags list of feature flags
      * @return a value for the Feature or null if feature does not exist
      */
-    private static String getFeatureFlagValueByName(String featureId, List<Flag> featureFlags) {
+    private String getFeatureFlagValueByName(String featureId, List<Flag> featureFlags) {
         if (featureFlags != null) {
             for (Flag flag : featureFlags) {
                 if (flag.getFeature().getName().equals(featureId)) {
@@ -185,7 +161,7 @@ public class FlagsmithClient {
             }
         }
 
-        return null;
+        return defaultFlagValueFunc.apply(featureId);
     }
 
     /**
@@ -238,8 +214,7 @@ public class FlagsmithClient {
      * @return a list of user Trait
      */
     public List<Trait> getTraits(FeatureUser user, String... keys) {
-        List<Trait> traits = getUserTraits(user);
-        return getTraitsByKeys(traits, keys);
+        return getTraitsByKeys(getUserTraits(user), keys);
     }
 
     /**
@@ -248,10 +223,7 @@ public class FlagsmithClient {
      * @return a list of user Trait
      */
     public static List<Trait> getTraits(FlagsAndTraits flagsAndTraits, String... keys) {
-        if (flagsAndTraits == null) {
-            return null;
-        }
-        return getTraitsByKeys(flagsAndTraits.getTraits(), keys);
+        return flagsAndTraits == null ? null : getTraitsByKeys(flagsAndTraits.getTraits(), keys);
     }
 
     /**
@@ -287,34 +259,24 @@ public class FlagsmithClient {
 
     /**
      * Get a list of existing user Traits and Flags for the given environment and identity user
+     * It fails silently if there is an error
      *
      * @param user a user in context
-     * @return a list of user Traits and Flags
+     * @return a list of user Traits and Flags or empty FlagsAndTraits
      */
     public FlagsAndTraits getUserFlagsAndTraits(FeatureUser user) {
-        HttpUrl url = defaultConfig.identitiesURI.newBuilder("")
-                .addEncodedQueryParameter("identifier", user.getIdentifier())
-                .build();
+        return getUserFlagsAndTraits(user, false);
+    }
 
-        final Request request = this.newRequestBuilder()
-                .url(url)
-                .build();
-
-        Call call = defaultConfig.httpClient.newCall(request);
-
-        FlagsAndTraits flagsAndTraits = new FlagsAndTraits();
-        try (Response response = call.execute()) {
-            if (response.isSuccessful()) {
-                ObjectMapper mapper = MapperFactory.getMappper();
-                flagsAndTraits = mapper.readValue(response.body().string(), FlagsAndTraits.class);
-            } else {
-                logger.httpError(request, response);
-            }
-        } catch (IOException io) {
-            logger.httpError(request, io);
-        }
-        logger.info("Got feature flags & traits for user = {}, flagsAndTraits = {}", user, flagsAndTraits);
-        return flagsAndTraits;
+    /**
+     * Get a list of existing user Traits and Flags for the given environment and identity user
+     *
+     * @param user a user in context
+     * @param doThrow indicates if errors should throw an exception or fail silently
+     * @return a list of user Traits and Flags
+     */
+    public FlagsAndTraits getUserFlagsAndTraits(FeatureUser user, boolean doThrow) {
+        return this.flagsmithSDK.getUserFlagsAndTraits(user, doThrow);
     }
 
     /**
@@ -325,7 +287,19 @@ public class FlagsmithClient {
      * @return a Trait object or null if does not exist
      */
     public Trait updateTrait(FeatureUser user, Trait toUpdate) {
-        return postUserTraits(user, toUpdate);
+        return updateTrait(user, toUpdate, false);
+    }
+
+    /**
+     * Update user Trait for given user and Trait details.
+     *
+     * @param toUpdate a user trait to update
+     * @param user     a user in context
+     * @param doThrow  throw exceptions or fail silently
+     * @return a Trait object or null if does not exist
+     */
+    public Trait updateTrait(FeatureUser user, Trait toUpdate, boolean doThrow) {
+        return this.flagsmithSDK.postUserTraits(user, toUpdate, doThrow);
     }
 
     /**
@@ -341,94 +315,45 @@ public class FlagsmithClient {
      * @return a list of added Trait objects
      */
     public List<Trait> identifyUserWithTraits(FeatureUser user, List<Trait> traits) {
-        // we are using identities endpoint to create bulk user Trait
-        HttpUrl url = defaultConfig.identitiesURI;
-
-        if (user == null || (user.getIdentifier() == null || user.getIdentifier().length() < 1)) {
-            throw new IllegalArgumentException("Missing user Identifier");
-        }
-
-        IdentityTraits identityTraits = new IdentityTraits();
-        identityTraits.setIdentifier(user.getIdentifier());
-        if (traits != null) {
-            identityTraits.setTraits(traits);
-        }
-
-        MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-        RequestBody body = RequestBody.create(JSON, identityTraits.toString());
-
-        final Request request = this.newRequestBuilder()
-                .post(body)
-                .url(url)
-                .build();
-
-        List<Trait> traitsData = new ArrayList<>();
-        Call call = defaultConfig.httpClient.newCall(request);
-        try (Response response = call.execute()) {
-            if (response.isSuccessful()) {
-                ObjectMapper mapper = MapperFactory.getMappper();
-                FlagsAndTraits flagsAndTraits = mapper.readValue(response.body().string(), FlagsAndTraits.class);
-
-                traitsData = flagsAndTraits.getTraits();
-            } else {
-                logger.httpError(request, response);
-            }
-        } catch (IOException io) {
-            logger.httpError(request, io);
-        }
-        logger.info("Got traits for user = {}, traits = {}", user, traitsData);
-        return traitsData;
+        return identifyUserWithTraits(user, traits, false);
     }
 
-    private Trait postUserTraits(FeatureUser user, Trait toUpdate) {
-        HttpUrl url = defaultConfig.traitsURI;
-        toUpdate.setIdentity(user);
-
-        MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-        RequestBody body = RequestBody.create(JSON, toUpdate.toString());
-
-        Request request = this.newRequestBuilder()
-                .post(body)
-                .url(url)
-                .build();
-
-        Trait trait = null;
-        Call call = defaultConfig.httpClient.newCall(request);
-        try (Response response = call.execute()) {
-            if (response.isSuccessful()) {
-                ObjectMapper mapper = MapperFactory.getMappper();
-                trait = mapper.readValue(response.body().string(), Trait.class);
-            } else {
-                logger.httpError(request, response);
-            }
-        } catch (IOException io) {
-            logger.httpError(request, io);
-        }
-        logger.info("Updated trait for user = {}, new trait = {}, updated trait = {}", user, toUpdate, trait);
-        return trait;
+    /**
+     * <p>
+     * Create or update a list of user Traits for given user identity.
+     * </p>
+     * <p>
+     * Please note this will override any existing identity with given list.
+     * </p>
+     *
+     * @param user   a user in context
+     * @param traits a list of Trait object to be created or updated
+     * @param doThrow throw exceptions or fail silently
+     * @return a list of added Trait objects
+     */
+    public List<Trait> identifyUserWithTraits(FeatureUser user, List<Trait> traits, boolean doThrow) {
+        return flagsmithSDK.identifyUserWithTraits(user, traits, doThrow).getTraits();
     }
 
+    /**
+     * This method returns a Flagsmith cache object that encapsulates methods to manipulate the cache.
+     *
+     * @return if enabled - a flagsmith cache object that exposes methods to manipulate the cache, otherwise null.
+     */
+    public FlagsmithCache getCache() {
+        return this.flagsmithSDK.getCache();
+    }
 
     public static FlagsmithClient.Builder newBuilder() {
         return new FlagsmithClient.Builder();
     }
 
-    private Request.Builder newRequestBuilder() {
-        final Request.Builder builder = new Request.Builder()
-            .header(AUTH_HEADER, apiKey)
-            .addHeader(ACCEPT_HEADER, "application/json");
-
-        if (this.customHeaders != null && !this.customHeaders.isEmpty()) {
-            this.customHeaders.forEach((k, v) -> builder.addHeader(k, v));
-        }
-
-        return builder;
-    }
-
-
     public static class Builder {
         private FlagsmithClient client;
         private FlagsmithConfig configuration = FlagsmithConfig.newBuilder().build();
+        private HashMap<String, String> customHeaders;
+        private String apiKey;
+        private FlagsmithCacheConfig cacheConfig;
 
         private Builder() {
             client = new FlagsmithClient();
@@ -444,9 +369,35 @@ public class FlagsmithClient {
             if (null == apiKey) {
                 throw new IllegalArgumentException("Api key can not be null");
             } else {
-                client.apiKey = apiKey;
+                this.apiKey = apiKey;
                 return this;
             }
+        }
+
+        /**
+         * When a flag does not exist in Flagsmith or there is an error, the SDK will return false by default.
+         * If you would like to override this default behaviour, you can use this method.
+         * Default: (String flagName) -> false;
+         *
+         * @param defaultFlagPredicate the new predicate to use as default flag boolean values
+         * @return the Builder
+         */
+        public Builder setDefaultFlagPredicate(@NonNull Predicate<String> defaultFlagPredicate) {
+            this.client.defaultFlagPredicate = defaultFlagPredicate;
+            return this;
+        }
+
+        /**
+         * When a flag does not exist in Flagsmith or there is an error, the SDK will return null by default.
+         * If you would like to override this default behaviour, you can use this method.
+         * Default: (String flagName) -> null;
+         *
+         * @param defaultFlagValueFunction the new function to use as default flag string values
+         * @return the Builder
+         */
+        public Builder setDefaultFlagValueFunction(@NonNull Function<String, String> defaultFlagValueFunction) {
+            this.client.defaultFlagValueFunc = defaultFlagValueFunction;
+            return this;
         }
 
         /**
@@ -505,13 +456,30 @@ public class FlagsmithClient {
          * @return the Builder
          */
         public Builder withCustomHttpHeaders(HashMap<String, String> customHeaders) {
-            this.client.customHeaders = customHeaders;
+            this.customHeaders = customHeaders;
+            return this;
+        }
+
+        /**
+         * Enable in-memory caching for the Flagsmith API.
+         * If no other cache configuration is set, the Caffeine defaults will be used, i.e. no limit
+         *
+         * @param cacheConfig an FlagsmithCacheConfig.
+         * @return the Builder
+         */
+        public Builder withCache(FlagsmithCacheConfig cacheConfig) {
+            this.cacheConfig = cacheConfig;
             return this;
         }
 
         public FlagsmithClient build() {
-            client.defaultConfig = this.configuration;
-            return client;
+            final FlagsmithAPIWrapper flagsmithAPIWrapper = new FlagsmithAPIWrapper(this.configuration, this.customHeaders, client.logger, apiKey);
+            if (cacheConfig != null) {
+                this.client.flagsmithSDK = new FlagsmithCachedAPIWrapper(cacheConfig.cache, flagsmithAPIWrapper);
+            } else {
+                this.client.flagsmithSDK = flagsmithAPIWrapper;
+            }
+            return this.client;
         }
     }
 }

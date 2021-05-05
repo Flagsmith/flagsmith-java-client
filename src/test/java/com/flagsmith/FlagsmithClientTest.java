@@ -1,273 +1,505 @@
 package com.flagsmith;
 
-import org.testng.annotations.BeforeTest;
-import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
-import static org.testng.Assert.assertTrue;
+import static com.flagsmith.FlagsmithTestHelper.assignTraitToUserIdentity;
+import static com.flagsmith.FlagsmithTestHelper.config;
+import static com.flagsmith.FlagsmithTestHelper.createFeature;
+import static com.flagsmith.FlagsmithTestHelper.createProjectEnvironment;
+import static com.flagsmith.FlagsmithTestHelper.createUserIdentity;
+import static com.flagsmith.FlagsmithTestHelper.featureUser;
+import static com.flagsmith.FlagsmithTestHelper.flag;
+import static com.flagsmith.FlagsmithTestHelper.switchFlag;
+import static com.flagsmith.FlagsmithTestHelper.switchFlagForUser;
+import static com.flagsmith.FlagsmithTestHelper.trait;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertNull;
 
 /**
  * Unit tests are env specific and will probably will need to adjust keys, identities and
  * features ids etc as required.
  */
+@Test(groups = "integration")
 public class FlagsmithClientTest {
-
-    private static final String API_KEY = "QjgYur4LQTwe5HpvbvhpzK";
-    FlagsmithClient bulletClient;
-
-    @BeforeTest
-    public void init() {
-        bulletClient = FlagsmithClient.newBuilder()
-                .setApiKey(API_KEY)
-                .build();
-    }
 
     @Test(groups = "integration")
     public void testClient_When_Get_Features_Then_Success() {
-        List<Flag> featureFlags = bulletClient.getFeatureFlags();
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+                "testClient_When_Get_Features_Then_Success",
+                "TEST");
 
-        assertNotNull(featureFlags, "Should feature flags back");
-        assertTrue(featureFlags.size() > 0, "Should have test featureFlags back");
+        createFeature(new FlagsmithTestHelper.FlagFeature(
+                "Flag 1",
+                "Description for Flag 1",
+                environment.projectId,
+                true));
+        createFeature(new FlagsmithTestHelper.FlagFeature(
+                "Flag 2",
+                "Description for Flag 2",
+                environment.projectId,
+                false));
+        createFeature(new FlagsmithTestHelper.ConfigFeature(
+                "Config 1",
+                "Description for Config 1",
+                environment.projectId,
+                "xxx"));
+        createFeature(new FlagsmithTestHelper.ConfigFeature(
+                "Config 2",
+                "Description for Config 2",
+                environment.projectId,
+                "foo"));
 
-        for (Flag flag : featureFlags) {
-            assertNotNull(flag.getFeature(), "Flag should have feature");
-        }
+        final List<Flag> featureFlags = environment.client.getFeatureFlags();
+
+        assertThat(featureFlags)
+                .isNotNull()
+                .hasSize(4)
+                .containsExactlyInAnyOrder(
+                        flag("Flag 1", "Description for Flag 1", true),
+                        flag("Flag 2", "Description for Flag 2", false),
+                        config("Config 1", "Description for Config 1", "xxx"),
+                        config("Config 2", "Description for Config 2", "foo")
+                );
     }
 
-    @Ignore(value = "requires specific features enabled and exist per env")
     @Test(groups = "integration")
     public void testClient_When_Has_Feature_Then_Success() {
-        // This will return false
-        boolean featureEnabled = bulletClient.hasFeatureFlag("flag_feature");
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+                "testClient_When_Has_Feature_Then_Success",
+                "TEST");
 
-        assertTrue(featureEnabled, "Should have test featureFlags back");
+        final int featureId = createFeature(new FlagsmithTestHelper.FlagFeature(
+                "Flag disabled",
+                null,
+                environment.projectId,
+                false));
+
+        switchFlag(featureId, true, environment.apiKey);
+
+        final boolean enabled = environment.client.hasFeatureFlag("Flag disabled");
+        assertThat(enabled)
+                .describedAs("Disabled by default, but enabled")
+                .isTrue();
     }
 
     @Test(groups = "integration")
     public void testClient_When_Get_Features_For_User_Then_Success() {
-        // context user
-        FeatureUser user = new FeatureUser();
-        user.setIdentifier("bullet_train_sample_user");
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+                "testClient_When_Get_Features_For_User_Then_Success",
+                "TEST");
 
-        List<Flag> featureFlags = bulletClient.getFeatureFlags(user);
+        final int featureId = createFeature(new FlagsmithTestHelper.FlagFeature(
+                "Flag to be enabled for the user",
+                null,
+                environment.projectId,
+                false));
+        createFeature(new FlagsmithTestHelper.FlagFeature(
+                "Other Flag",
+                null,
+                environment.projectId,
+                false));
 
-        assertNotNull(featureFlags, "Should have feature flags back");
-        assertTrue(featureFlags.size() > 0, "Should have test featureFlags back");
+        createUserIdentity("first-user", environment.apiKey);
+        final int secondUserId = createUserIdentity("second-user", environment.apiKey);
 
-        for (Flag flag : featureFlags) {
-            assertNotNull(flag.getFeature(), "Flag should have feature");
-        }
+        switchFlagForUser(featureId, secondUserId, true, environment.apiKey);
+
+        final FeatureUser user = featureUser("second-user");
+
+        final List<Flag> listForUserEnabled = environment.client.getFeatureFlags(user);
+        assertThat(listForUserEnabled)
+                .hasSize(2)
+                .containsExactlyInAnyOrder(
+                        flag("Flag to be enabled for the user", null, true),
+                        flag("Other Flag", null, false)
+                );
+
+        final List<Flag> listWithoutUser = environment.client.getFeatureFlags();
+        assertThat(listWithoutUser)
+                .hasSize(2)
+                .allSatisfy(flag -> assertThat(flag.isEnabled()).isFalse());
+
+        switchFlagForUser(featureId, secondUserId, false, environment.apiKey);
+
+        final List<Flag> listForUserDisabled = environment.client.getFeatureFlags(user);
+        assertThat(listForUserDisabled)
+                .hasSize(2)
+                .containsExactlyInAnyOrder(
+                        flag("Flag to be enabled for the user", null, false),
+                        flag("Other Flag", null, false)
+                );
     }
 
 
     @Test(groups = "integration")
     public void testClient_When_Get_User_Traits_Then_Success() {
-        // context user
-        FeatureUser user = new FeatureUser();
-        user.setIdentifier("another_user");
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+                "testClient_When_Get_User_Traits_Then_Success",
+                "TEST");
 
-        List<Trait> userTraits = bulletClient.getTraits(user);
+        assignTraitToUserIdentity("user-with-traits", "foo1", "bar", environment.apiKey);
+        assignTraitToUserIdentity("user-with-traits", "foo2", 123, environment.apiKey);
+        assignTraitToUserIdentity("user-with-traits", "foo3", 3.14, environment.apiKey);
+        assignTraitToUserIdentity("user-with-traits", "foo4", false, environment.apiKey);
 
-        assertNotNull(userTraits, "Should have user traits back");
-        assertTrue(userTraits.size() > 0, "Should have test featureFlags back");
+        final FeatureUser user = featureUser("user-with-traits");
 
-        for (Trait trait : userTraits) {
-            assertNotNull(trait.getValue(), "Flag should have value for trait");
-        }
+        final List<Trait> traits = environment.client.getTraits(user);
+        assertThat(traits)
+                .hasSize(4)
+                .containsExactlyInAnyOrder(
+                        trait(null, "foo1", "bar"),
+                        trait(null, "foo2", "123"),
+                        trait(null, "foo3", "3.14"),
+                        trait(null, "foo4", "false")
+                );
     }
 
     @Test(groups = "integration")
     public void testClient_When_Get_User_Traits_For_Keys_Then_Success() {
-        // context user
-        FeatureUser user = new FeatureUser();
-        user.setIdentifier("another_user");
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+                "testClient_When_Get_User_Traits_For_Keys_Then_Success",
+                "TEST");
 
-        List<Trait> userTraits = bulletClient.getTraits(user, "cookies_key");
+        assignTraitToUserIdentity("user-with-key-traits", "foo1", "xxx", environment.apiKey);
+        assignTraitToUserIdentity("user-with-key-traits", "foo2", "yyy", environment.apiKey);
+        assignTraitToUserIdentity("user-with-key-traits", "foo3", "zzz", environment.apiKey);
 
-        assertNotNull(userTraits, "Should have user traits back");
-        assertTrue(userTraits.size() == 1, "Should have test featureFlags back");
+        final FeatureUser user = featureUser("user-with-key-traits");
 
-        for (Trait trait : userTraits) {
-            assertNotNull(trait.getValue(), "Flag should have value for trait");
-        }
+        final List<Trait> traits = environment.client.getTraits(user, "foo2", "foo3", "foo-missing");
+        assertThat(traits)
+                .hasSize(2)
+                .containsExactlyInAnyOrder(
+                        trait(null, "foo2", "yyy"),
+                        trait(null, "foo3", "zzz")
+                );
+        assertThat(traits)
+                .extracting(Trait::getKey)
+                .doesNotContain("foo-missing");
     }
 
     @Test(groups = "integration")
     public void testClient_When_Get_User_Traits_For_Invalid_User_Then_Return_Empty() {
-        // context user
-        FeatureUser user = new FeatureUser();
-        user.setIdentifier("invalid_users_another_user");
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+                "testClient_When_Get_User_Traits_For_Invalid_User_Then_Return_Empty",
+                "TEST");
 
-        List<Trait> userTraits = bulletClient.getTraits(user);
+        assignTraitToUserIdentity("mr-user", "foo", "bar", environment.apiKey);
 
-        assertNotNull(userTraits, "Should have user traits back");
-        assertTrue(userTraits.isEmpty(), "Should have no user traits back");
+        final FeatureUser user = featureUser("invalid-user");
+
+        final List<Trait> traits = environment.client.getTraits(user);
+        assertThat(traits)
+                .isEmpty();
     }
 
     @Test(groups = "integration")
     public void testClient_When_Get_User_Traits_And_Flags_For_Keys_Then_Success() {
-        // context user
-        FeatureUser user = new FeatureUser();
-        user.setIdentifier("another_user");
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+                "testClient_When_Get_User_Traits_And_Flags_For_Keys_Then_Success",
+                "TEST");
 
-        FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+        final int featureId = createFeature(new FlagsmithTestHelper.FlagFeature(
+                "Flag to be enabled for the user",
+                null,
+                environment.projectId,
+                false));
+        createFeature(new FlagsmithTestHelper.FlagFeature(
+                "Other Flag",
+                null,
+                environment.projectId,
+                false));
 
-        assertNotNull(userFlagsAndTraits, "Should have user traits and flags back");
-        assertTrue(!userFlagsAndTraits.getFlags().isEmpty(), "Should have user flags back");
-        assertTrue(!userFlagsAndTraits.getTraits().isEmpty(), "Should have user traits back");
+        createUserIdentity("mr-user-1", environment.apiKey);
+        final int userId = createUserIdentity("mr-user-2", environment.apiKey);
 
-        for (Trait trait : userFlagsAndTraits.getTraits()) {
-            assertNotNull(trait.getValue(), "Flag should have value for trait");
-        }
-        for (Flag flag : userFlagsAndTraits.getFlags()) {
-            assertNotNull(flag.getFeature(), "Flag should have feature");
-        }
+        switchFlagForUser(featureId, userId, true, environment.apiKey);
+
+        assignTraitToUserIdentity("mr-user-2", "foo1", "xxx", environment.apiKey);
+        assignTraitToUserIdentity("mr-user-999", "foo2", "yyy", environment.apiKey);
+
+        final FeatureUser user = featureUser("mr-user-2");
+
+        final FlagsAndTraits flagsAndTraits = environment.client.getUserFlagsAndTraits(user);
+        assertThat(flagsAndTraits)
+                .isNotNull();
+        assertThat(flagsAndTraits.getFlags())
+                .hasSize(2)
+                .containsExactlyInAnyOrder(
+                        flag("Flag to be enabled for the user", null, true),
+                        flag("Other Flag", null, false)
+                );
+        assertThat(flagsAndTraits.getTraits())
+                .hasSize(1)
+                .contains(trait(null, "foo1", "xxx"));
     }
 
     @Test(groups = "integration")
     public void testClient_When_Get_User_Traits_And_Flags_For_Invalid_User_Then_Return_Empty() {
-        // context user
-        FeatureUser user = new FeatureUser();
-        user.setIdentifier("invalid_users_another_user");
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+                "testClient_When_Get_User_Traits_And_Flags_For_Invalid_User_Then_Return_Empty",
+                "TEST");
 
-        FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+        createFeature(new FlagsmithTestHelper.FlagFeature(
+                "The Flag",
+                null,
+                environment.projectId,
+                false));
 
-        assertNotNull(userFlagsAndTraits, "Should have user traits and flags back, not null");
-        assertTrue(!userFlagsAndTraits.getFlags().isEmpty(), "Should have user flags back");
-        assertTrue(userFlagsAndTraits.getTraits().isEmpty(), "Should have no user traits back");
+        assignTraitToUserIdentity("mr-user", "foo", "bar", environment.apiKey);
 
-        for (Flag flag : userFlagsAndTraits.getFlags()) {
-            assertNotNull(flag.getFeature(), "Flag should have feature");
-        }
+        final FeatureUser user = featureUser("different-user");
+
+        final FlagsAndTraits flagsAndTraits = environment.client.getUserFlagsAndTraits(user);
+        assertThat(flagsAndTraits)
+                .isNotNull();
+        assertThat(flagsAndTraits.getFlags())
+                .hasSize(1)
+                .contains(flag("The Flag", null, false));
+        assertThat(flagsAndTraits.getTraits())
+                .isEmpty();
     }
 
     @Test(groups = "integration")
     public void testClient_When_Get_User_Trait_From_Traits_And_Flags_For_Keys_Then_Success() {
-        // context user
-        FeatureUser user = new FeatureUser();
-        user.setIdentifier("another_user");
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+                "testClient_When_Get_User_Trait_From_Traits_And_Flags_For_Keys_Then_Success",
+                "TEST");
 
-        FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+        createFeature(new FlagsmithTestHelper.FlagFeature(
+                "The Flag",
+                null,
+                environment.projectId,
+                false));
 
-        Trait userTrait = bulletClient.getTrait(userFlagsAndTraits, "cookies_key");
+        assignTraitToUserIdentity("mr-user", "foo1", "xxx", environment.apiKey);
+        assignTraitToUserIdentity("mr-user", "foo2", "yyy", environment.apiKey);
+        assignTraitToUserIdentity("mr-user", "foo3", "zzz", environment.apiKey);
 
-        assertNotNull(userTrait, "Should have user traits back");
-        assertNotNull(userTrait.getValue(), "Should have user traits value");
+        final FeatureUser user = featureUser("mr-user");
+
+        final FlagsAndTraits flagsAndTraits = environment.client.getUserFlagsAndTraits(user);
+        final Trait trait = FlagsmithClient.getTrait(flagsAndTraits, "foo2");
+        assertThat(trait)
+                .isNotNull()
+                .isEqualTo(trait(null, "foo2", "yyy"));
     }
 
     @Test(groups = "integration")
     public void testClient_When_Get_User_Traits_From_Traits_And_Flags_For_Keys_Then_Success() {
-        // context user
-        FeatureUser user = new FeatureUser();
-        user.setIdentifier("another_user");
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+                "testClient_When_Get_User_Traits_From_Traits_And_Flags_For_Keys_Then_Success",
+                "TEST");
 
-        FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+        createFeature(new FlagsmithTestHelper.FlagFeature(
+                "The Flag",
+                null,
+                environment.projectId,
+                false));
 
-        List<Trait> traits = bulletClient.getTraits(userFlagsAndTraits, "cookies_key");
+        assignTraitToUserIdentity("mr-user", "foo1", "xxx", environment.apiKey);
+        assignTraitToUserIdentity("mr-user", "foo2", "yyy", environment.apiKey);
+        assignTraitToUserIdentity("mr-user", "foo3", "zzz", environment.apiKey);
 
-        assertNotNull(traits, "Should have user traits back");
-        assertNotNull(traits.size() == 1, "Should have 1 user trait");
-        assertNotNull(traits.get(0).getValue(), "Should have user trait value");
+        final FeatureUser user = featureUser("mr-user");
+
+        final FlagsAndTraits flagsAndTraits = environment.client.getUserFlagsAndTraits(user);
+        final List<Trait> traits = FlagsmithClient.getTraits(flagsAndTraits, "foo2", "foo3", "foo-missing");
+        assertThat(traits)
+                .hasSize(2)
+                .containsExactlyInAnyOrder(
+                        trait(null, "foo2", "yyy"),
+                        trait(null, "foo3", "zzz")
+                );
+        assertThat(traits)
+                .extracting(Trait::getKey)
+                .doesNotContain("foo-missing");
     }
 
     @Test(groups = "integration")
     public void testClient_When_Get_User_FLag_Value_From_Traits_And_Flags_For_Keys_Then_Success() {
-        // context user
-        FeatureUser user = new FeatureUser();
-        user.setIdentifier("another_user");
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+                "testClient_When_Get_User_FLag_Value_From_Traits_And_Flags_For_Keys_Then_Success",
+                "TEST");
 
-        FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+        createFeature(new FlagsmithTestHelper.FlagFeature(
+                "The Flag",
+                null,
+                environment.projectId,
+                false));
+        createFeature(new FlagsmithTestHelper.ConfigFeature(
+                "font_size",
+                null,
+                environment.projectId,
+                "11pt"));
 
-        String featureFlagValue = bulletClient.getFeatureFlagValue("font_size", userFlagsAndTraits);
+        assignTraitToUserIdentity("mr-user", "foo1", "xxx", environment.apiKey);
 
-        assertEquals("12", featureFlagValue, "Should have feature 'font_size' with value '12'");
+        final FeatureUser user = featureUser("mr-user");
+
+        final FlagsAndTraits flagsAndTraits = environment.client.getUserFlagsAndTraits(user);
+        final String fontSize = environment.client.getFeatureFlagValue("font_size", flagsAndTraits);
+        assertThat(fontSize)
+                .isEqualTo("11pt");
     }
 
     @Test(groups = "integration")
     public void testClient_When_Get_User_FLag_Enabled_From_Traits_And_Flags_For_Keys_Then_Success() {
-        // context user
-        FeatureUser user = new FeatureUser();
-        user.setIdentifier("another_user");
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+                "testClient_When_Get_User_FLag_Enabled_From_Traits_And_Flags_For_Keys_Then_Success",
+                "TEST");
 
-        FlagsAndTraits userFlagsAndTraits = bulletClient.getUserFlagsAndTraits(user);
+        final int featureId = createFeature(new FlagsmithTestHelper.FlagFeature(
+                "The Flag",
+                null,
+                environment.projectId,
+                false));
+        final int userId = createUserIdentity("mr-user", environment.apiKey);
+        switchFlagForUser(featureId, userId, true, environment.apiKey);
 
-        boolean enabled = bulletClient.hasFeatureFlag("hero", userFlagsAndTraits);
+        assignTraitToUserIdentity("mr-user", "foo1", "xxx", environment.apiKey);
 
-        assertTrue(enabled, "Should have feature 'hero' enabled");
+        final FeatureUser user = featureUser("mr-user");
+
+        final FlagsAndTraits flagsAndTraits = environment.client.getUserFlagsAndTraits(user);
+        final boolean enabled = environment.client.hasFeatureFlag("The Flag", flagsAndTraits);
+        assertThat(enabled)
+                .isTrue();
     }
 
     @Test(groups = "integration")
     public void testClient_When_Get_User_Trait_Then_Success() {
-        FeatureUser user = new FeatureUser();
-        user.setIdentifier("another_user");
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+                "testClient_When_Get_User_Trait_Then_Success",
+                "TEST");
 
-        Trait userTrait = bulletClient.getTrait(user, "cookies_key");
+        assignTraitToUserIdentity("mr-user", "cookie", "value", environment.apiKey);
 
-        assertNotNull(userTrait, "Should have user traits back");
-        assertNotNull(userTrait.getValue(), "Should have user traits value");
+        final FeatureUser user = featureUser("mr-user");
+        final Trait trait = environment.client.getTrait(user, "cookie");
+        assertThat(trait)
+                .isEqualTo(trait(null, "cookie", "value"));
     }
-
 
     @Test(groups = "integration")
     public void testClient_When_Get_User_Trait_Update_Then_Updated() {
-        FeatureUser user = new FeatureUser();
-        user.setIdentifier("another_user");
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+                "testClient_When_Get_User_Trait_Update_Then_Updated",
+                "TEST");
 
-        Trait userTrait = bulletClient.getTrait(user, "cookies_key");
-        assertNotNull(userTrait, "Should have user traits back");
-        assertNotNull(userTrait.getValue(), "Should have user traits value");
+        assignTraitToUserIdentity("mr-user", "cookie", "old value", environment.apiKey);
+        assignTraitToUserIdentity("mr-user", "foo", "bar", environment.apiKey);
 
-        userTrait.setValue("new value");
-        Trait updated = bulletClient.updateTrait(user, userTrait);
-        assertNotNull(updated, "Should have updated user traits back");
-        assertTrue(updated.getValue().equals("new value"));
+        final FeatureUser user = featureUser("mr-user");
+
+        assertThat(environment.client.getTrait(user, "cookie"))
+                .isEqualTo(trait(null, "cookie", "old value"));
+
+        environment.client.updateTrait(user, trait("mr-user", "cookie", "new value"));
+
+        assertThat(environment.client.getTrait(user, "cookie"))
+                .isEqualTo(trait(null, "cookie", "new value"));
+        assertThat(environment.client.getTrait(user, "foo"))
+                .isEqualTo(trait(null, "foo", "bar"));
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class, groups = "integration")
+    @Test(groups = "integration")
     public void testClient_When_Add_Traits_For_Identity_With_Missing_Identity_Then_Failed() {
-        // Given traits and no user Identity
-        Trait trait1 = new Trait();
-        trait1.setKey("trait_1");
-        trait1.setValue("some value1");
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+                "testClient_When_Add_Traits_For_Identity_With_Missing_Identity_Then_Failed",
+                "TEST");
 
-        // When
-        List<Trait> traits = bulletClient.identifyUserWithTraits(null,  Arrays.asList(trait1));
+        assertThatThrownBy(() ->
+                environment.client.identifyUserWithTraits(null,
+                        Collections.singletonList(trait(null, "x", "y"))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("user is marked non-null but is null");
+    }
 
-        // Then
-        // nothing return and exception thrown
-        assertTrue(traits.size() == 0, "Should not return any traits");
+    @Test(groups = "integration")
+    public void testClient_When_Add_Traits_For_Identity_With_Missing_User_Identifier_Then_Failed() {
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+            "testClient_When_Add_Traits_For_Identity_With_Missing_Identity_Then_Failed",
+            "TEST");
+
+        assertThatThrownBy(() ->
+            environment.client.identifyUserWithTraits(new FeatureUser(),
+                Collections.singletonList(trait(null, "x", "y"))))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Missing user identifier");
     }
 
     @Test(groups = "integration")
     public void testClient_When_Add_Traits_For_Identity_Then_Success() {
-        // Given
-        FeatureUser user = new FeatureUser();
-        user.setIdentifier("another_user");
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+                "testClient_When_Add_Traits_For_Identity_Then_Success",
+                "TEST");
 
-        Trait trait1 = new Trait();
-        trait1.setKey("trait_1");
-        trait1.setValue("some value1");
+        final FeatureUser user = featureUser("i-am-user-with-traits");
 
-        Trait trait2 = new Trait();
-        trait2.setKey("trait_2");
-        trait2.setValue("some value2");
+        final List<Trait> traits = environment.client.identifyUserWithTraits(user, Arrays.asList(
+                trait(null, "trait_1", "some value1"),
+                trait(null, "trait_2", "some value2")));
 
-        // When
-        List<Trait> traits = bulletClient.identifyUserWithTraits(user,  Arrays.asList(trait1, trait2));
-
-        // Then
-        assertEquals(2, traits.size(), "Should have 2 traits returned");
-
-        assertTrue(trait1.getKey().equals(traits.get(0).getKey()));
-        assertTrue(trait1.getValue().equals(traits.get(0).getValue()));
-
-        assertTrue(trait2.getKey().equals(traits.get(1).getKey()));
-        assertTrue(trait2.getValue().equals(traits.get(1).getValue()));
+        assertThat(traits)
+                .hasSize(2)
+                .containsExactlyInAnyOrder(
+                        trait(null, "trait_1", "some value1"),
+                        trait(null, "trait_2", "some value2")
+                );
     }
 
+    @Test(groups = "integration")
+    public void testClient_When_Add_Traits_For_Identity_To_Existing_Identity_Then_Success() {
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+            "testClient_When_Add_Traits_For_Identity_Then_Success",
+            "TEST");
+
+        final FeatureUser user = featureUser("i-am-user-with-traits");
+
+        List<Trait> traits = environment.client.identifyUserWithTraits(user, Arrays.asList(
+            trait(null, "trait_1", "some value1"),
+            trait(null, "trait_2", "some value2"),
+            trait(null, "trait_3", "some value3")));
+
+        assertThat(traits)
+            .hasSize(3)
+            .containsExactlyInAnyOrder(
+                trait(null, "trait_1", "some value1"),
+                trait(null, "trait_2", "some value2"),
+                trait(null, "trait_3", "some value3")
+            );
+
+        // Update existing identity (trait 2 is missing on purpose)
+        traits = environment.client.identifyUserWithTraits(user, Arrays.asList(
+            trait(null, "extra_trait", "extra value"),
+            trait(null, "trait_1", "updated value1"),
+            trait(null, "trait_3", "some value3")));
+
+        assertThat(traits)
+            .hasSize(4)
+            .containsExactlyInAnyOrder(
+                trait(null, "extra_trait", "extra value"),
+                trait(null, "trait_1", "updated value1"),
+                trait(null, "trait_2", "some value2"),
+                trait(null, "trait_3", "some value3")
+            );
+    }
+
+    @Test(groups = "integration")
+    public void testClient_When_Cache_Disabled_Return_Null() {
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+            "testClient_When_Cache_Disabled_Return_Null",
+            "TEST");
+
+        FlagsmithCache cache = environment.client.getCache();
+
+        assertNull(cache);
+    }
 }
