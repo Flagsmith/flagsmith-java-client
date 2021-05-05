@@ -96,50 +96,12 @@ class FlagsmithAPIWrapper implements FlagsmithSDK {
   }
 
   @Override
-  public FlagsAndTraits identifyUserWithTraits(FeatureUser user, List<Trait> traits,
-      boolean doThrow) {
-    assertValidUser(user);
-
-    // we are using identities endpoint to create bulk user Trait
-    HttpUrl url = defaultConfig.identitiesUri;
-
-    IdentityTraits identityTraits = new IdentityTraits();
-    identityTraits.setIdentifier(user.getIdentifier());
-    if (traits != null) {
-      identityTraits.setTraits(traits);
-    }
-
-    MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-    RequestBody body = RequestBody.create(JSON, identityTraits.toString());
-
-    final Request request = this.newRequestBuilder()
-        .post(body)
-        .url(url)
-        .build();
-
-    FlagsAndTraits flagsAndTraits = newFlagsAndTraits();
-    Call call = defaultConfig.httpClient.newCall(request);
-    try (Response response = call.execute()) {
-      if (response.isSuccessful()) {
-        ObjectMapper mapper = MapperFactory.getMappper();
-        flagsAndTraits = mapper.readValue(response.body().string(), FlagsAndTraits.class);
-      } else {
-        logger.httpError(request, response, doThrow);
-      }
-    } catch (IOException io) {
-      logger.httpError(request, io, doThrow);
-    }
-    logger.info("Got traits for user = {}, traits = {}", user, flagsAndTraits.getTraits());
-    return flagsAndTraits;
-  }
-
-  @Override
   public Trait postUserTraits(FeatureUser user, Trait toUpdate, boolean doThrow) {
     HttpUrl url = defaultConfig.traitsUri;
     toUpdate.setIdentity(user);
 
-    MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-    RequestBody body = RequestBody.create(JSON, toUpdate.toString());
+    MediaType json = MediaType.parse("application/json; charset=utf-8");
+    RequestBody body = RequestBody.create(json, toUpdate.toString());
 
     Request request = this.newRequestBuilder()
         .post(body)
@@ -161,6 +123,44 @@ class FlagsmithAPIWrapper implements FlagsmithSDK {
     logger.info("Updated trait for user = {}, new trait = {}, updated trait = {}",
         user, toUpdate, trait);
     return trait;
+  }
+
+  @Override
+  public FlagsAndTraits identifyUserWithTraits(FeatureUser user, List<Trait> traits,
+      boolean doThrow) {
+    assertValidUser(user);
+
+    // we are using identities endpoint to create bulk user Trait
+    HttpUrl url = defaultConfig.identitiesUri;
+
+    IdentityTraits identityTraits = new IdentityTraits();
+    identityTraits.setIdentifier(user.getIdentifier());
+    if (traits != null) {
+      identityTraits.setTraits(traits);
+    }
+
+    MediaType json = MediaType.parse("application/json; charset=utf-8");
+    RequestBody body = RequestBody.create(json, identityTraits.toString());
+
+    final Request request = this.newRequestBuilder()
+        .post(body)
+        .url(url)
+        .build();
+
+    FlagsAndTraits flagsAndTraits = newFlagsAndTraits();
+    Call call = defaultConfig.httpClient.newCall(request);
+    try (Response response = call.execute()) {
+      if (response.isSuccessful()) {
+        ObjectMapper mapper = MapperFactory.getMappper();
+        flagsAndTraits = mapper.readValue(response.body().string(), FlagsAndTraits.class);
+      } else {
+        logger.httpError(request, response, doThrow);
+      }
+    } catch (IOException io) {
+      logger.httpError(request, io, doThrow);
+    }
+    logger.info("Got traits for user = {}, traits = {}", user, flagsAndTraits.getTraits());
+    return flagsAndTraits;
   }
 
   public FlagsmithLogger getLogger() {
