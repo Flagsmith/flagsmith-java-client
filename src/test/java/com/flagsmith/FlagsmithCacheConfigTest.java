@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 
 @Test(groups = "unit")
@@ -27,6 +28,7 @@ public class FlagsmithCacheConfigTest {
     assertFalse(cachePolicy.expireAfterAccess().isPresent());
     assertFalse(cachePolicy.refreshAfterWrite().isPresent());
     assertFalse(cachePolicy.expireVariably().isPresent());
+    assertNull(flagsmithCacheConfig.cache.getProjectFlagsCacheKey());
 
     verifyDefaultAfterWrite(cachePolicy);
     verifyDefaultMaxSize(cachePolicy);
@@ -50,6 +52,7 @@ public class FlagsmithCacheConfigTest {
     assertFalse(cachePolicy.expireAfterAccess().isPresent());
     assertFalse(cachePolicy.refreshAfterWrite().isPresent());
     assertFalse(cachePolicy.expireVariably().isPresent());
+    assertNull(flagsmithCacheConfig.cache.getProjectFlagsCacheKey());
 
     assertTrue(cachePolicy.expireAfterWrite().isPresent());
     assertEquals(Duration.ofSeconds(30), cachePolicy.expireAfterWrite().get().getExpiresAfter());
@@ -68,6 +71,7 @@ public class FlagsmithCacheConfigTest {
     assertFalse(cachePolicy.isRecordingStats());
     assertFalse(cachePolicy.refreshAfterWrite().isPresent());
     assertFalse(cachePolicy.expireVariably().isPresent());
+    assertNull(flagsmithCacheConfig.cache.getProjectFlagsCacheKey());
 
     assertTrue(cachePolicy.expireAfterAccess().isPresent());
     assertEquals(Duration.ofHours(20), cachePolicy.expireAfterAccess().get().getExpiresAfter());
@@ -88,6 +92,7 @@ public class FlagsmithCacheConfigTest {
     assertFalse(cachePolicy.refreshAfterWrite().isPresent());
     assertFalse(cachePolicy.expireVariably().isPresent());
     assertFalse(cachePolicy.expireAfterAccess().isPresent());
+    assertNull(flagsmithCacheConfig.cache.getProjectFlagsCacheKey());
 
     assertTrue(cachePolicy.eviction().isPresent());
     assertEquals(210, cachePolicy.eviction().get().getMaximum());
@@ -107,6 +112,7 @@ public class FlagsmithCacheConfigTest {
     assertFalse(cachePolicy.refreshAfterWrite().isPresent());
     assertFalse(cachePolicy.expireVariably().isPresent());
     assertFalse(cachePolicy.expireAfterAccess().isPresent());
+    assertNull(flagsmithCacheConfig.cache.getProjectFlagsCacheKey());
 
     assertTrue(cachePolicy.isRecordingStats());
 
@@ -118,10 +124,12 @@ public class FlagsmithCacheConfigTest {
 
   @Test(groups = "unit")
   public void testNewBuilder_combined() {
+    final String projectFlagsCacheKey = "some-random-key";
     final FlagsmithCacheConfig flagsmithCacheConfig = FlagsmithCacheConfig
         .newBuilder()
         .maxSize(250)
         .recordStats()
+        .enableProjectLevelCaching(projectFlagsCacheKey)
         .build();
     final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache().policy();
 
@@ -134,8 +142,35 @@ public class FlagsmithCacheConfigTest {
     assertEquals(250, cachePolicy.eviction().get().getMaximum());
     assertFalse(cachePolicy.eviction().get().isWeighted());
 
+    assertEquals(projectFlagsCacheKey, flagsmithCacheConfig.cache.getProjectFlagsCacheKey());
+
     assertTrue(cachePolicy.isRecordingStats());
     verifyDefaultAfterWrite(cachePolicy);
+  }
+
+  @Test(groups = "unit")
+  public void testNewBuilder_enableProjectLevelCaching() {
+    final String projectFlagsCacheKey = "some-random-key";
+
+    final FlagsmithCacheConfig flagsmithCacheConfig = FlagsmithCacheConfig.newBuilder()
+        .enableProjectLevelCaching(projectFlagsCacheKey)
+        .build();
+
+    assertEquals(projectFlagsCacheKey, flagsmithCacheConfig.cache.getProjectFlagsCacheKey());
+  }
+
+  @Test(groups = "unit", expectedExceptions = IllegalArgumentException.class)
+  public void testNewBuilder_enableProjectLevelCaching_null() {
+     FlagsmithCacheConfig.newBuilder()
+        .enableProjectLevelCaching(null)
+        .build();
+  }
+
+  @Test(groups = "unit", expectedExceptions = IllegalArgumentException.class)
+  public void testNewBuilder_enableProjectLevelCaching_emptyString() {
+    FlagsmithCacheConfig.newBuilder()
+        .enableProjectLevelCaching("")
+        .build();
   }
 
   private void verifyDefaultMaxSize(Policy<String, FlagsAndTraits> cachePolicy) {

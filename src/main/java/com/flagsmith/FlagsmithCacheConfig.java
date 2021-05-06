@@ -3,6 +3,8 @@ package com.flagsmith;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
+import lombok.NonNull;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.concurrent.TimeUnit;
 
@@ -35,7 +37,7 @@ public final class FlagsmithCacheConfig {
       caffeineBuilder = caffeineBuilder.recordStats();
     }
 
-    this.cache = new FlagsmithInternalCache(caffeineBuilder.build());
+    this.cache = new FlagsmithInternalCache(caffeineBuilder.build(), builder.projectFlagsCacheKey);
   }
 
   public static FlagsmithCacheConfig.Builder newBuilder() {
@@ -44,35 +46,49 @@ public final class FlagsmithCacheConfig {
 
   class FlagsmithInternalCache implements FlagsmithCache {
     private final Cache<String, FlagsAndTraits> cache;
+    private final String projectFlagsCacheKey;
 
-    public FlagsmithInternalCache(Cache<String, FlagsAndTraits> cache) {
+    public FlagsmithInternalCache(final Cache<String, FlagsAndTraits> cache, final String projectFlagsCacheKey) {
       this.cache = cache;
+      this.projectFlagsCacheKey = projectFlagsCacheKey;
     }
 
+    @Override
     public void cleanUp() {
       cache.cleanUp();
     }
 
+    @Override
     public void invalidateAll() {
       cache.invalidateAll();
     }
 
+    @Override
     public void invalidate(String userId) {
       cache.invalidate(userId);
     }
 
+    @Override
     public long estimatedSize() {
       return cache.estimatedSize();
     }
 
+    @Override
     public CacheStats stats() {
       return cache.stats();
     }
 
+    @Override
     public FlagsAndTraits getIfPresent(String key) {
       return cache.getIfPresent(key);
     }
 
+    @Override
+    public String getProjectFlagsCacheKey() {
+      return this.projectFlagsCacheKey;
+    }
+
+    // do not expose this method on the interface
     public Cache<String, FlagsAndTraits> getCache() {
       return cache;
     }
@@ -85,6 +101,7 @@ public final class FlagsmithCacheConfig {
     private int expireAfterAccess = -1;
     private int maxSize = DEFAULT_MAX_SIZE;
     private boolean recordStats = false;
+    private String projectFlagsCacheKey = null;
 
     private Builder() {
     }
@@ -141,6 +158,27 @@ public final class FlagsmithCacheConfig {
      */
     public Builder recordStats() {
       this.recordStats = true;
+      return this;
+    }
+
+    /**
+     * Enables caching for project level flags.
+     * Flags for users are stored in the cache using the user-identifier as the cache key.
+     * For project level flags, you need to configure a key with the builder to enable caching project flags.
+     * This is required to ensure the programmer chooses a project-level-key that does not conflict with
+     * user identifiers.
+     *
+     * IMPORTANT: make sure you set a project key that will never match a user identifier.
+     * Otherwise, the cache will not be able to distinguish between the 2.
+     *
+     * @param projectFlagsCacheKey key to use in the cache for project level flags
+     * @return the Builder
+     */
+    public Builder enableProjectLevelCaching(@NonNull String projectFlagsCacheKey) {
+      if (StringUtils.isBlank(projectFlagsCacheKey)) {
+        throw new IllegalArgumentException("Missing project level cache key");
+      }
+      this.projectFlagsCacheKey = projectFlagsCacheKey;
       return this;
     }
 
