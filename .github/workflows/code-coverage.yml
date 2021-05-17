@@ -3,8 +3,6 @@ name: code-coverage
 on:
   push:
     branches: [master]
-  pull_request:
-    branches: [master]
 
 env:
   java: 8
