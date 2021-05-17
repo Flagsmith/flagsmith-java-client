@@ -312,9 +312,9 @@ public class FlagsmithClient {
      *
      * @param user   a user in context
      * @param traits a list of Trait object to be created or updated
-     * @return a list of added Trait objects
+     * @return a `FlagsAndTraits` object
      */
-    public List<Trait> identifyUserWithTraits(FeatureUser user, List<Trait> traits) {
+    public FlagsAndTraits identifyUserWithTraits(FeatureUser user, List<Trait> traits) {
         return identifyUserWithTraits(user, traits, false);
     }
 
@@ -329,10 +329,10 @@ public class FlagsmithClient {
      * @param user   a user in context
      * @param traits a list of Trait object to be created or updated
      * @param doThrow throw exceptions or fail silently
-     * @return a list of added Trait objects
+     * @return a `FlagsAndTraits` object
      */
-    public List<Trait> identifyUserWithTraits(FeatureUser user, List<Trait> traits, boolean doThrow) {
-        return flagsmithSDK.identifyUserWithTraits(user, traits, doThrow).getTraits();
+    public FlagsAndTraits identifyUserWithTraits(FeatureUser user, List<Trait> traits, boolean doThrow) {
+        return flagsmithSDK.identifyUserWithTraits(user, traits, doThrow);
     }
 
     /**

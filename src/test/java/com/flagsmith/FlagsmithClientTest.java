@@ -445,7 +445,7 @@ public class FlagsmithClientTest {
 
         final List<Trait> traits = environment.client.identifyUserWithTraits(user, Arrays.asList(
                 trait(null, "trait_1", "some value1"),
-                trait(null, "trait_2", "some value2")));
+                trait(null, "trait_2", "some value2"))).getTraits();
 
         assertThat(traits)
                 .hasSize(2)
@@ -466,7 +466,7 @@ public class FlagsmithClientTest {
         List<Trait> traits = environment.client.identifyUserWithTraits(user, Arrays.asList(
             trait(null, "trait_1", "some value1"),
             trait(null, "trait_2", "some value2"),
-            trait(null, "trait_3", "some value3")));
+            trait(null, "trait_3", "some value3"))).getTraits();
 
         assertThat(traits)
             .hasSize(3)
@@ -480,7 +480,7 @@ public class FlagsmithClientTest {
         traits = environment.client.identifyUserWithTraits(user, Arrays.asList(
             trait(null, "extra_trait", "extra value"),
             trait(null, "trait_1", "updated value1"),
-            trait(null, "trait_3", "some value3")));
+            trait(null, "trait_3", "some value3"))).getTraits();
 
         assertThat(traits)
             .hasSize(4)
