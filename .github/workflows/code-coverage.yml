@@ -2,7 +2,7 @@ name: code-coverage
 
 on:
   push:
-    branches: [master, feature/jacoco-badge-separate-build] # todo: remove feature branch
+    branches: [master]
 
 env:
   java: 8
