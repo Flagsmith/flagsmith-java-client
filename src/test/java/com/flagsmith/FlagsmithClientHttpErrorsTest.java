@@ -264,7 +264,7 @@ public class FlagsmithClientHttpErrorsTest {
         trait1.setValue("some value1");
 
         // When
-        List<Trait> traits = flagsmithClient.identifyUserWithTraits(null, Collections.singletonList(trait1));
+        List<Trait> traits = flagsmithClient.identifyUserWithTraits(null, Collections.singletonList(trait1)).getTraits();
 
         // Then
         // nothing return and exception thrown
@@ -286,7 +286,7 @@ public class FlagsmithClientHttpErrorsTest {
         trait2.setValue("some value2");
 
         // When
-        List<Trait> traits = flagsmithClient.identifyUserWithTraits(user,  Arrays.asList(trait1, trait2));
+        List<Trait> traits = flagsmithClient.identifyUserWithTraits(user,  Arrays.asList(trait1, trait2)).getTraits();
 
         // Then
         assertTrue(traits.isEmpty(), "Should not have traits returned");
