@@ -53,6 +53,11 @@ public final class FlagsmithCacheConfig {
       this.projectFlagsCacheKey = projectFlagsCacheKey;
     }
 
+    public FlagsmithInternalCache(final Cache<String, FlagsAndTraits> cache) {
+      this.cache = cache;
+      this.projectFlagsCacheKey = null;
+    }
+
     @Override
     public void cleanUp() {
       cache.cleanUp();

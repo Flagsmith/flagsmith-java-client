@@ -23,7 +23,7 @@ class FlagsmithCachedAPIWrapper implements FlagsmithSDK {
     }
     if (user != null) {
       assertValidUser(user);
-      cacheKey = user.getIdentifier();
+      return cache.getCache().get(user.getIdentifier(), k -> flagsmithAPIWrapper.getFeatureFlags(user, doThrow));
     }
     return cache.getCache().get(cacheKey, k -> flagsmithAPIWrapper.getFeatureFlags(user, doThrow));
   }
