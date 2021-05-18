@@ -377,7 +377,7 @@ public class FlagsmithCachedClientTest {
     assertEquals(0, clientCache.estimatedSize());
     List<Trait> traits = environment.client.identifyUserWithTraits(user2, Arrays.asList(
         trait(null, "trait_1", "some value1"),
-        trait(null, "trait_2", "some value2")));
+        trait(null, "trait_2", "some value2"))).getTraits();
     assertEquals(1, clientCache.estimatedSize());
     assertThat(traits)
         .hasSize(3)
@@ -392,7 +392,7 @@ public class FlagsmithCachedClientTest {
 
     // read flags from cache because the trait matches the trait in the cache
     traits = environment.client.identifyUserWithTraits(user2, Arrays.asList(
-        trait(null, "trait_2", "some value2")));
+        trait(null, "trait_2", "some value2"))).getTraits();
     assertEquals(1, clientCache.estimatedSize());
     assertThat(traits)
         .hasSize(3)
@@ -405,7 +405,7 @@ public class FlagsmithCachedClientTest {
     // read flags from flagsmith because the trait does not match the trait in the cache
     traits = environment.client.identifyUserWithTraits(user2, Arrays.asList(
         trait(null, "trait_2", "value does not match the cached value"),
-        trait(null, "trait_3", "new value3")));
+        trait(null, "trait_3", "new value3"))).getTraits();
     assertEquals(1, clientCache.estimatedSize());
     assertThat(traits)
         .hasSize(5)
