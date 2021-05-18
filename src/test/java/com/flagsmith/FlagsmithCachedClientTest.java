@@ -346,7 +346,7 @@ public class FlagsmithCachedClientTest {
   public void testClient_When_Add_Traits_For_Identity_Then_Success() {
     List<Trait> traits = environment.client.identifyUserWithTraits(user2, Arrays.asList(
         trait(null, "trait_1", "some value1"),
-        trait(null, "trait_2", "some value2")));
+        trait(null, "trait_2", "some value2"))).getTraits();
     assertEquals(1, clientCache.estimatedSize());
     assertThat(traits)
         .hasSize(3)
@@ -359,7 +359,7 @@ public class FlagsmithCachedClientTest {
     traits = environment.client.identifyUserWithTraits(user2, Arrays.asList(
         trait(null, "trait_1", "updated value1"),
         trait(null, "trait_2", "updated value2"),
-        trait(null, "trait_3", "updated value3")));
+        trait(null, "trait_3", "updated value3"))).getTraits();
     assertEquals(1, clientCache.estimatedSize());
     assertThat(traits)
         .hasSize(4)

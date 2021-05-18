@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import com.flagsmith.FlagsmithTestHelper.FlagFeature;
+
 import static com.flagsmith.FlagsmithTestHelper.assignTraitToUserIdentity;
 import static com.flagsmith.FlagsmithTestHelper.config;
 import static com.flagsmith.FlagsmithTestHelper.createFeature;
@@ -18,6 +20,7 @@ import static com.flagsmith.FlagsmithTestHelper.switchFlagForUser;
 import static com.flagsmith.FlagsmithTestHelper.trait;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 /**
@@ -445,7 +448,7 @@ public class FlagsmithClientTest {
 
         final List<Trait> traits = environment.client.identifyUserWithTraits(user, Arrays.asList(
                 trait(null, "trait_1", "some value1"),
-                trait(null, "trait_2", "some value2")));
+                trait(null, "trait_2", "some value2"))).getTraits();
 
         assertThat(traits)
                 .hasSize(2)
@@ -466,7 +469,7 @@ public class FlagsmithClientTest {
         List<Trait> traits = environment.client.identifyUserWithTraits(user, Arrays.asList(
             trait(null, "trait_1", "some value1"),
             trait(null, "trait_2", "some value2"),
-            trait(null, "trait_3", "some value3")));
+            trait(null, "trait_3", "some value3"))).getTraits();
 
         assertThat(traits)
             .hasSize(3)
@@ -480,7 +483,7 @@ public class FlagsmithClientTest {
         traits = environment.client.identifyUserWithTraits(user, Arrays.asList(
             trait(null, "extra_trait", "extra value"),
             trait(null, "trait_1", "updated value1"),
-            trait(null, "trait_3", "some value3")));
+            trait(null, "trait_3", "some value3"))).getTraits();
 
         assertThat(traits)
             .hasSize(4)
@@ -490,6 +493,38 @@ public class FlagsmithClientTest {
                 trait(null, "trait_2", "some value2"),
                 trait(null, "trait_3", "some value3")
             );
+    }
+
+    @Test(groups = "integration")
+    public void testClient_When_Identify_Then_Flags_And_Traits_Returned() {
+        final FlagsmithTestHelper.ProjectEnvironment environment = createProjectEnvironment(
+            "testClient_When_Identify_Then_Flags_And_Traits_Returned",
+            "TEST");
+
+        String featureName = "test_flag";
+        FlagFeature feature = new FlagsmithTestHelper.FlagFeature(
+                featureName, 
+                null, 
+                environment.projectId, 
+                false);
+        createFeature(feature);
+        
+        FeatureUser user = new FeatureUser();
+        user.setIdentifier("my-user");
+        Trait trait = new Trait(user, "trait_key", "trait_value");
+        List<Trait> traits = Arrays.asList(trait);
+
+        FlagsAndTraits flagsAndTraits = environment.client.identifyUserWithTraits(user, traits);
+
+        List<Trait> returnedTraits = flagsAndTraits.getTraits();
+        List<Flag> returnedFlags = flagsAndTraits.getFlags();
+
+        Trait expectedTrait = new Trait(null, trait.getKey(), trait.getValue());
+        assertThat(returnedTraits).hasSize(1);
+        assertEquals(expectedTrait, returnedTraits.get(0));
+
+        assertThat(returnedFlags).hasSize(1);
+        assertEquals(returnedFlags.get(0).getFeature().getName(), featureName);
     }
 
     @Test(groups = "integration")
