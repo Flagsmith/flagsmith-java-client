@@ -46,7 +46,17 @@ public interface FlagsmithCache {
    * It will not attempt to fetch flags from Flagsmith.
    *
    * @param key
-   * @return
+   * @return flags and traits in cache or null
    */
   FlagsAndTraits getIfPresent(String key);
+
+  /**
+   * Returns the environment level flags/traits cache key.
+   * Flags for users are stored in the cache using the user-identifier as the cache key.
+   * For environment level flags, you need to configure a key with the builder to enable caching environment flags.
+   * This method returns the key you configured with the builder.
+   *
+   * @return string
+   */
+  String getEnvFlagsCacheKey();
 }

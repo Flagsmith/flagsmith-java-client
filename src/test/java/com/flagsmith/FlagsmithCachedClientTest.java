@@ -370,4 +370,51 @@ public class FlagsmithCachedClientTest {
             trait(null, "trait_3", "updated value3")
         );
   }
+
+  @Test(groups = "integration")
+  public void testClient_Identify_User_With_Traits_From_Cache() {
+    // read flags from flagsmith and store them in cache
+    assertEquals(0, clientCache.estimatedSize());
+    List<Trait> traits = environment.client.identifyUserWithTraits(user2, Arrays.asList(
+        trait(null, "trait_1", "some value1"),
+        trait(null, "trait_2", "some value2"))).getTraits();
+    assertEquals(1, clientCache.estimatedSize());
+    assertThat(traits)
+        .hasSize(3)
+        .containsExactlyInAnyOrder(
+            trait(null, user2traitKey, user2traitVal),
+            trait(null, "trait_1", "some value1"),
+            trait(null, "trait_2", "some value2")
+        );
+
+    // add a new trait in the API
+    assignTraitToUserIdentity(user2.getIdentifier(), "trait-not-in-cache", "trait-not-in-cache", environment.apiKey);
+
+    // read flags from cache because the trait matches the trait in the cache
+    traits = environment.client.identifyUserWithTraits(user2, Arrays.asList(
+        trait(null, "trait_2", "some value2"))).getTraits();
+    assertEquals(1, clientCache.estimatedSize());
+    assertThat(traits)
+        .hasSize(3)
+        .containsExactlyInAnyOrder(
+            trait(null, user2traitKey, user2traitVal),
+            trait(null, "trait_1", "some value1"),
+            trait(null, "trait_2", "some value2")
+        );
+
+    // read flags from flagsmith because the trait does not match the trait in the cache
+    traits = environment.client.identifyUserWithTraits(user2, Arrays.asList(
+        trait(null, "trait_2", "value does not match the cached value"),
+        trait(null, "trait_3", "new value3"))).getTraits();
+    assertEquals(1, clientCache.estimatedSize());
+    assertThat(traits)
+        .hasSize(5)
+        .containsExactlyInAnyOrder(
+            trait(null, user2traitKey, user2traitVal),
+            trait(null, "trait-not-in-cache", "trait-not-in-cache"),
+            trait(null, "trait_1", "some value1"),
+            trait(null, "trait_2", "value does not match the cached value"),
+            trait(null, "trait_3", "new value3")
+        );
+  }
 }

@@ -3,6 +3,8 @@ package com.flagsmith;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
+import lombok.NonNull;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.concurrent.TimeUnit;
 
@@ -35,7 +37,7 @@ public final class FlagsmithCacheConfig {
       caffeineBuilder = caffeineBuilder.recordStats();
     }
 
-    this.cache = new FlagsmithInternalCache(caffeineBuilder.build());
+    this.cache = new FlagsmithInternalCache(caffeineBuilder.build(), builder.envFlagsCacheKey);
   }
 
   public static FlagsmithCacheConfig.Builder newBuilder() {
@@ -44,35 +46,54 @@ public final class FlagsmithCacheConfig {
 
   class FlagsmithInternalCache implements FlagsmithCache {
     private final Cache<String, FlagsAndTraits> cache;
+    private final String envFlagsCacheKey;
 
-    public FlagsmithInternalCache(Cache<String, FlagsAndTraits> cache) {
+    public FlagsmithInternalCache(final Cache<String, FlagsAndTraits> cache, final String envFlagsCacheKey) {
       this.cache = cache;
+      this.envFlagsCacheKey = envFlagsCacheKey;
     }
 
+    public FlagsmithInternalCache(final Cache<String, FlagsAndTraits> cache) {
+      this.cache = cache;
+      this.envFlagsCacheKey = null;
+    }
+
+    @Override
     public void cleanUp() {
       cache.cleanUp();
     }
 
+    @Override
     public void invalidateAll() {
       cache.invalidateAll();
     }
 
+    @Override
     public void invalidate(String userId) {
       cache.invalidate(userId);
     }
 
+    @Override
     public long estimatedSize() {
       return cache.estimatedSize();
     }
 
+    @Override
     public CacheStats stats() {
       return cache.stats();
     }
 
+    @Override
     public FlagsAndTraits getIfPresent(String key) {
       return cache.getIfPresent(key);
     }
 
+    @Override
+    public String getEnvFlagsCacheKey() {
+      return this.envFlagsCacheKey;
+    }
+
+    // do not expose this method on the interface
     public Cache<String, FlagsAndTraits> getCache() {
       return cache;
     }
@@ -85,6 +106,7 @@ public final class FlagsmithCacheConfig {
     private int expireAfterAccess = -1;
     private int maxSize = DEFAULT_MAX_SIZE;
     private boolean recordStats = false;
+    private String envFlagsCacheKey = null;
 
     private Builder() {
     }
@@ -141,6 +163,27 @@ public final class FlagsmithCacheConfig {
      */
     public Builder recordStats() {
       this.recordStats = true;
+      return this;
+    }
+
+    /**
+     * Enables caching for environment level flags.
+     * Flags for users are stored in the cache using the user-identifier as the cache key.
+     * For environment level flags, you need to configure a key with the builder to enable caching environment flags.
+     * This is required to ensure the programmer chooses an environment-level-key that does not conflict with
+     * user identifiers.
+     *
+     * IMPORTANT: make sure you set an environment key that will never match a user identifier.
+     * Otherwise, the cache will not be able to distinguish between the 2.
+     *
+     * @param envFlagsCacheKey key to use in the cache for environment level flags
+     * @return the Builder
+     */
+    public Builder enableEnvLevelCaching(@NonNull String envFlagsCacheKey) {
+      if (StringUtils.isBlank(envFlagsCacheKey)) {
+        throw new IllegalArgumentException("Missing environment level cache key");
+      }
+      this.envFlagsCacheKey = envFlagsCacheKey;
       return this;
     }
 
