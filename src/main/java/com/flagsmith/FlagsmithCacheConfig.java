@@ -37,7 +37,7 @@ public final class FlagsmithCacheConfig {
       caffeineBuilder = caffeineBuilder.recordStats();
     }
 
-    this.cache = new FlagsmithInternalCache(caffeineBuilder.build(), builder.projectFlagsCacheKey);
+    this.cache = new FlagsmithInternalCache(caffeineBuilder.build(), builder.envFlagsCacheKey);
   }
 
   public static FlagsmithCacheConfig.Builder newBuilder() {
@@ -46,16 +46,16 @@ public final class FlagsmithCacheConfig {
 
   class FlagsmithInternalCache implements FlagsmithCache {
     private final Cache<String, FlagsAndTraits> cache;
-    private final String projectFlagsCacheKey;
+    private final String envFlagsCacheKey;
 
-    public FlagsmithInternalCache(final Cache<String, FlagsAndTraits> cache, final String projectFlagsCacheKey) {
+    public FlagsmithInternalCache(final Cache<String, FlagsAndTraits> cache, final String envFlagsCacheKey) {
       this.cache = cache;
-      this.projectFlagsCacheKey = projectFlagsCacheKey;
+      this.envFlagsCacheKey = envFlagsCacheKey;
     }
 
     public FlagsmithInternalCache(final Cache<String, FlagsAndTraits> cache) {
       this.cache = cache;
-      this.projectFlagsCacheKey = null;
+      this.envFlagsCacheKey = null;
     }
 
     @Override
@@ -89,8 +89,8 @@ public final class FlagsmithCacheConfig {
     }
 
     @Override
-    public String getProjectFlagsCacheKey() {
-      return this.projectFlagsCacheKey;
+    public String getEnvFlagsCacheKey() {
+      return this.envFlagsCacheKey;
     }
 
     // do not expose this method on the interface
@@ -106,7 +106,7 @@ public final class FlagsmithCacheConfig {
     private int expireAfterAccess = -1;
     private int maxSize = DEFAULT_MAX_SIZE;
     private boolean recordStats = false;
-    private String projectFlagsCacheKey = null;
+    private String envFlagsCacheKey = null;
 
     private Builder() {
     }
@@ -167,23 +167,23 @@ public final class FlagsmithCacheConfig {
     }
 
     /**
-     * Enables caching for project level flags.
+     * Enables caching for environment level flags.
      * Flags for users are stored in the cache using the user-identifier as the cache key.
-     * For project level flags, you need to configure a key with the builder to enable caching project flags.
-     * This is required to ensure the programmer chooses a project-level-key that does not conflict with
+     * For environment level flags, you need to configure a key with the builder to enable caching environment flags.
+     * This is required to ensure the programmer chooses an environment-level-key that does not conflict with
      * user identifiers.
      *
-     * IMPORTANT: make sure you set a project key that will never match a user identifier.
+     * IMPORTANT: make sure you set an environment key that will never match a user identifier.
      * Otherwise, the cache will not be able to distinguish between the 2.
      *
-     * @param projectFlagsCacheKey key to use in the cache for project level flags
+     * @param envFlagsCacheKey key to use in the cache for environment level flags
      * @return the Builder
      */
-    public Builder enableProjectLevelCaching(@NonNull String projectFlagsCacheKey) {
-      if (StringUtils.isBlank(projectFlagsCacheKey)) {
-        throw new IllegalArgumentException("Missing project level cache key");
+    public Builder enableEnvLevelCaching(@NonNull String envFlagsCacheKey) {
+      if (StringUtils.isBlank(envFlagsCacheKey)) {
+        throw new IllegalArgumentException("Missing environment level cache key");
       }
-      this.projectFlagsCacheKey = projectFlagsCacheKey;
+      this.envFlagsCacheKey = envFlagsCacheKey;
       return this;
     }
 

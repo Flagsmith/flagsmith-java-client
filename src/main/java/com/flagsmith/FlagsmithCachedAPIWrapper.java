@@ -16,9 +16,9 @@ class FlagsmithCachedAPIWrapper implements FlagsmithSDK {
 
   @Override
   public FlagsAndTraits getFeatureFlags(FeatureUser user, boolean doThrow) {
-    String cacheKey = cache.getProjectFlagsCacheKey();
+    String cacheKey = cache.getEnvFlagsCacheKey();
     if (user == null && StringUtils.isBlank(cacheKey)) {
-      // caching project flags disabled
+      // caching environment flags disabled
       return flagsmithAPIWrapper.getFeatureFlags(null, doThrow);
     }
     if (user != null) {

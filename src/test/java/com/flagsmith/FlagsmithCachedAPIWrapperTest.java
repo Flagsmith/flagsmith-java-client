@@ -47,11 +47,11 @@ public class FlagsmithCachedAPIWrapperTest {
   }
 
   @Test(groups = "unit")
-  public void getFeatureFlags_projectFlags_cacheDisabled() {
+  public void getFeatureFlags_envFlags_cacheDisabled() {
     // Arrange
     final FlagsAndTraits flagsAndTraits = new FlagsAndTraits();
     when(flagsmithAPIWrapper.getFeatureFlags(null, true)).thenReturn(flagsAndTraits);
-    when(flagsmithInternalCache.getProjectFlagsCacheKey()).thenReturn(null);
+    when(flagsmithInternalCache.getEnvFlagsCacheKey()).thenReturn(null);
 
     // Act
     final FlagsAndTraits actualFeatureFlags = sut.getFeatureFlags(null, true);
@@ -64,12 +64,12 @@ public class FlagsmithCachedAPIWrapperTest {
   }
 
   @Test(groups = "unit")
-  public void getFeatureFlags_projectFlags_cacheEnabled_fetchFlagsWhenNotInCache() {
+  public void getFeatureFlags_envFlags_cacheEnabled_fetchFlagsWhenNotInCache() {
     // Arrange
     final String cacheKey = "cacheKey";
     final FlagsAndTraits flagsAndTraits = new FlagsAndTraits();
     when(flagsmithAPIWrapper.getFeatureFlags(null, true)).thenReturn(flagsAndTraits);
-    when(flagsmithInternalCache.getProjectFlagsCacheKey()).thenReturn(cacheKey);
+    when(flagsmithInternalCache.getEnvFlagsCacheKey()).thenReturn(cacheKey);
 
     // Act
     final FlagsAndTraits actualFeatureFlags = sut.getFeatureFlags(null, true);
@@ -82,11 +82,11 @@ public class FlagsmithCachedAPIWrapperTest {
   }
 
   @Test(groups = "unit")
-  public void getFeatureFlags_projectFlags_cacheEnabled_dontFetchFlagsWhenInCache() {
+  public void getFeatureFlags_envFlags_cacheEnabled_dontFetchFlagsWhenInCache() {
     // Arrange
     final String cacheKey = "cacheKey";
     final FlagsAndTraits flagsAndTraits = new FlagsAndTraits();
-    when(flagsmithInternalCache.getProjectFlagsCacheKey()).thenReturn(cacheKey);
+    when(flagsmithInternalCache.getEnvFlagsCacheKey()).thenReturn(cacheKey);
     cache.put(cacheKey, flagsAndTraits);
 
     // Act
