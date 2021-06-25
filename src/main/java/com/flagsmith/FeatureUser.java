@@ -7,5 +7,6 @@ import lombok.Data;
  */
 @Data
 public class FeatureUser {
-    private String identifier;
+
+  private String identifier;
 }
