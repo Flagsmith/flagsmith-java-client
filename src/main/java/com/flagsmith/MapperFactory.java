@@ -11,6 +11,11 @@ public class MapperFactory {
 
   private static volatile ObjectMapper mapper = null;
 
+  /**
+   * Get default ObjectMapper.
+   *
+   * @return an ObjectMapper
+   */
   public static ObjectMapper getMappper() {
     if (null == mapper) {
       mapper = new ObjectMapper();
