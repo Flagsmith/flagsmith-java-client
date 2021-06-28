@@ -1,14 +1,14 @@
 package com.flagsmith;
 
+import static java.text.MessageFormat.format;
+
+import java.io.IOException;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.slf4j.Logger;
 
-import java.io.IOException;
-
-import static java.text.MessageFormat.format;
-
 public class FlagsmithLogger {
+
   private Logger logger;
   private FlagsmithLoggerLevel level = FlagsmithLoggerLevel.ERROR;
 
@@ -32,7 +32,8 @@ public class FlagsmithLogger {
     } catch (IOException e) {
     }
 
-    String errorMessage = format("Flagsmith: error when getting flags. Request: {0}, Response: {1} body[{2}]",
+    String errorMessage = format(
+        "Flagsmith: error when getting flags. Request: {0}, Response: {1} body[{2}]",
         request.url(), response, body);
 
     if (doThrow) {
