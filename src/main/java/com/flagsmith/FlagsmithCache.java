@@ -57,8 +57,7 @@ public interface FlagsmithCache {
    * <p>Flags for users are stored in the cache using the user-identifier as the cache key.
    * <p>For environment level flags, you need to configure a key with the builder to enable caching
    * environment flags.
-   * <p>This method returns the key you
-   * configured with the builder.
+   * <p>This method returns the key you configured with the builder.
    *
    * @return string
    */
