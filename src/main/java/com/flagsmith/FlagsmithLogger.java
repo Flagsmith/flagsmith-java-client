@@ -21,6 +21,13 @@ public class FlagsmithLogger {
     this.logger = logger;
   }
 
+  /**
+   * Based on configuration prints error into log or throws an exception.
+   *
+   * @param request  a Request
+   * @param response a Response
+   * @param doThrow  a boolean whether to throw exception
+   */
   public void httpError(Request request, Response response, boolean doThrow) {
     if (!isLoggingEnabled(FlagsmithLoggerLevel.ERROR) && !doThrow) {
       return;
@@ -43,6 +50,13 @@ public class FlagsmithLogger {
     }
   }
 
+  /**
+   * Based on configuration prints error into log or throws an exception.
+   *
+   * @param request   a Request
+   * @param io        an IOException
+   * @param doReThrow a boolean whether to throw exception
+   */
   public void httpError(Request request, IOException io, boolean doReThrow) {
     if (doReThrow) {
       throw new FlagsmithException(io);
@@ -51,12 +65,24 @@ public class FlagsmithLogger {
     }
   }
 
+  /**
+   * Prints error into the log.
+   *
+   * @param var1 a param to print
+   * @param var2 a param to print
+   */
   public void error(String var1, Object... var2) {
     if (isLoggingEnabled(FlagsmithLoggerLevel.ERROR)) {
       logger.error("Flagsmith: " + var1, var2);
     }
   }
 
+  /**
+   * Prints info into the log.
+   *
+   * @param var1 a param to print
+   * @param var2 a param to print
+   */
   public void info(String var1, Object... var2) {
     if (isLoggingEnabled(FlagsmithLoggerLevel.INFO)) {
       logger.info("Flagsmith: " + var1, var2);
