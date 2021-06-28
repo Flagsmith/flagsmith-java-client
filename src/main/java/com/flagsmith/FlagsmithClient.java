@@ -98,7 +98,7 @@ public class FlagsmithClient {
   }
 
   /**
-   * Get a list of existing Features for the given environment and user
+   * Get a list of existing Features for the given environment and user.
    *
    * @param user a user in context
    * @return a list of feature flags
@@ -306,7 +306,8 @@ public class FlagsmithClient {
   }
 
   /**
-   * <p>Create or update a list of user Traits for given user identity.
+   * Create or update a list of user Traits for given user identity.
+   *
    * <p>Please note this will override any existing identity with given list.
    *
    * @param user   a user in context
@@ -318,7 +319,8 @@ public class FlagsmithClient {
   }
 
   /**
-   * <p>Create or update a list of user Traits for given user identity.
+   * Create or update a list of user Traits for given user identity.
+   *
    * <p>Please note this will override any existing identity with given list.
    *
    * @param user    a user in context
@@ -372,7 +374,9 @@ public class FlagsmithClient {
     /**
      * When a flag does not exist in Flagsmith or there is an error, the SDK will return false by
      * default.
+     *
      * <p>If you would like to override this default behaviour, you can use this method.
+     *
      * <p>Default: (String flagName) -> false;
      *
      * @param defaultFlagPredicate the new predicate to use as default flag boolean values
@@ -386,7 +390,9 @@ public class FlagsmithClient {
     /**
      * When a flag does not exist in Flagsmith or there is an error, the SDK will return null by
      * default.
+     *
      * <p>If you would like to override this default behaviour, you can use this method.
+     *
      * <p>Default: (String flagName) -> null;
      *
      * @param defaultFlagValueFunction the new function to use as default flag string values
@@ -462,6 +468,7 @@ public class FlagsmithClient {
 
     /**
      * <p>Enable in-memory caching for the Flagsmith API.
+     *
      * <p>If no other cache configuration is set, the Caffeine defaults will be used, i.e. no limit
      *
      * @param cacheConfig an FlagsmithCacheConfig.
