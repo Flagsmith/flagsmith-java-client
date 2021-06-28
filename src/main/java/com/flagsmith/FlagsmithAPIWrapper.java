@@ -96,6 +96,36 @@ class FlagsmithAPIWrapper implements FlagsmithSDK {
   }
 
   @Override
+  public Trait postUserTraits(FeatureUser user, Trait toUpdate, boolean doThrow) {
+    HttpUrl url = defaultConfig.traitsURI;
+    toUpdate.setIdentity(user);
+
+    MediaType json = MediaType.parse("application/json; charset=utf-8");
+    RequestBody body = RequestBody.create(json, toUpdate.toString());
+
+    Request request = this.newRequestBuilder()
+        .post(body)
+        .url(url)
+        .build();
+
+    Trait trait = null;
+    Call call = defaultConfig.httpClient.newCall(request);
+    try (Response response = call.execute()) {
+      if (response.isSuccessful()) {
+        ObjectMapper mapper = MapperFactory.getMappper();
+        trait = mapper.readValue(response.body().string(), Trait.class);
+      } else {
+        logger.httpError(request, response, doThrow);
+      }
+    } catch (IOException io) {
+      logger.httpError(request, io, doThrow);
+    }
+    logger.info("Updated trait for user = {}, new trait = {}, updated trait = {}",
+        user, toUpdate, trait);
+    return trait;
+  }
+
+  @Override
   public FlagsAndTraits identifyUserWithTraits(
       FeatureUser user, List<Trait> traits, boolean doThrow) {
     assertValidUser(user);
@@ -131,36 +161,6 @@ class FlagsmithAPIWrapper implements FlagsmithSDK {
     }
     logger.info("Got traits for user = {}, traits = {}", user, flagsAndTraits.getTraits());
     return flagsAndTraits;
-  }
-
-  @Override
-  public Trait postUserTraits(FeatureUser user, Trait toUpdate, boolean doThrow) {
-    HttpUrl url = defaultConfig.traitsURI;
-    toUpdate.setIdentity(user);
-
-    MediaType json = MediaType.parse("application/json; charset=utf-8");
-    RequestBody body = RequestBody.create(json, toUpdate.toString());
-
-    Request request = this.newRequestBuilder()
-        .post(body)
-        .url(url)
-        .build();
-
-    Trait trait = null;
-    Call call = defaultConfig.httpClient.newCall(request);
-    try (Response response = call.execute()) {
-      if (response.isSuccessful()) {
-        ObjectMapper mapper = MapperFactory.getMappper();
-        trait = mapper.readValue(response.body().string(), Trait.class);
-      } else {
-        logger.httpError(request, response, doThrow);
-      }
-    } catch (IOException io) {
-      logger.httpError(request, io, doThrow);
-    }
-    logger.info("Updated trait for user = {}, new trait = {}, updated trait = {}",
-        user, toUpdate, trait);
-    return trait;
   }
 
   public FlagsmithLogger getLogger() {
