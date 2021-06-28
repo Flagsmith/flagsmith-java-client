@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Factory for object mapper instances
+ * Factory for object mapper instances.
  */
 public class MapperFactory {
 
