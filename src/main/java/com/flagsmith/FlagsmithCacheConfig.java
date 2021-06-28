@@ -89,8 +89,10 @@ public final class FlagsmithCacheConfig {
     /**
      * Specifies the maximum number of entries the cache may contain. Note that the cache may evict
      * an entry before this limit is exceeded or temporarily exceed the threshold while evicting.
+     *
      * <p>As the cache size grows close to the maximum, the cache evicts entries that are less
      * likely to be used again.
+     *
      * <p> For example, the cache may evict an entry because it hasn't been used recently
      * or very often.
      *
@@ -106,6 +108,7 @@ public final class FlagsmithCacheConfig {
 
     /**
      * Enables the accumulation of CacheStats during the operation of the cache.
+     *
      * <p>Without this Cache.stats() will return zero for all statistics. Note that recording
      * statistics requires bookkeeping to be performed with each operation, and thus imposes a
      * performance penalty on cache operation.
@@ -119,12 +122,17 @@ public final class FlagsmithCacheConfig {
 
     /**
      * Enables caching for environment level flags.
+     *
      * <p>Flags for users are stored in the cache using the user-identifier as the cache key.
+     *
      * <p>For environment level flags, you need to configure a key with the builder to enable
      * caching environment flags.
+     *
      * <p>This is required to ensure the programmer chooses an environment-level-key that does not
      * conflict with user identifiers.
+     *
      * <p>IMPORTANT: make sure you set an environment key that will never match a user identifier.
+     *
      * <p>Otherwise, the cache will not be able to distinguish between the 2.
      *
      * @param envFlagsCacheKey key to use in the cache for environment level flags
