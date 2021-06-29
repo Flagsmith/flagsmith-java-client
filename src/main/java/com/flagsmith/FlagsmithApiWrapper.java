@@ -13,7 +13,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-class FlagsmithAPIWrapper implements FlagsmithSDK {
+class FlagsmithApiWrapper implements FlagsmithSdk {
 
   private static final String AUTH_HEADER = "X-Environment-Key";
   private static final String ACCEPT_HEADER = "Accept";
@@ -23,7 +23,7 @@ class FlagsmithAPIWrapper implements FlagsmithSDK {
   // an api key per environment
   private final String apiKey;
 
-  public FlagsmithAPIWrapper(final FlagsmithConfig defaultConfig,
+  public FlagsmithApiWrapper(final FlagsmithConfig defaultConfig,
       final HashMap<String, String> customHeaders,
       final FlagsmithLogger logger,
       final String apiKey) {
