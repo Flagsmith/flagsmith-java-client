@@ -6,13 +6,13 @@ import org.apache.commons.lang3.StringUtils;
 
 class FlagsmithCachedApiWrapper implements FlagsmithSdk {
 
-  private final FlagsmithApiWrapper flagsmithAPIWrapper;
+  private final FlagsmithApiWrapper flagsmithApiWrapper;
   private final FlagsmithCacheConfig.FlagsmithInternalCache cache;
 
   public FlagsmithCachedApiWrapper(final FlagsmithCacheConfig.FlagsmithInternalCache cache,
-      final FlagsmithApiWrapper flagsmithAPIWrapper) {
+      final FlagsmithApiWrapper flagsmithApiWrapper) {
     this.cache = cache;
-    this.flagsmithAPIWrapper = flagsmithAPIWrapper;
+    this.flagsmithApiWrapper = flagsmithApiWrapper;
   }
 
   @Override
@@ -20,21 +20,21 @@ class FlagsmithCachedApiWrapper implements FlagsmithSdk {
     String cacheKey = cache.getEnvFlagsCacheKey();
     if (user == null && StringUtils.isBlank(cacheKey)) {
       // caching environment flags disabled
-      return flagsmithAPIWrapper.getFeatureFlags(null, doThrow);
+      return flagsmithApiWrapper.getFeatureFlags(null, doThrow);
     }
     if (user != null) {
       assertValidUser(user);
       return cache.getCache()
-          .get(user.getIdentifier(), k -> flagsmithAPIWrapper.getFeatureFlags(user, doThrow));
+          .get(user.getIdentifier(), k -> flagsmithApiWrapper.getFeatureFlags(user, doThrow));
     }
-    return cache.getCache().get(cacheKey, k -> flagsmithAPIWrapper.getFeatureFlags(user, doThrow));
+    return cache.getCache().get(cacheKey, k -> flagsmithApiWrapper.getFeatureFlags(user, doThrow));
   }
 
   @Override
   public FlagsAndTraits getUserFlagsAndTraits(FeatureUser user, boolean doThrow) {
     assertValidUser(user);
     return cache.getCache()
-        .get(user.getIdentifier(), k -> flagsmithAPIWrapper.getUserFlagsAndTraits(user, doThrow));
+        .get(user.getIdentifier(), k -> flagsmithApiWrapper.getUserFlagsAndTraits(user, doThrow));
   }
 
   @Override
@@ -43,11 +43,11 @@ class FlagsmithCachedApiWrapper implements FlagsmithSdk {
     final FlagsAndTraits flagsAndTraits = getCachedFlagsIfTraitsMatch(user,
         Arrays.asList(toUpdate));
     if (flagsAndTraits != null) {
-      flagsmithAPIWrapper.getLogger()
+      flagsmithApiWrapper.getLogger()
           .info("User trait unchanged for user {}, trait: {}", user.getIdentifier(), toUpdate);
       return toUpdate;
     }
-    return flagsmithAPIWrapper.postUserTraits(user, toUpdate, doThrow);
+    return flagsmithApiWrapper.postUserTraits(user, toUpdate, doThrow);
   }
 
   @Override
@@ -58,7 +58,7 @@ class FlagsmithCachedApiWrapper implements FlagsmithSdk {
     if (flagsAndTraits != null) {
       return flagsAndTraits;
     }
-    flagsAndTraits = flagsmithAPIWrapper.identifyUserWithTraits(user, traits, doThrow);
+    flagsAndTraits = flagsmithApiWrapper.identifyUserWithTraits(user, traits, doThrow);
     cache.getCache().put(user.getIdentifier(), flagsAndTraits);
     return flagsAndTraits;
   }
