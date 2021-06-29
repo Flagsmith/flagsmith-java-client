@@ -286,7 +286,7 @@ public class FlagsmithClientTest {
     final FeatureUser user = featureUser("mr-user");
 
     final FlagsAndTraits flagsAndTraits = environment.client.getUserFlagsAndTraits(user);
-    final Trait trait = FlagsmithClient.getTrait(flagsAndTraits, "foo2");
+    final Trait trait = environment.client.getTrait(flagsAndTraits, "foo2");
     assertThat(trait)
         .isNotNull()
         .isEqualTo(trait(null, "foo2", "yyy"));
@@ -311,7 +311,7 @@ public class FlagsmithClientTest {
     final FeatureUser user = featureUser("mr-user");
 
     final FlagsAndTraits flagsAndTraits = environment.client.getUserFlagsAndTraits(user);
-    final List<Trait> traits = FlagsmithClient
+    final List<Trait> traits = environment.client
         .getTraits(flagsAndTraits, "foo2", "foo3", "foo-missing");
     assertThat(traits)
         .hasSize(2)
