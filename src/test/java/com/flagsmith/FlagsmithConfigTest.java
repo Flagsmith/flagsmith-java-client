@@ -1,10 +1,10 @@
 package com.flagsmith;
 
-import okhttp3.mock.MockInterceptor;
-import org.testng.annotations.Test;
-
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
+
+import okhttp3.mock.MockInterceptor;
+import org.testng.annotations.Test;
 
 public class FlagsmithConfigTest {
 
