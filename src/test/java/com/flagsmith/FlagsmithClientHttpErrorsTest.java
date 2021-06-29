@@ -173,7 +173,7 @@ public class FlagsmithClientHttpErrorsTest {
 
     FlagsAndTraits userFlagsAndTraits = flagsmithClient.getUserFlagsAndTraits(user);
 
-    Trait userTrait = FlagsmithClient.getTrait(userFlagsAndTraits, "cookies_key");
+    Trait userTrait = flagsmithClient.getTrait(userFlagsAndTraits, "cookies_key");
 
     assertNull(userTrait, "Should not have user traits back");
   }
@@ -186,7 +186,7 @@ public class FlagsmithClientHttpErrorsTest {
 
     FlagsAndTraits userFlagsAndTraits = flagsmithClient.getUserFlagsAndTraits(user);
 
-    List<Trait> userTraits = FlagsmithClient.getTraits(userFlagsAndTraits, "cookies_key");
+    List<Trait> userTraits = flagsmithClient.getTraits(userFlagsAndTraits, "cookies_key");
 
     assertNotNull(userTraits, "Should not have null user traits back");
     assertTrue(userTraits.isEmpty(), "Should not have user traits back");
