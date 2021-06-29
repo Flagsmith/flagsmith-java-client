@@ -21,7 +21,7 @@ public interface FlagsmithCache {
   /**
    * Discards any cached value for key userId.
    *
-   * @param userId
+   * @param userId an id of the user
    */
   void invalidate(String userId);
 
