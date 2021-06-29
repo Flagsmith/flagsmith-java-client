@@ -6,7 +6,7 @@
 
   <groupId>com.flagsmith</groupId>
   <artifactId>flagsmith-java-client</artifactId>
-  <version>3.1</version>
+  <version>4.0.0</version>
   <packaging>jar</packaging>
 
   <name>Flagsmith Java Client</name>
