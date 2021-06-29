@@ -37,7 +37,7 @@ class FlagsmithAPIWrapper implements FlagsmithSDK {
   public FlagsAndTraits getFeatureFlags(FeatureUser user, boolean doThrow) {
     HttpUrl.Builder urlBuilder;
     if (user == null) {
-      urlBuilder = defaultConfig.flagsURI.newBuilder()
+      urlBuilder = defaultConfig.flagsUri.newBuilder()
           .addEncodedQueryParameter("page", "1");
     } else {
       return getUserFlagsAndTraits(user, doThrow);
@@ -69,7 +69,7 @@ class FlagsmithAPIWrapper implements FlagsmithSDK {
   public FlagsAndTraits getUserFlagsAndTraits(FeatureUser user, boolean doThrow) {
     assertValidUser(user);
 
-    HttpUrl url = defaultConfig.identitiesURI.newBuilder("")
+    HttpUrl url = defaultConfig.identitiesUri.newBuilder("")
         .addEncodedQueryParameter("identifier", user.getIdentifier())
         .build();
 
@@ -97,7 +97,7 @@ class FlagsmithAPIWrapper implements FlagsmithSDK {
 
   @Override
   public Trait postUserTraits(FeatureUser user, Trait toUpdate, boolean doThrow) {
-    HttpUrl url = defaultConfig.traitsURI;
+    HttpUrl url = defaultConfig.traitsUri;
     toUpdate.setIdentity(user);
 
     MediaType json = MediaType.parse("application/json; charset=utf-8");
@@ -131,7 +131,7 @@ class FlagsmithAPIWrapper implements FlagsmithSDK {
     assertValidUser(user);
 
     // we are using identities endpoint to create bulk user Trait
-    HttpUrl url = defaultConfig.identitiesURI;
+    HttpUrl url = defaultConfig.identitiesUri;
 
     IdentityTraits identityTraits = new IdentityTraits();
     identityTraits.setIdentifier(user.getIdentifier());

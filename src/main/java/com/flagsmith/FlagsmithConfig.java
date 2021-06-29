@@ -21,17 +21,17 @@ public final class FlagsmithConfig {
   private static final int DEFAULT_READ_TIMEOUT_MILLIS = 5000;
   private static final HttpUrl DEFAULT_BASE_URI = HttpUrl
       .parse("https://api.flagsmith.com/api/v1/");
-  final HttpUrl flagsURI;
-  final HttpUrl identitiesURI;
-  final HttpUrl traitsURI;
+  final HttpUrl flagsUri;
+  final HttpUrl identitiesUri;
+  final HttpUrl traitsUri;
   final OkHttpClient httpClient;
   private final HttpUrl baseURI;
 
   protected FlagsmithConfig(Builder builder) {
     this.baseURI = builder.baseURI;
-    this.flagsURI = this.baseURI.newBuilder("flags/").build();
-    this.identitiesURI = this.baseURI.newBuilder("identities/").build();
-    this.traitsURI = this.baseURI.newBuilder("traits/").build();
+    this.flagsUri = this.baseURI.newBuilder("flags/").build();
+    this.identitiesUri = this.baseURI.newBuilder("identities/").build();
+    this.traitsUri = this.baseURI.newBuilder("traits/").build();
     OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder()
         .connectTimeout(builder.connectTimeoutMillis, TimeUnit.MILLISECONDS)
         .writeTimeout(builder.writeTimeoutMillis, TimeUnit.MILLISECONDS)
