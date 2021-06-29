@@ -25,13 +25,13 @@ public final class FlagsmithConfig {
   final HttpUrl identitiesUri;
   final HttpUrl traitsUri;
   final OkHttpClient httpClient;
-  private final HttpUrl baseURI;
+  private final HttpUrl baseUri;
 
   protected FlagsmithConfig(Builder builder) {
-    this.baseURI = builder.baseURI;
-    this.flagsUri = this.baseURI.newBuilder("flags/").build();
-    this.identitiesUri = this.baseURI.newBuilder("identities/").build();
-    this.traitsUri = this.baseURI.newBuilder("traits/").build();
+    this.baseUri = builder.baseURI;
+    this.flagsUri = this.baseUri.newBuilder("flags/").build();
+    this.identitiesUri = this.baseUri.newBuilder("identities/").build();
+    this.traitsUri = this.baseUri.newBuilder("traits/").build();
     OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder()
         .connectTimeout(builder.connectTimeoutMillis, TimeUnit.MILLISECONDS)
         .writeTimeout(builder.writeTimeoutMillis, TimeUnit.MILLISECONDS)
