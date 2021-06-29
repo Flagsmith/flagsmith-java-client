@@ -37,7 +37,8 @@ public class FlagsmithLogger {
     try {
       body = response.body().string();
     } catch (IOException e) {
-    }
+      // no handling
+    } // ok
 
     String errorMessage = format(
         "Flagsmith: error when getting flags. Request: {0}, Response: {1} body[{2}]",
