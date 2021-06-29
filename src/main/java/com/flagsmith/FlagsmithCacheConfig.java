@@ -93,7 +93,7 @@ public final class FlagsmithCacheConfig {
      * <p>As the cache size grows close to the maximum, the cache evicts entries that are less
      * likely to be used again.
      *
-     * <p> For example, the cache may evict an entry because it hasn't been used recently
+     * <p>For example, the cache may evict an entry because it hasn't been used recently
      * or very often.
      *
      * @param maxSize size. When size is zero, elements will be evicted immediately after being
