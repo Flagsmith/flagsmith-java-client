@@ -76,12 +76,12 @@ class FlagsmithCachedAPIWrapper implements FlagsmithSDK {
     } else if (flagsAndTraits.getTraits() != null) {
 
       final boolean allTraitsFound =
-          traitsToMatch == null ||
-              traitsToMatch.isEmpty() ||
-              traitsToMatch.stream().allMatch(t -> {
-                final Trait newTrait = new Trait(null, t.getKey(), t.getValue());
-                return flagsAndTraits.getTraits().contains(newTrait);
-              });
+          traitsToMatch == null
+              || traitsToMatch.isEmpty()
+              || traitsToMatch.stream().allMatch(t -> {
+            final Trait newTrait = new Trait(null, t.getKey(), t.getValue());
+            return flagsAndTraits.getTraits().contains(newTrait);
+          });
 
       // if all traits already have the same value, then there is no need to get new flags
       if (allTraitsFound) {
