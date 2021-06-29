@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 public class FlagsmithClient {
 
   private final FlagsmithLogger logger = new FlagsmithLogger();
-  private FlagsmithSDK flagsmithSDK;
+  private FlagsmithSDK flagsmithSdk;
   private Predicate<String> defaultFlagPredicate = (String flagName) -> false;
   private Function<String, String> defaultFlagValueFunc = (String flagName) -> null;
 
@@ -115,7 +115,7 @@ public class FlagsmithClient {
    * @return a list of feature flags
    */
   public List<Flag> getFeatureFlags(FeatureUser user, boolean doThrow) {
-    return this.flagsmithSDK.getFeatureFlags(user, doThrow).getFlags();
+    return this.flagsmithSdk.getFeatureFlags(user, doThrow).getFlags();
   }
 
   /**
@@ -279,7 +279,7 @@ public class FlagsmithClient {
    * @return a list of user Traits and Flags
    */
   public FlagsAndTraits getUserFlagsAndTraits(FeatureUser user, boolean doThrow) {
-    return this.flagsmithSDK.getUserFlagsAndTraits(user, doThrow);
+    return this.flagsmithSdk.getUserFlagsAndTraits(user, doThrow);
   }
 
   /**
@@ -302,7 +302,7 @@ public class FlagsmithClient {
    * @return a Trait object or null if does not exist
    */
   public Trait updateTrait(FeatureUser user, Trait toUpdate, boolean doThrow) {
-    return this.flagsmithSDK.postUserTraits(user, toUpdate, doThrow);
+    return this.flagsmithSdk.postUserTraits(user, toUpdate, doThrow);
   }
 
   /**
@@ -330,7 +330,7 @@ public class FlagsmithClient {
    */
   public FlagsAndTraits identifyUserWithTraits(FeatureUser user, List<Trait> traits,
       boolean doThrow) {
-    return flagsmithSDK.identifyUserWithTraits(user, traits, doThrow);
+    return flagsmithSdk.identifyUserWithTraits(user, traits, doThrow);
   }
 
   /**
@@ -339,7 +339,7 @@ public class FlagsmithClient {
    * @return a FlagsmithCache if enabled, otherwise null.
    */
   public FlagsmithCache getCache() {
-    return this.flagsmithSDK.getCache();
+    return this.flagsmithSdk.getCache();
   }
 
   public static class Builder {
@@ -486,10 +486,10 @@ public class FlagsmithClient {
       final FlagsmithAPIWrapper flagsmithAPIWrapper = new FlagsmithAPIWrapper(this.configuration,
           this.customHeaders, client.logger, apiKey);
       if (cacheConfig != null) {
-        this.client.flagsmithSDK = new FlagsmithCachedAPIWrapper(cacheConfig.cache,
+        this.client.flagsmithSdk = new FlagsmithCachedAPIWrapper(cacheConfig.cache,
             flagsmithAPIWrapper);
       } else {
-        this.client.flagsmithSDK = flagsmithAPIWrapper;
+        this.client.flagsmithSdk = flagsmithAPIWrapper;
       }
       return this.client;
     }
