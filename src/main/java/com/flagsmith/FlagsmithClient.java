@@ -334,11 +334,9 @@ public class FlagsmithClient {
   }
 
   /**
-   * This method returns a Flagsmith cache object that encapsulates methods to manipulate the
-   * cache.
+   * Returns a FlagsmithCache cache object that encapsulates methods to manipulate the cache.
    *
-   * @return if enabled - a flagsmith cache object that exposes methods to manipulate the cache,
-   * otherwise null.
+   * @return a FlagsmithCache if enabled, otherwise null.
    */
   public FlagsmithCache getCache() {
     return this.flagsmithSDK.getCache();
@@ -467,7 +465,7 @@ public class FlagsmithClient {
     }
 
     /**
-     * <p>Enable in-memory caching for the Flagsmith API.
+     * Enable in-memory caching for the Flagsmith API.
      *
      * <p>If no other cache configuration is set, the Caffeine defaults will be used, i.e. no limit
      *
@@ -479,6 +477,11 @@ public class FlagsmithClient {
       return this;
     }
 
+    /**
+     * Builds a FlagsmithClient.
+     *
+     * @return a FlagsmithClient
+     */
     public FlagsmithClient build() {
       final FlagsmithAPIWrapper flagsmithAPIWrapper = new FlagsmithAPIWrapper(this.configuration,
           this.customHeaders, client.logger, apiKey);
