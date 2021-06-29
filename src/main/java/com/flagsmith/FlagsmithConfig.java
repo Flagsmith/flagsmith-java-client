@@ -68,7 +68,7 @@ public final class FlagsmithConfig {
      * @param baseUri the new base URI for the API.
      * @return the Builder
      */
-    public Builder baseURI(String baseUri) {
+    public Builder baseUri(String baseUri) {
       if (baseUri != null) {
         this.baseUri = HttpUrl.parse(baseUri);
       }

@@ -44,7 +44,7 @@ public class FlagsmithApiWrapperTest {
         .httpError(any(), any(IOException.class), eq(true));
 
     interceptor = new MockInterceptor();
-    defaultConfig = FlagsmithConfig.newBuilder().addHttpInterceptor(interceptor).baseURI(BASE_URL)
+    defaultConfig = FlagsmithConfig.newBuilder().addHttpInterceptor(interceptor).baseUri(BASE_URL)
         .build();
     sut = new FlagsmithApiWrapper(defaultConfig, null, flagsmithLogger, API_KEY);
   }
