@@ -18,19 +18,19 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 @Test(groups = "unit")
-public class FlagsmithCachedAPIWrapperTest {
+public class FlagsmithCachedApiWrapperTest {
 
-  private FlagsmithCachedAPIWrapper sut;
+  private FlagsmithCachedApiWrapper sut;
   private FlagsmithCacheConfig.FlagsmithInternalCache flagsmithInternalCache;
-  private FlagsmithAPIWrapper flagsmithAPIWrapper;
+  private FlagsmithApiWrapper flagsmithAPIWrapper;
   private FlagsmithLogger flagsmithLogger;
   private Cache<String, FlagsAndTraits> cache;
 
   @BeforeMethod(groups = "unit")
   public void init() {
     flagsmithInternalCache = mock(FlagsmithCacheConfig.FlagsmithInternalCache.class);
-    flagsmithAPIWrapper = mock(FlagsmithAPIWrapper.class);
-    sut = new FlagsmithCachedAPIWrapper(flagsmithInternalCache, flagsmithAPIWrapper);
+    flagsmithAPIWrapper = mock(FlagsmithApiWrapper.class);
+    sut = new FlagsmithCachedApiWrapper(flagsmithInternalCache, flagsmithAPIWrapper);
 
     cache = Caffeine.newBuilder().maximumSize(2).build();
     when(flagsmithInternalCache.getCache()).thenReturn(cache);

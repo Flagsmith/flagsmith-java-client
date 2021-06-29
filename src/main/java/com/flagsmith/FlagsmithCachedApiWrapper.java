@@ -4,13 +4,13 @@ import java.util.Arrays;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 
-class FlagsmithCachedAPIWrapper implements FlagsmithSDK {
+class FlagsmithCachedApiWrapper implements FlagsmithSdk {
 
-  private final FlagsmithAPIWrapper flagsmithAPIWrapper;
+  private final FlagsmithApiWrapper flagsmithAPIWrapper;
   private final FlagsmithCacheConfig.FlagsmithInternalCache cache;
 
-  public FlagsmithCachedAPIWrapper(final FlagsmithCacheConfig.FlagsmithInternalCache cache,
-      final FlagsmithAPIWrapper flagsmithAPIWrapper) {
+  public FlagsmithCachedApiWrapper(final FlagsmithCacheConfig.FlagsmithInternalCache cache,
+      final FlagsmithApiWrapper flagsmithAPIWrapper) {
     this.cache = cache;
     this.flagsmithAPIWrapper = flagsmithAPIWrapper;
   }
