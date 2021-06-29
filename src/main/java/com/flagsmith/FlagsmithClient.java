@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 public class FlagsmithClient {
 
   private final FlagsmithLogger logger = new FlagsmithLogger();
-  private FlagsmithSDK flagsmithSdk;
+  private FlagsmithSdk flagsmithSdk;
   private Predicate<String> defaultFlagPredicate = (String flagName) -> false;
   private Function<String, String> defaultFlagValueFunc = (String flagName) -> null;
 
@@ -344,7 +344,7 @@ public class FlagsmithClient {
 
   public static class Builder {
 
-    private FlagsmithClient client;
+    private final FlagsmithClient client;
     private FlagsmithConfig configuration = FlagsmithConfig.newBuilder().build();
     private HashMap<String, String> customHeaders;
     private String apiKey;
@@ -483,13 +483,13 @@ public class FlagsmithClient {
      * @return a FlagsmithClient
      */
     public FlagsmithClient build() {
-      final FlagsmithAPIWrapper flagsmithAPIWrapper = new FlagsmithAPIWrapper(this.configuration,
-          this.customHeaders, client.logger, apiKey);
+      final FlagsmithApiWrapper flagsmithApiWrapper = new FlagsmithApiWrapper(
+          this.configuration, this.customHeaders, client.logger, apiKey);
       if (cacheConfig != null) {
-        this.client.flagsmithSdk = new FlagsmithCachedAPIWrapper(cacheConfig.cache,
-            flagsmithAPIWrapper);
+        this.client.flagsmithSdk = new FlagsmithCachedApiWrapper(
+            cacheConfig.cache, flagsmithApiWrapper);
       } else {
-        this.client.flagsmithSdk = flagsmithAPIWrapper;
+        this.client.flagsmithSdk = flagsmithApiWrapper;
       }
       return this.client;
     }
