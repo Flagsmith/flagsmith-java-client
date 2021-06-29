@@ -447,7 +447,7 @@ public class FlagsmithClient {
     public Builder withApiUrl(String apiUrl) {
       if (apiUrl != null) {
         this.configuration = FlagsmithConfig.newBuilder()
-            .baseURI(apiUrl)
+            .baseUri(apiUrl)
             .build();
       }
       return this;
