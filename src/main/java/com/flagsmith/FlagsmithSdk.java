@@ -4,7 +4,7 @@ import java.util.List;
 import lombok.NonNull;
 import org.apache.commons.lang3.StringUtils;
 
-interface FlagsmithSDK {
+interface FlagsmithSdk {
 
   // API Endpoints
   FlagsAndTraits getFeatureFlags(FeatureUser user, boolean doThrow);
