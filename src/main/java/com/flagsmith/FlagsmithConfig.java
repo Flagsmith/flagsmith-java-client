@@ -28,7 +28,7 @@ public final class FlagsmithConfig {
   private final HttpUrl baseUri;
 
   protected FlagsmithConfig(Builder builder) {
-    this.baseUri = builder.baseURI;
+    this.baseUri = builder.baseUri;
     this.flagsUri = this.baseUri.newBuilder("flags/").build();
     this.identitiesUri = this.baseUri.newBuilder("identities/").build();
     this.traitsUri = this.baseUri.newBuilder("traits/").build();
@@ -52,7 +52,7 @@ public final class FlagsmithConfig {
   public static class Builder {
 
     private final List<Interceptor> interceptors = new ArrayList<>();
-    private HttpUrl baseURI = DEFAULT_BASE_URI;
+    private HttpUrl baseUri = DEFAULT_BASE_URI;
     private int connectTimeoutMillis = DEFAULT_CONNECT_TIMEOUT_MILLIS;
     private int writeTimeoutMillis = DEFAULT_WRITE_TIMEOUT_MILLIS;
     private int readTimeoutMillis = DEFAULT_READ_TIMEOUT_MILLIS;
@@ -65,12 +65,12 @@ public final class FlagsmithConfig {
     /**
      * Set the base URL for Flagsmith API, overriding default one.
      *
-     * @param baseURI the new base URI for the API.
+     * @param baseUri the new base URI for the API.
      * @return the Builder
      */
-    public Builder baseURI(String baseURI) {
-      if (baseURI != null) {
-        this.baseURI = HttpUrl.parse(baseURI);
+    public Builder baseURI(String baseUri) {
+      if (baseUri != null) {
+        this.baseUri = HttpUrl.parse(baseUri);
       }
       return this;
     }
