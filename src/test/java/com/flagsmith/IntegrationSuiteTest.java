@@ -1,5 +1,8 @@
 package com.flagsmith;
 
+import static com.flagsmith.FlagsmithTestHelper.defaultHeaders;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.google.common.collect.ImmutableMap;
 import io.restassured.RestAssured;
 import org.slf4j.LoggerFactory;
@@ -13,16 +16,12 @@ import org.testng.annotations.AfterGroups;
 import org.testng.annotations.BeforeGroups;
 import org.testng.annotations.Test;
 
-import static com.flagsmith.FlagsmithTestHelper.defaultHeaders;
-import static org.assertj.core.api.Assertions.assertThat;
-
 @Test(groups = "integration")
 public class IntegrationSuiteTest {
 
+  public static final int BACKEND_PORT = 8000;
   private static final Network network = Network.newNetwork();
   private static PostgreSQLContainer<?> postgres;
-
-  public static final int BACKEND_PORT = 8000;
 
   @BeforeGroups(groups = "integration")
   public static void beforeClass() {
@@ -33,7 +32,8 @@ public class IntegrationSuiteTest {
         .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("flagsmith-db")));
     postgres.start();
 
-    TestData.backend = new GenericContainer<>(DockerImageName.parse("flagsmith/flagsmith-api:latest"))
+    TestData.backend = new GenericContainer<>(
+        DockerImageName.parse("flagsmith/flagsmith-api:latest"))
         .withNetwork(network)
         .withNetworkAliases("flagsmith-be")
         .withEnv("DJANGO_ALLOWED_HOSTS", "*")
@@ -45,7 +45,8 @@ public class IntegrationSuiteTest {
             postgres.getDatabaseName()))
         .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("flagsmith-be")))
         .withExposedPorts(BACKEND_PORT)
-        .waitingFor(new HttpWaitStrategy().forPath("/health").withHeader("Accept", "application/json"));
+        .waitingFor(
+            new HttpWaitStrategy().forPath("/health").withHeader("Accept", "application/json"));
     TestData.backend.start();
 
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
@@ -95,6 +96,7 @@ public class IntegrationSuiteTest {
   }
 
   public static class TestData {
+
     public static String token;
     public static int organisationId;
     public static GenericContainer<?> backend;
