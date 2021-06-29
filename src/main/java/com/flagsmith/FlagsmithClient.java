@@ -22,18 +22,8 @@ public class FlagsmithClient {
   private FlagsmithClient() {
   }
 
-  /**
-   * Get user Trait from a given FlagsAndTraits and trait key.
-   *
-   * @param key            a unique user trait key
-   * @param flagsAndTraits flags and traits object
-   * @return a Trait object or null if does not exist
-   */
-  public static Trait getTrait(FlagsAndTraits flagsAndTraits, String key) {
-    if (flagsAndTraits == null) {
-      return null;
-    }
-    return getTraitByKey(key, flagsAndTraits.getTraits());
+  public static FlagsmithClient.Builder newBuilder() {
+    return new FlagsmithClient.Builder();
   }
 
   /**
@@ -52,15 +42,6 @@ public class FlagsmithClient {
       }
     }
     return null;
-  }
-
-  /**
-   * Get a list of user Traits for user identity and trait keys.
-   *
-   * @return a list of user Trait
-   */
-  public static List<Trait> getTraits(FlagsAndTraits flagsAndTraits, String... keys) {
-    return flagsAndTraits == null ? null : getTraitsByKeys(flagsAndTraits.getTraits(), keys);
   }
 
   /**
@@ -84,8 +65,48 @@ public class FlagsmithClient {
     return filteredTraits;
   }
 
-  public static FlagsmithClient.Builder newBuilder() {
-    return new FlagsmithClient.Builder();
+  /**
+   * Get user Trait from a given FlagsAndTraits and trait key.
+   *
+   * @param key            a unique user trait key
+   * @param flagsAndTraits flags and traits object
+   * @return a Trait object or null if does not exist
+   */
+  public Trait getTrait(FlagsAndTraits flagsAndTraits, String key) {
+    if (flagsAndTraits == null) {
+      return null;
+    }
+    return getTraitByKey(key, flagsAndTraits.getTraits());
+  }
+
+  /**
+   * Get user Trait for given user identity and trait key.
+   *
+   * @param key  a unique user trait key
+   * @param user a user in context
+   * @return a Trait object or null if does not exist
+   */
+  public Trait getTrait(FeatureUser user, String key) {
+    List<Trait> traits = getUserTraits(user);
+    return getTraitByKey(key, traits);
+  }
+
+  /**
+   * Get a list of user Traits for user identity and trait keys.
+   *
+   * @return a list of user Trait
+   */
+  public List<Trait> getTraits(FlagsAndTraits flagsAndTraits, String... keys) {
+    return flagsAndTraits == null ? null : getTraitsByKeys(flagsAndTraits.getTraits(), keys);
+  }
+
+  /**
+   * Get a list of user Traits for user identity and trait keys.
+   *
+   * @return a list of user Trait
+   */
+  public List<Trait> getTraits(FeatureUser user, String... keys) {
+    return getTraitsByKeys(getUserTraits(user), keys);
   }
 
   /**
@@ -227,27 +248,6 @@ public class FlagsmithClient {
     }
 
     return defaultFlagValueFunc.apply(featureId);
-  }
-
-  /**
-   * Get user Trait for given user identity and trait key.
-   *
-   * @param key  a unique user trait key
-   * @param user a user in context
-   * @return a Trait object or null if does not exist
-   */
-  public Trait getTrait(FeatureUser user, String key) {
-    List<Trait> traits = getUserTraits(user);
-    return getTraitByKey(key, traits);
-  }
-
-  /**
-   * Get a list of user Traits for user identity and trait keys.
-   *
-   * @return a list of user Trait
-   */
-  public List<Trait> getTraits(FeatureUser user, String... keys) {
-    return getTraitsByKeys(getUserTraits(user), keys);
   }
 
   /**
