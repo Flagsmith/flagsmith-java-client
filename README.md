@@ -25,6 +25,19 @@ If you encounter a bug or feature request we would like to hear about it. Before
 
 If you have any questions about our projects you can email <a href="mailto:support@flagsmith.com">support@flagsmith.com</a>.
 
+
+## Code Style formatting
+We are using Google Java Style for code formatting. To install one see instructions bellow 
+
+### VS Code  
+Install extension [Checkstyle for Java](https://marketplace.visualstudio.com/items?itemName=shengchen.vscode-checkstyle)
+Use `java-google-style.xml` file in docs folder to set as Checkstyle configuration file.
+
+### IntelliJ
+
+To add GoogleStyle formatting in IntelliJ go to `Preferences -> Editor - Code Style -> Java`. From Schema `Import Schema` and select file `docs/java-google-style.xml`
+Once added, you now be able to Reformat Code using GoogleStyle, which can be triggered from the Code menu or with the Ctrl-Alt-L (by default) keyboard shortcut.
+
 ## Useful links
 
 [Website](https://www.flagsmith.com/)
