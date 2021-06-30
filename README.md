@@ -30,6 +30,7 @@ If you have any questions about our projects you can email <a href="mailto:suppo
 We are using Google Java Style for code formatting. To install one see instructions bellow 
 
 ### VS Code  
+
 Install extension [Checkstyle for Java](https://marketplace.visualstudio.com/items?itemName=shengchen.vscode-checkstyle)
 Use `java-google-style.xml` file in docs folder to set as Checkstyle configuration file.
 
