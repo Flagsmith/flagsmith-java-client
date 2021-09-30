@@ -3,9 +3,10 @@ package com.flagsmith;
 import lombok.Data;
 
 /**
- * Representation of the Identity user
+ * Representation of the Identity user.
  */
 @Data
 public class FeatureUser {
-    private String identifier;
+
+  private String identifier;
 }

@@ -1,17 +1,18 @@
 package com.flagsmith;
 
-import org.apache.commons.lang3.StringUtils;
-
 import java.util.Arrays;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 
-class FlagsmithCachedAPIWrapper implements FlagsmithSDK {
-  private final FlagsmithAPIWrapper flagsmithAPIWrapper;
+class FlagsmithCachedApiWrapper implements FlagsmithSdk {
+
+  private final FlagsmithApiWrapper flagsmithApiWrapper;
   private final FlagsmithCacheConfig.FlagsmithInternalCache cache;
 
-  public FlagsmithCachedAPIWrapper(final FlagsmithCacheConfig.FlagsmithInternalCache cache, final FlagsmithAPIWrapper flagsmithAPIWrapper) {
+  public FlagsmithCachedApiWrapper(final FlagsmithCacheConfig.FlagsmithInternalCache cache,
+      final FlagsmithApiWrapper flagsmithApiWrapper) {
     this.cache = cache;
-    this.flagsmithAPIWrapper = flagsmithAPIWrapper;
+    this.flagsmithApiWrapper = flagsmithApiWrapper;
   }
 
   @Override
@@ -19,40 +20,45 @@ class FlagsmithCachedAPIWrapper implements FlagsmithSDK {
     String cacheKey = cache.getEnvFlagsCacheKey();
     if (user == null && StringUtils.isBlank(cacheKey)) {
       // caching environment flags disabled
-      return flagsmithAPIWrapper.getFeatureFlags(null, doThrow);
+      return flagsmithApiWrapper.getFeatureFlags(null, doThrow);
     }
     if (user != null) {
       assertValidUser(user);
-      return cache.getCache().get(user.getIdentifier(), k -> flagsmithAPIWrapper.getFeatureFlags(user, doThrow));
+      return cache.getCache()
+          .get(user.getIdentifier(), k -> flagsmithApiWrapper.getFeatureFlags(user, doThrow));
     }
-    return cache.getCache().get(cacheKey, k -> flagsmithAPIWrapper.getFeatureFlags(user, doThrow));
+    return cache.getCache().get(cacheKey, k -> flagsmithApiWrapper.getFeatureFlags(user, doThrow));
   }
 
   @Override
   public FlagsAndTraits getUserFlagsAndTraits(FeatureUser user, boolean doThrow) {
     assertValidUser(user);
-    return cache.getCache().get(user.getIdentifier(), k -> flagsmithAPIWrapper.getUserFlagsAndTraits(user, doThrow));
+    return cache.getCache()
+        .get(user.getIdentifier(), k -> flagsmithApiWrapper.getUserFlagsAndTraits(user, doThrow));
   }
 
   @Override
   public Trait postUserTraits(FeatureUser user, Trait toUpdate, boolean doThrow) {
     assertValidUser(user);
-    final FlagsAndTraits flagsAndTraits = getCachedFlagsIfTraitsMatch(user, Arrays.asList(toUpdate));
+    final FlagsAndTraits flagsAndTraits = getCachedFlagsIfTraitsMatch(user,
+        Arrays.asList(toUpdate));
     if (flagsAndTraits != null) {
-      flagsmithAPIWrapper.getLogger().info("User trait unchanged for user {}, trait: {}", user.getIdentifier(), toUpdate);
+      flagsmithApiWrapper.getLogger()
+          .info("User trait unchanged for user {}, trait: {}", user.getIdentifier(), toUpdate);
       return toUpdate;
     }
-    return flagsmithAPIWrapper.postUserTraits(user, toUpdate, doThrow);
+    return flagsmithApiWrapper.postUserTraits(user, toUpdate, doThrow);
   }
 
   @Override
-  public FlagsAndTraits identifyUserWithTraits(FeatureUser user, List<Trait> traits, boolean doThrow) {
+  public FlagsAndTraits identifyUserWithTraits(
+      FeatureUser user, List<Trait> traits, boolean doThrow) {
     assertValidUser(user);
     FlagsAndTraits flagsAndTraits = getCachedFlagsIfTraitsMatch(user, traits);
     if (flagsAndTraits != null) {
       return flagsAndTraits;
     }
-    flagsAndTraits = flagsmithAPIWrapper.identifyUserWithTraits(user, traits, doThrow);
+    flagsAndTraits = flagsmithApiWrapper.identifyUserWithTraits(user, traits, doThrow);
     cache.getCache().put(user.getIdentifier(), flagsAndTraits);
     return flagsAndTraits;
   }
@@ -70,12 +76,13 @@ class FlagsmithCachedAPIWrapper implements FlagsmithSDK {
     } else if (flagsAndTraits.getTraits() != null) {
 
       final boolean allTraitsFound =
-          traitsToMatch == null ||
-          traitsToMatch.isEmpty() ||
-          traitsToMatch.stream().allMatch(t -> {
-            final Trait newTrait = new Trait(null, t.getKey(), t.getValue());
-            return flagsAndTraits.getTraits().contains(newTrait);
-      });
+          traitsToMatch == null
+              || traitsToMatch.isEmpty()
+              || traitsToMatch.stream()
+              .allMatch(t -> {
+                final Trait newTrait = new Trait(null, t.getKey(), t.getValue());
+                return flagsAndTraits.getTraits().contains(newTrait);
+              });
 
       // if all traits already have the same value, then there is no need to get new flags
       if (allTraitsFound) {

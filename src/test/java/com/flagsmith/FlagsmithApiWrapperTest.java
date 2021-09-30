@@ -1,18 +1,5 @@
 package com.flagsmith;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
-import okhttp3.mock.MockInterceptor;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import static okhttp3.mock.MediaTypes.MEDIATYPE_JSON;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -25,13 +12,25 @@ import static org.mockito.Mockito.verify;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
+import okhttp3.mock.MockInterceptor;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
 @Test(groups = "unit")
-public class FlagsmithAPIWrapperTest {
+public class FlagsmithApiWrapperTest {
 
   private final String API_KEY = "OUR_API_KEY";
   private final String BASE_URL = "https://unit-test.com";
   private final ObjectMapper mapper = MapperFactory.getMappper();
-  private FlagsmithAPIWrapper sut;
+  private FlagsmithApiWrapper sut;
   private FlagsmithLogger flagsmithLogger;
   private FlagsmithConfig defaultConfig;
   private MockInterceptor interceptor;
@@ -39,12 +38,15 @@ public class FlagsmithAPIWrapperTest {
   @BeforeMethod(groups = "unit")
   public void init() {
     flagsmithLogger = mock(FlagsmithLogger.class);
-    doThrow(new FlagsmithException("error Response")).when(flagsmithLogger).httpError(any(), any(Response.class), eq(true));
-    doThrow(new FlagsmithException("error IOException")).when(flagsmithLogger).httpError(any(), any(IOException.class), eq(true));
+    doThrow(new FlagsmithException("error Response")).when(flagsmithLogger)
+        .httpError(any(), any(Response.class), eq(true));
+    doThrow(new FlagsmithException("error IOException")).when(flagsmithLogger)
+        .httpError(any(), any(IOException.class), eq(true));
 
     interceptor = new MockInterceptor();
-    defaultConfig = FlagsmithConfig.newBuilder().addHttpInterceptor(interceptor).baseURI(BASE_URL).build();
-    sut = new FlagsmithAPIWrapper(defaultConfig, null, flagsmithLogger, API_KEY);
+    defaultConfig = FlagsmithConfig.newBuilder().addHttpInterceptor(interceptor).baseUri(BASE_URL)
+        .build();
+    sut = new FlagsmithApiWrapper(defaultConfig, null, flagsmithLogger, API_KEY);
   }
 
   @Test(groups = "unit")

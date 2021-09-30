@@ -1,12 +1,5 @@
 package com.flagsmith;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
-
-import java.util.ArrayList;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
@@ -18,20 +11,26 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertThrows;
 
-@Test(groups = "unit")
-public class FlagsmithCachedAPIWrapperTest {
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import java.util.ArrayList;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
-  private FlagsmithCachedAPIWrapper sut;
+@Test(groups = "unit")
+public class FlagsmithCachedApiWrapperTest {
+
+  private FlagsmithCachedApiWrapper sut;
   private FlagsmithCacheConfig.FlagsmithInternalCache flagsmithInternalCache;
-  private FlagsmithAPIWrapper flagsmithAPIWrapper;
+  private FlagsmithApiWrapper flagsmithAPIWrapper;
   private FlagsmithLogger flagsmithLogger;
   private Cache<String, FlagsAndTraits> cache;
 
   @BeforeMethod(groups = "unit")
   public void init() {
     flagsmithInternalCache = mock(FlagsmithCacheConfig.FlagsmithInternalCache.class);
-    flagsmithAPIWrapper = mock(FlagsmithAPIWrapper.class);
-    sut = new FlagsmithCachedAPIWrapper(flagsmithInternalCache, flagsmithAPIWrapper);
+    flagsmithAPIWrapper = mock(FlagsmithApiWrapper.class);
+    sut = new FlagsmithCachedApiWrapper(flagsmithInternalCache, flagsmithAPIWrapper);
 
     cache = Caffeine.newBuilder().maximumSize(2).build();
     when(flagsmithInternalCache.getCache()).thenReturn(cache);
@@ -165,7 +164,8 @@ public class FlagsmithCachedAPIWrapperTest {
   @Test(groups = "unit")
   public void getUserFlagsAndTraits_nullUserIdentifier() {
     // Act
-    assertThrows(IllegalArgumentException.class, () -> sut.getUserFlagsAndTraits(new FeatureUser(), true));
+    assertThrows(IllegalArgumentException.class,
+        () -> sut.getUserFlagsAndTraits(new FeatureUser(), true));
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).getUserFlagsAndTraits(any(), anyBoolean());
@@ -228,7 +228,8 @@ public class FlagsmithCachedAPIWrapperTest {
   @Test(groups = "unit")
   public void postUserTraits_nullUserIdentifier() {
     // Act
-    assertThrows(IllegalArgumentException.class, () -> sut.postUserTraits(new FeatureUser(), new Trait(), true));
+    assertThrows(IllegalArgumentException.class,
+        () -> sut.postUserTraits(new FeatureUser(), new Trait(), true));
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).postUserTraits(any(), any(), anyBoolean());
@@ -331,7 +332,8 @@ public class FlagsmithCachedAPIWrapperTest {
   @Test(groups = "unit")
   public void identifyUserWithTraits_nullUser() {
     // Act
-    assertThrows(IllegalArgumentException.class, () -> sut.identifyUserWithTraits(null, new ArrayList<>(), true));
+    assertThrows(IllegalArgumentException.class,
+        () -> sut.identifyUserWithTraits(null, new ArrayList<>(), true));
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).identifyUserWithTraits(any(), any(), anyBoolean());
@@ -342,7 +344,8 @@ public class FlagsmithCachedAPIWrapperTest {
   @Test(groups = "unit")
   public void identifyUserWithTraits_nullUserIdentifier() {
     // Act
-    assertThrows(IllegalArgumentException.class, () -> sut.identifyUserWithTraits(new FeatureUser(), new ArrayList<>(), true));
+    assertThrows(IllegalArgumentException.class,
+        () -> sut.identifyUserWithTraits(new FeatureUser(), new ArrayList<>(), true));
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).identifyUserWithTraits(any(), any(), anyBoolean());
@@ -420,7 +423,8 @@ public class FlagsmithCachedAPIWrapperTest {
     when(flagsmithAPIWrapper.identifyUserWithTraits(user, newTraits, true)).thenReturn(newFlags);
 
     // Act
-    final FlagsAndTraits actualUserFlagsAndTraits = sut.identifyUserWithTraits(user, newTraits, true);
+    final FlagsAndTraits actualUserFlagsAndTraits = sut
+        .identifyUserWithTraits(user, newTraits, true);
 
     // Assert
     verify(flagsmithAPIWrapper, times(1)).identifyUserWithTraits(any(), eq(newTraits), eq(true));
@@ -456,7 +460,8 @@ public class FlagsmithCachedAPIWrapperTest {
     when(flagsmithAPIWrapper.identifyUserWithTraits(user, newTraits, true)).thenReturn(newFlags);
 
     // Act
-    final FlagsAndTraits actualUserFlagsAndTraits = sut.identifyUserWithTraits(user, newTraits, true);
+    final FlagsAndTraits actualUserFlagsAndTraits = sut
+        .identifyUserWithTraits(user, newTraits, true);
 
     // Assert
     verify(flagsmithAPIWrapper, times(1)).identifyUserWithTraits(any(), eq(newTraits), eq(true));
@@ -493,7 +498,8 @@ public class FlagsmithCachedAPIWrapperTest {
     when(flagsmithAPIWrapper.identifyUserWithTraits(user, newTraits, true)).thenReturn(newFlags);
 
     // Act
-    final FlagsAndTraits actualUserFlagsAndTraits = sut.identifyUserWithTraits(user, newTraits, true);
+    final FlagsAndTraits actualUserFlagsAndTraits = sut
+        .identifyUserWithTraits(user, newTraits, true);
 
     // Assert
     verify(flagsmithAPIWrapper, times(1)).identifyUserWithTraits(any(), eq(newTraits), eq(true));
@@ -519,7 +525,8 @@ public class FlagsmithCachedAPIWrapperTest {
     cache.put(user.getIdentifier(), oldFlags);
 
     // Act
-    final FlagsAndTraits actualUserFlagsAndTraits = sut.identifyUserWithTraits(user, new ArrayList<>(), true);
+    final FlagsAndTraits actualUserFlagsAndTraits = sut
+        .identifyUserWithTraits(user, new ArrayList<>(), true);
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).identifyUserWithTraits(any(), any(), eq(true));
