@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import lombok.NonNull;
@@ -16,8 +17,6 @@ public class FlagsmithClient {
 
   private final FlagsmithLogger logger = new FlagsmithLogger();
   private FlagsmithSdk flagsmithSdk;
-  private Predicate<String> defaultFlagPredicate = (String flagName) -> false;
-  private Function<String, String> defaultFlagValueFunc = (String flagName) -> null;
 
   private FlagsmithClient() {
   }
@@ -171,7 +170,7 @@ public class FlagsmithClient {
    */
   public boolean hasFeatureFlag(String featureId, FlagsAndTraits flagsAndTraits) {
     if (flagsAndTraits == null) {
-      return defaultFlagPredicate.test(featureId);
+      return evaluateDefaultFlagPredicate(featureId);
     }
     return hasFeatureFlagByName(featureId, flagsAndTraits.getFlags());
   }
@@ -191,7 +190,7 @@ public class FlagsmithClient {
         }
       }
     }
-    return defaultFlagPredicate.test(featureId);
+    return evaluateDefaultFlagPredicate(featureId);
   }
 
   /**
@@ -226,9 +225,19 @@ public class FlagsmithClient {
    */
   public String getFeatureFlagValue(String featureId, FlagsAndTraits flagsAndTraits) {
     if (flagsAndTraits == null) {
-      return defaultFlagValueFunc.apply(featureId);
+      return evaluateDefaultFlagValue(featureId);
     }
     return getFeatureFlagValueByName(featureId, flagsAndTraits.getFlags());
+  }
+
+  /**
+   * Get the default feature flags. This method can be useful for your unit tests, to ensure you
+   * have setup the defaults correctly.
+   *
+   * @return list of default flags, not fetched from Flagsmith
+   */
+  public List<Flag> getDefaultFlags() {
+    return this.flagsmithSdk.getConfig().flagsmithFlagDefaults.getDefaultFlags();
   }
 
   /**
@@ -247,7 +256,7 @@ public class FlagsmithClient {
       }
     }
 
-    return defaultFlagValueFunc.apply(featureId);
+    return evaluateDefaultFlagValue(featureId);
   }
 
   /**
@@ -342,6 +351,15 @@ public class FlagsmithClient {
     return this.flagsmithSdk.getCache();
   }
 
+  private boolean evaluateDefaultFlagPredicate(String featureId) {
+    return this.flagsmithSdk.getConfig().flagsmithFlagDefaults
+        .evaluateDefaultFlagPredicate(featureId);
+  }
+
+  private String evaluateDefaultFlagValue(String featureId) {
+    return this.flagsmithSdk.getConfig().flagsmithFlagDefaults.evaluateDefaultFlagValue(featureId);
+  }
+
   public static class Builder {
 
     private final FlagsmithClient client;
@@ -381,7 +399,7 @@ public class FlagsmithClient {
      * @return the Builder
      */
     public Builder setDefaultFlagPredicate(@NonNull Predicate<String> defaultFlagPredicate) {
-      this.client.defaultFlagPredicate = defaultFlagPredicate;
+      this.configuration.flagsmithFlagDefaults.setDefaultFlagPredicate(defaultFlagPredicate);
       return this;
     }
 
@@ -398,7 +416,25 @@ public class FlagsmithClient {
      */
     public Builder setDefaultFlagValueFunction(
         @NonNull Function<String, String> defaultFlagValueFunction) {
-      this.client.defaultFlagValueFunc = defaultFlagValueFunction;
+      this.configuration.flagsmithFlagDefaults.setDefaultFlagValueFunc(defaultFlagValueFunction);
+      return this;
+    }
+
+    /**
+     * When a flag does not exist in Flagsmith or there is an error, the SDK will return an empty
+     * list of flags by default. If you would like the SDK to return a default list of flags with
+     * default values, you can set the default flag names with this method.
+     *
+     * <p>The default values will be evaluated by the methods setDefaultFlagPredicate() and
+     * setDefaultFlagValueFunction()
+     *
+     * <p>Default: empty set;
+     *
+     * @param defaultFeatureFlags list of flag names
+     * @return the Builder
+     */
+    public Builder setDefaultFeatureFlags(@NonNull Set<String> defaultFeatureFlags) {
+      this.configuration.flagsmithFlagDefaults.setDefaultFeatureFlags(defaultFeatureFlags);
       return this;
     }
 
