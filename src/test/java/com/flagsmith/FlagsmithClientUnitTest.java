@@ -5,6 +5,7 @@ import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 
+import java.util.HashSet;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -135,6 +136,25 @@ public class FlagsmithClientUnitTest {
           assertEquals(featureId, flagName);
           return expectedValue;
         }).build();
+
+    // Act
+    final String value = flagsmithClient.getFeatureFlagValue(featureId);
+
+    // Assert
+    assertEquals(expectedValue, value);
+  }
+
+  @Test(groups = "unit")
+  public void getFeatureFlagValue_defaultFlag() {
+    // Arrange
+    final String expectedValue = "value";
+    final String featureId = "default-flag-added";
+    final FlagsmithClient flagsmithClient = builder
+        .setDefaultFlagValueFunction((String flagName) -> expectedValue)
+        .setDefaultFeatureFlags(new HashSet<String>() {{
+          add(featureId);
+        }})
+        .build();
 
     // Act
     final String value = flagsmithClient.getFeatureFlagValue(featureId);

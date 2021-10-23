@@ -25,6 +25,7 @@ public final class FlagsmithConfig {
   final HttpUrl identitiesUri;
   final HttpUrl traitsUri;
   final OkHttpClient httpClient;
+  final FlagsmithFlagDefaults flagsmithFlagDefaults = new FlagsmithFlagDefaults();
   private final HttpUrl baseUri;
 
   protected FlagsmithConfig(Builder builder) {
