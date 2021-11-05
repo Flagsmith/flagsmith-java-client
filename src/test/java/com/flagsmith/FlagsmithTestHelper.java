@@ -223,16 +223,25 @@ public class FlagsmithTestHelper {
         .getInt("id");
   }
 
-  public static Flag flag(String name, String description, boolean enabled) {
+  public static Flag flag(String name, String description, String type, boolean enabled, String value) {
     final com.flagsmith.Feature feature = new com.flagsmith.Feature();
     feature.setName(name);
     feature.setDescription(description);
-    feature.setType("FLAG");
+    feature.setType(type);
 
     final Flag result = new Flag();
     result.setFeature(feature);
     result.setEnabled(enabled);
+    result.setStateValue(value);
     return result;
+  }
+
+  public static Flag flag(String name, String description, boolean enabled) {
+    return flag(name, description, "FLAG", enabled, null);
+  }
+
+  public static Flag typelessFlag(String name, boolean enabled, String value) {
+    return flag(name, null, null, enabled, value);
   }
 
   public static Flag config(String name, String description, String value) {
