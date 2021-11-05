@@ -84,6 +84,12 @@ public class FlagsmithFlagDefaults {
     final Feature feature = new Feature();
     feature.setName(flagName);
     flag.setFeature(feature);
+
+    if (flag.getStateValue() == null) {
+      feature.setType("FLAG");
+    } else {
+      feature.setType("CONFIG");
+    }
     return flag;
   }
 }

@@ -240,10 +240,6 @@ public class FlagsmithTestHelper {
     return flag(name, description, "FLAG", enabled, null);
   }
 
-  public static Flag typelessFlag(String name, boolean enabled, String value) {
-    return flag(name, null, null, enabled, value);
-  }
-
   public static Flag config(String name, String description, String value) {
     final com.flagsmith.Feature feature = new com.flagsmith.Feature();
     feature.setName(name);
