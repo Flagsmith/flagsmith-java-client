@@ -1,5 +1,6 @@
 package com.flagsmith;
 
+import static com.flagsmith.FlagsmithTestHelper.typelessFlag;
 import static okhttp3.mock.MediaTypes.MEDIATYPE_JSON;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -120,7 +121,7 @@ public class FlagsmithApiWrapperTest {
 
     // Assert
     final FlagsAndTraits expectedFlags = newFlagsAndTraits();
-    expectedFlags.getFlags().add(flag("default-flag", false, null));
+    expectedFlags.getFlags().add(typelessFlag("default-flag", false, null));
     assertEquals(expectedFlags, actualFeatureFlags);
     verify(flagsmithLogger, times(1)).info(anyString(), any(), any());
     verify(flagsmithLogger, times(0)).httpError(any(), any(Response.class), anyBoolean());
@@ -182,7 +183,7 @@ public class FlagsmithApiWrapperTest {
 
     // Assert
     final FlagsAndTraits expectedFlags = newFlagsAndTraits();
-    expectedFlags.getFlags().add(flag("default-flag", false, null));
+    expectedFlags.getFlags().add(typelessFlag("default-flag", false, null));
     assertEquals(expectedFlags, actualFeatureFlags);
     verify(flagsmithLogger, times(1)).info(anyString(), any(), any());
     verify(flagsmithLogger, times(0)).httpError(any(), any(Response.class), anyBoolean());
@@ -247,7 +248,7 @@ public class FlagsmithApiWrapperTest {
 
     // Assert
     final FlagsAndTraits expectedFlags = newFlagsAndTraits();
-    expectedFlags.getFlags().add(flag("default-flag", false, null));
+    expectedFlags.getFlags().add(typelessFlag("default-flag", false, null));
     assertEquals(expectedFlags, actualFeatureFlags);
     assertEquals(expectedFlags, actualFeatureFlags);
     verify(flagsmithLogger, times(1)).info(anyString(), any(), any());
@@ -313,17 +314,5 @@ public class FlagsmithApiWrapperTest {
     flagsAndTraits.setFlags(flags);
     flagsAndTraits.setTraits(new ArrayList<>());
     return flagsAndTraits;
-  }
-
-  public Flag flag(String name, boolean enabled, String value) {
-    final com.flagsmith.Feature feature = new com.flagsmith.Feature();
-    feature.setName(name);
-    feature.setType(null);
-
-    final Flag result = new Flag();
-    result.setFeature(feature);
-    result.setEnabled(enabled);
-    result.setStateValue(value);
-    return result;
   }
 }

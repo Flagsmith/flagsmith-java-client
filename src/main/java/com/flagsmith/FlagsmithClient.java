@@ -422,11 +422,22 @@ public class FlagsmithClient {
 
     /**
      * When a flag does not exist in Flagsmith or there is an error, the SDK will return an empty
-     * list of flags by default. If you would like the SDK to return a default list of flags with
-     * default values, you can set the default flag names with this method.
+     * list of flags by default. For example:
+     * <ul>
+     *   <li>if you call identifyUserWithTraits(...) and the call fails</li>
+     *   <li>this method will return an empty list of flags</li>
+     * </ul>
      *
-     * <p>The default values will be evaluated by the methods setDefaultFlagPredicate() and
-     * setDefaultFlagValueFunction()
+     * <p>If you would like the SDK to return a default list of flags with
+     * default values, you can set the default flag names with this method. For example:
+     * <ul>
+     *   <li>if you set a default flag with the name "my-flag" setDefaultFeatureFlags(["my-flag"])
+     *   </li>
+     *   <li>and, if you call identifyUserWithTraits(...) and the call fails</li>
+     *   <li>identifyUserWithTraits(...) will return list of flags with 1 flag called "my-flag"
+     *       and with default values configured with the methods setDefaultFlagPredicate() and
+     *       setDefaultFlagValueFunction()</li>
+     * </ul>
      *
      * <p>Default: empty set;
      *

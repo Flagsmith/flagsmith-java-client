@@ -1,5 +1,6 @@
 package com.flagsmith;
 
+import static com.flagsmith.FlagsmithTestHelper.typelessFlag;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.testng.AssertJUnit.assertNull;
 import static org.testng.AssertJUnit.assertTrue;
@@ -58,9 +59,9 @@ public class FlagsmithFlagDefaultsTest {
 
     // Assert
     assertThat(defaultFlags).hasSize(3).containsExactlyInAnyOrder(
-        flag("flag-name-1", false, null),
-        flag("flag-name-2", false, null),
-        flag("flag-name-3", false, null)
+        typelessFlag("flag-name-1", false, null),
+        typelessFlag("flag-name-2", false, null),
+        typelessFlag("flag-name-3", false, null)
     );
   }
 
@@ -80,9 +81,9 @@ public class FlagsmithFlagDefaultsTest {
 
     // Assert
     assertThat(defaultFlags).hasSize(3).containsExactlyInAnyOrder(
-        flag("flag-name-1", true, "myDefaultValue-flag-name-1"),
-        flag("flag-name-2", true, "myDefaultValue-flag-name-2"),
-        flag("flag-name-3", true, "myDefaultValue-flag-name-3")
+        typelessFlag("flag-name-1", true, "myDefaultValue-flag-name-1"),
+        typelessFlag("flag-name-2", true, "myDefaultValue-flag-name-2"),
+        typelessFlag("flag-name-3", true, "myDefaultValue-flag-name-3")
     );
   }
 
@@ -91,8 +92,8 @@ public class FlagsmithFlagDefaultsTest {
     // Arrange
     final FlagsAndTraits flagsFetchedFromFlagsmith = new FlagsAndTraits();
     final ArrayList<Flag> existingFlags = new ArrayList<Flag>() {{
-      add(flag("fetched-flag-1", true, "fetched-value-1"));
-      add(flag("fetched-flag-2", true, "fetched-value-2"));
+      add(typelessFlag("fetched-flag-1", true, "fetched-value-1"));
+      add(typelessFlag("fetched-flag-2", true, "fetched-value-2"));
     }};
     flagsFetchedFromFlagsmith.setFlags(existingFlags);
     flagsFetchedFromFlagsmith.setTraits(new ArrayList<Trait>() {{
@@ -113,11 +114,11 @@ public class FlagsmithFlagDefaultsTest {
 
     // Assert
     assertThat(enrichedFlagsAndTraits.getFlags()).hasSize(5).containsExactlyInAnyOrder(
-        flag("fetched-flag-1", true, "fetched-value-1"),
-        flag("fetched-flag-2", true, "fetched-value-2"),
-        flag("flag-name-1", false, "myDefaultValue-flag-name-1"),
-        flag("flag-name-2", false, "myDefaultValue-flag-name-2"),
-        flag("flag-name-3", false, "myDefaultValue-flag-name-3")
+        typelessFlag("fetched-flag-1", true, "fetched-value-1"),
+        typelessFlag("fetched-flag-2", true, "fetched-value-2"),
+        typelessFlag("flag-name-1", false, "myDefaultValue-flag-name-1"),
+        typelessFlag("flag-name-2", false, "myDefaultValue-flag-name-2"),
+        typelessFlag("flag-name-3", false, "myDefaultValue-flag-name-3")
     );
     assertThat(enrichedFlagsAndTraits.getTraits()).hasSize(1);
   }
@@ -142,9 +143,9 @@ public class FlagsmithFlagDefaultsTest {
 
     // Assert
     assertThat(enrichedFlagsAndTraits.getFlags()).hasSize(3).containsExactlyInAnyOrder(
-        flag("flag-name-1", false, "myDefaultValue-flag-name-1"),
-        flag("flag-name-2", false, "myDefaultValue-flag-name-2"),
-        flag("flag-name-3", false, "myDefaultValue-flag-name-3")
+        typelessFlag("flag-name-1", false, "myDefaultValue-flag-name-1"),
+        typelessFlag("flag-name-2", false, "myDefaultValue-flag-name-2"),
+        typelessFlag("flag-name-3", false, "myDefaultValue-flag-name-3")
     );
     assertNull(enrichedFlagsAndTraits.getTraits());
   }
@@ -170,22 +171,10 @@ public class FlagsmithFlagDefaultsTest {
 
     // Assert
     assertThat(enrichedFlagsAndTraits.getFlags()).hasSize(3).containsExactlyInAnyOrder(
-        flag("flag-name-1", false, "myDefaultValue-flag-name-1"),
-        flag("flag-name-2", false, "myDefaultValue-flag-name-2"),
-        flag("flag-name-3", false, "myDefaultValue-flag-name-3")
+        typelessFlag("flag-name-1", false, "myDefaultValue-flag-name-1"),
+        typelessFlag("flag-name-2", false, "myDefaultValue-flag-name-2"),
+        typelessFlag("flag-name-3", false, "myDefaultValue-flag-name-3")
     );
     assertNull(enrichedFlagsAndTraits.getTraits());
-  }
-
-  public Flag flag(String name, boolean enabled, String value) {
-    final com.flagsmith.Feature feature = new com.flagsmith.Feature();
-    feature.setName(name);
-    feature.setType(null);
-
-    final Flag result = new Flag();
-    result.setFeature(feature);
-    result.setEnabled(enabled);
-    result.setStateValue(value);
-    return result;
   }
 }
