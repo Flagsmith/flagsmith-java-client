@@ -1,6 +1,6 @@
 package com.flagsmith;
 
-import static com.flagsmith.FlagsmithTestHelper.typelessFlag;
+import static com.flagsmith.FlagsmithTestHelper.flag;
 import static okhttp3.mock.MediaTypes.MEDIATYPE_JSON;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -121,7 +121,7 @@ public class FlagsmithApiWrapperTest {
 
     // Assert
     final FlagsAndTraits expectedFlags = newFlagsAndTraits();
-    expectedFlags.getFlags().add(typelessFlag("default-flag", false, null));
+    expectedFlags.getFlags().add(flag("default-flag", null, "FLAG", false, null));
     assertEquals(expectedFlags, actualFeatureFlags);
     verify(flagsmithLogger, times(1)).info(anyString(), any(), any());
     verify(flagsmithLogger, times(0)).httpError(any(), any(Response.class), anyBoolean());
@@ -183,7 +183,7 @@ public class FlagsmithApiWrapperTest {
 
     // Assert
     final FlagsAndTraits expectedFlags = newFlagsAndTraits();
-    expectedFlags.getFlags().add(typelessFlag("default-flag", false, null));
+    expectedFlags.getFlags().add(flag("default-flag", null, "FLAG", false, null));
     assertEquals(expectedFlags, actualFeatureFlags);
     verify(flagsmithLogger, times(1)).info(anyString(), any(), any());
     verify(flagsmithLogger, times(0)).httpError(any(), any(Response.class), anyBoolean());
@@ -248,7 +248,7 @@ public class FlagsmithApiWrapperTest {
 
     // Assert
     final FlagsAndTraits expectedFlags = newFlagsAndTraits();
-    expectedFlags.getFlags().add(typelessFlag("default-flag", false, null));
+    expectedFlags.getFlags().add(flag("default-flag", null, "FLAG", false, null));
     assertEquals(expectedFlags, actualFeatureFlags);
     assertEquals(expectedFlags, actualFeatureFlags);
     verify(flagsmithLogger, times(1)).info(anyString(), any(), any());

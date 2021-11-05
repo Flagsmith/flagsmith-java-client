@@ -1,6 +1,6 @@
 package com.flagsmith;
 
-import static com.flagsmith.FlagsmithTestHelper.typelessFlag;
+import static com.flagsmith.FlagsmithTestHelper.flag;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.testng.AssertJUnit.assertNull;
 import static org.testng.AssertJUnit.assertTrue;
@@ -59,9 +59,9 @@ public class FlagsmithFlagDefaultsTest {
 
     // Assert
     assertThat(defaultFlags).hasSize(3).containsExactlyInAnyOrder(
-        typelessFlag("flag-name-1", false, null),
-        typelessFlag("flag-name-2", false, null),
-        typelessFlag("flag-name-3", false, null)
+        flag("flag-name-1", null, "FLAG", false, null),
+        flag("flag-name-2", null, "FLAG", false, null),
+        flag("flag-name-3", null, "FLAG", false, null)
     );
   }
 
@@ -81,9 +81,9 @@ public class FlagsmithFlagDefaultsTest {
 
     // Assert
     assertThat(defaultFlags).hasSize(3).containsExactlyInAnyOrder(
-        typelessFlag("flag-name-1", true, "myDefaultValue-flag-name-1"),
-        typelessFlag("flag-name-2", true, "myDefaultValue-flag-name-2"),
-        typelessFlag("flag-name-3", true, "myDefaultValue-flag-name-3")
+        flag("flag-name-1", null, "CONFIG", true, "myDefaultValue-flag-name-1"),
+        flag("flag-name-2", null, "CONFIG", true, "myDefaultValue-flag-name-2"),
+        flag("flag-name-3", null, "CONFIG", true, "myDefaultValue-flag-name-3")
     );
   }
 
@@ -92,8 +92,8 @@ public class FlagsmithFlagDefaultsTest {
     // Arrange
     final FlagsAndTraits flagsFetchedFromFlagsmith = new FlagsAndTraits();
     final ArrayList<Flag> existingFlags = new ArrayList<Flag>() {{
-      add(typelessFlag("fetched-flag-1", true, "fetched-value-1"));
-      add(typelessFlag("fetched-flag-2", true, "fetched-value-2"));
+      add(flag("fetched-flag-1", null, "CONFIG", true, "fetched-value-1"));
+      add(flag("fetched-flag-2", null, "CONFIG", true, "fetched-value-2"));
     }};
     flagsFetchedFromFlagsmith.setFlags(existingFlags);
     flagsFetchedFromFlagsmith.setTraits(new ArrayList<Trait>() {{
@@ -114,11 +114,11 @@ public class FlagsmithFlagDefaultsTest {
 
     // Assert
     assertThat(enrichedFlagsAndTraits.getFlags()).hasSize(5).containsExactlyInAnyOrder(
-        typelessFlag("fetched-flag-1", true, "fetched-value-1"),
-        typelessFlag("fetched-flag-2", true, "fetched-value-2"),
-        typelessFlag("flag-name-1", false, "myDefaultValue-flag-name-1"),
-        typelessFlag("flag-name-2", false, "myDefaultValue-flag-name-2"),
-        typelessFlag("flag-name-3", false, "myDefaultValue-flag-name-3")
+        flag("fetched-flag-1", null, "CONFIG", true, "fetched-value-1"),
+        flag("fetched-flag-2", null, "CONFIG", true, "fetched-value-2"),
+        flag("flag-name-1", null, "CONFIG", false, "myDefaultValue-flag-name-1"),
+        flag("flag-name-2", null, "CONFIG", false, "myDefaultValue-flag-name-2"),
+        flag("flag-name-3", null, "CONFIG", false, "myDefaultValue-flag-name-3")
     );
     assertThat(enrichedFlagsAndTraits.getTraits()).hasSize(1);
   }
@@ -143,9 +143,9 @@ public class FlagsmithFlagDefaultsTest {
 
     // Assert
     assertThat(enrichedFlagsAndTraits.getFlags()).hasSize(3).containsExactlyInAnyOrder(
-        typelessFlag("flag-name-1", false, "myDefaultValue-flag-name-1"),
-        typelessFlag("flag-name-2", false, "myDefaultValue-flag-name-2"),
-        typelessFlag("flag-name-3", false, "myDefaultValue-flag-name-3")
+        flag("flag-name-1", null, "CONFIG", false, "myDefaultValue-flag-name-1"),
+        flag("flag-name-2", null, "CONFIG", false, "myDefaultValue-flag-name-2"),
+        flag("flag-name-3", null, "CONFIG", false, "myDefaultValue-flag-name-3")
     );
     assertNull(enrichedFlagsAndTraits.getTraits());
   }
@@ -171,9 +171,9 @@ public class FlagsmithFlagDefaultsTest {
 
     // Assert
     assertThat(enrichedFlagsAndTraits.getFlags()).hasSize(3).containsExactlyInAnyOrder(
-        typelessFlag("flag-name-1", false, "myDefaultValue-flag-name-1"),
-        typelessFlag("flag-name-2", false, "myDefaultValue-flag-name-2"),
-        typelessFlag("flag-name-3", false, "myDefaultValue-flag-name-3")
+        flag("flag-name-1", null, "CONFIG", false, "myDefaultValue-flag-name-1"),
+        flag("flag-name-2", null, "CONFIG", false, "myDefaultValue-flag-name-2"),
+        flag("flag-name-3", null, "CONFIG", false, "myDefaultValue-flag-name-3")
     );
     assertNull(enrichedFlagsAndTraits.getTraits());
   }
