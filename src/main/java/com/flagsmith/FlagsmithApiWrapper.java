@@ -162,7 +162,7 @@ class FlagsmithApiWrapper implements FlagsmithSdk {
       logger.httpError(request, io, doThrow);
     }
     flagsAndTraits = enrichWithDefaultFlags(flagsAndTraits);
-    logger.info("Got traits for user = {}, traits = {}", user, flagsAndTraits.getTraits());
+    logger.info("Got flags based on identify for user = {}, flags = {}", user, flagsAndTraits);
     return flagsAndTraits;
   }
 
