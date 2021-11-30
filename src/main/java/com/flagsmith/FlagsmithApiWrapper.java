@@ -61,6 +61,7 @@ class FlagsmithApiWrapper implements FlagsmithSdk {
     } catch (IOException io) {
       logger.httpError(request, io, doThrow);
     }
+    flagsAndTraits = enrichWithDefaultFlags(flagsAndTraits);
     logger.info("Got feature flags for user = {}, flags = {}", user, flagsAndTraits);
     return flagsAndTraits;
   }
@@ -90,6 +91,7 @@ class FlagsmithApiWrapper implements FlagsmithSdk {
     } catch (IOException io) {
       logger.httpError(request, io, doThrow);
     }
+    flagsAndTraits = enrichWithDefaultFlags(flagsAndTraits);
     logger.info("Got feature flags & traits for user = {}, flagsAndTraits = {}", user,
         flagsAndTraits);
     return flagsAndTraits;
@@ -159,8 +161,14 @@ class FlagsmithApiWrapper implements FlagsmithSdk {
     } catch (IOException io) {
       logger.httpError(request, io, doThrow);
     }
-    logger.info("Got traits for user = {}, traits = {}", user, flagsAndTraits.getTraits());
+    flagsAndTraits = enrichWithDefaultFlags(flagsAndTraits);
+    logger.info("Got flags based on identify for user = {}, flags = {}", user, flagsAndTraits);
     return flagsAndTraits;
+  }
+
+  @Override
+  public FlagsmithConfig getConfig() {
+    return this.defaultConfig;
   }
 
   public FlagsmithLogger getLogger() {
@@ -177,6 +185,10 @@ class FlagsmithApiWrapper implements FlagsmithSdk {
     }
 
     return builder;
+  }
+
+  private FlagsAndTraits enrichWithDefaultFlags(FlagsAndTraits flagsAndTraits) {
+    return this.defaultConfig.flagsmithFlagDefaults.enrichWithDefaultFlags(flagsAndTraits);
   }
 
   private FlagsAndTraits newFlagsAndTraits() {

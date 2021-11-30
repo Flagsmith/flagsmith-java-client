@@ -1,5 +1,6 @@
 package com.flagsmith;
 
+import static com.flagsmith.FlagsmithTestHelper.flag;
 import static okhttp3.mock.MediaTypes.MEDIATYPE_JSON;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -17,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
@@ -103,6 +105,30 @@ public class FlagsmithApiWrapperTest {
   }
 
   @Test(groups = "unit")
+  public void getFeatureFlags_withUser_defaultFlags_success() throws JsonProcessingException {
+    // Arrange
+    final FeatureUser user = new FeatureUser();
+    user.setIdentifier("some-user");
+    interceptor.addRule()
+        .get(BASE_URL + "/identities/?identifier=some-user")
+        .respond(mapper.writeValueAsString(newFlagsAndTraits()), MEDIATYPE_JSON);
+    defaultConfig.flagsmithFlagDefaults.setDefaultFeatureFlags(new HashSet<String>() {{
+      add("default-flag");
+    }});
+
+    // Act
+    final FlagsAndTraits actualFeatureFlags = sut.getFeatureFlags(user, false);
+
+    // Assert
+    final FlagsAndTraits expectedFlags = newFlagsAndTraits();
+    expectedFlags.getFlags().add(flag("default-flag", null, "FLAG", false, null));
+    assertEquals(expectedFlags, actualFeatureFlags);
+    verify(flagsmithLogger, times(1)).info(anyString(), any(), any());
+    verify(flagsmithLogger, times(0)).httpError(any(), any(Response.class), anyBoolean());
+    verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
+  }
+
+  @Test(groups = "unit")
   public void getUserFlagsAndTraits_success() throws JsonProcessingException {
     // Arrange
     final FeatureUser user = new FeatureUser();
@@ -137,6 +163,30 @@ public class FlagsmithApiWrapperTest {
     assertEquals(getEmptyFlagsAndTraits(new ArrayList<>()), actualFeatureFlags);
     verify(flagsmithLogger, times(1)).info(anyString(), any(), any());
     verify(flagsmithLogger, times(1)).httpError(any(), any(Response.class), eq(false));
+    verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
+  }
+
+  @Test(groups = "unit")
+  public void getUserFlagsAndTraits_defaultFlags_success() throws JsonProcessingException {
+    // Arrange
+    final FeatureUser user = new FeatureUser();
+    user.setIdentifier("ident");
+    interceptor.addRule()
+        .get(BASE_URL + "/identities/?identifier=ident")
+        .respond(mapper.writeValueAsString(newFlagsAndTraits()), MEDIATYPE_JSON);
+    defaultConfig.flagsmithFlagDefaults.setDefaultFeatureFlags(new HashSet<String>() {{
+      add("default-flag");
+    }});
+
+    // Act
+    final FlagsAndTraits actualFeatureFlags = sut.getUserFlagsAndTraits(user, true);
+
+    // Assert
+    final FlagsAndTraits expectedFlags = newFlagsAndTraits();
+    expectedFlags.getFlags().add(flag("default-flag", null, "FLAG", false, null));
+    assertEquals(expectedFlags, actualFeatureFlags);
+    verify(flagsmithLogger, times(1)).info(anyString(), any(), any());
+    verify(flagsmithLogger, times(0)).httpError(any(), any(Response.class), anyBoolean());
     verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
   }
 
@@ -177,6 +227,32 @@ public class FlagsmithApiWrapperTest {
     assertEquals(getEmptyFlagsAndTraits(new ArrayList<>()), actualFeatureFlags);
     verify(flagsmithLogger, times(1)).info(anyString(), any(), any());
     verify(flagsmithLogger, times(1)).httpError(any(), any(Response.class), eq(false));
+    verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
+  }
+
+  @Test(groups = "unit")
+  public void identifyUserWithTraits_defaultFlags_success() throws JsonProcessingException {
+    // Arrange
+    final List<Trait> traits = new ArrayList<Trait>(Arrays.asList(new Trait()));
+    final FeatureUser user = new FeatureUser();
+    user.setIdentifier("user-w-traits");
+    interceptor.addRule()
+        .post(BASE_URL + "/identities/")
+        .respond(mapper.writeValueAsString(newFlagsAndTraits()), MEDIATYPE_JSON);
+    defaultConfig.flagsmithFlagDefaults.setDefaultFeatureFlags(new HashSet<String>() {{
+      add("default-flag");
+    }});
+
+    // Act
+    final FlagsAndTraits actualFeatureFlags = sut.identifyUserWithTraits(user, traits, true);
+
+    // Assert
+    final FlagsAndTraits expectedFlags = newFlagsAndTraits();
+    expectedFlags.getFlags().add(flag("default-flag", null, "FLAG", false, null));
+    assertEquals(expectedFlags, actualFeatureFlags);
+    assertEquals(expectedFlags, actualFeatureFlags);
+    verify(flagsmithLogger, times(1)).info(anyString(), any(), any());
+    verify(flagsmithLogger, times(0)).httpError(any(), any(Response.class), anyBoolean());
     verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
   }
 
