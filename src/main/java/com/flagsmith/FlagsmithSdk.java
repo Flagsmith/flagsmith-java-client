@@ -15,6 +15,8 @@ interface FlagsmithSdk {
 
   FlagsAndTraits identifyUserWithTraits(FeatureUser user, List<Trait> traits, boolean doThrow);
 
+  FlagsmithConfig getConfig();
+
   // Cache
   default FlagsmithCache getCache() {
     return null;

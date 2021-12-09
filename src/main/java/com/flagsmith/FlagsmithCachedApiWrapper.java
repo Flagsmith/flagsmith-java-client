@@ -64,6 +64,11 @@ class FlagsmithCachedApiWrapper implements FlagsmithSdk {
   }
 
   @Override
+  public FlagsmithConfig getConfig() {
+    return this.flagsmithApiWrapper.getConfig();
+  }
+
+  @Override
   public FlagsmithCache getCache() {
     return cache;
   }
