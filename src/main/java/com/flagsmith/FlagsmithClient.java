@@ -93,6 +93,8 @@ public class FlagsmithClient {
   /**
    * Get a list of user Traits for user identity and trait keys.
    *
+   * @param flagsAndTraits  the user's flags and traits
+   * @param keys            the trait keys to filter for
    * @return a list of user Trait
    */
   public List<Trait> getTraits(FlagsAndTraits flagsAndTraits, String... keys) {
@@ -102,6 +104,8 @@ public class FlagsmithClient {
   /**
    * Get a list of user Traits for user identity and trait keys.
    *
+   * @param user  the user to get traits for
+   * @param keys  the trait keys to filter for      
    * @return a list of user Trait
    */
   public List<Trait> getTraits(FeatureUser user, String... keys) {
@@ -391,9 +395,8 @@ public class FlagsmithClient {
      * When a flag does not exist in Flagsmith or there is an error, the SDK will return false by
      * default.
      *
-     * <p>If you would like to override this default behaviour, you can use this method.
-     *
-     * <p>Default: (String flagName) -> false;
+     * <p>If you would like to override this default behaviour, you can use this method. By default
+     * it will return false for any flags that it does not recognise. 
      *
      * @param defaultFlagPredicate the new predicate to use as default flag boolean values
      * @return the Builder
@@ -407,9 +410,8 @@ public class FlagsmithClient {
      * When a flag does not exist in Flagsmith or there is an error, the SDK will return null by
      * default.
      *
-     * <p>If you would like to override this default behaviour, you can use this method.
-     *
-     * <p>Default: (String flagName) -> null;
+     * <p>If you would like to override this default behaviour, you can use this method. By default
+     * it will return null for any flags that it does not recognise.
      *
      * @param defaultFlagValueFunction the new function to use as default flag string values
      * @return the Builder
