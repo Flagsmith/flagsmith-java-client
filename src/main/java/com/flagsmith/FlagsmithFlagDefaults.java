@@ -54,6 +54,7 @@ public class FlagsmithFlagDefaults {
   /**
    * It adds any default flags that may be missing from flagsAndTraits.getFlags().
    *
+   * @param flagsAndTraits the user's flags and traits
    * @return flags and traits
    */
   public FlagsAndTraits enrichWithDefaultFlags(FlagsAndTraits flagsAndTraits) {
