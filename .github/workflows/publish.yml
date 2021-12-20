@@ -1,0 +1,27 @@
+name: Publish to maven repo
+
+on:
+  push:
+    tags:
+      - "*"
+    branches:
+      - feature/publish-workflow
+
+
+jobs: 
+  package:
+    runs-on: ubuntu-latest
+    name: Publish to maven repo
+
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v2
+      
+      - name: Setup Java
+        uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+          server-id: ossrh
+          server-username: flagsmith
+          server-password: ${{ secrets.OSSRH_PASSWORD }}
