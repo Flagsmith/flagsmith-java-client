@@ -1,6 +1,5 @@
 package com.flagsmith.flagengine.models;
 
-import com.flagsmith.flagengine.data.FeatureStates;
 import lombok.Data;
 
 @Data

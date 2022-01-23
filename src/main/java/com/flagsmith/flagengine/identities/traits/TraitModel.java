@@ -1,9 +1,9 @@
-package com.flagsmith.flagengine.models;
+package com.flagsmith.flagengine.identities.traits;
 
 import lombok.Data;
 
 @Data
-public class IdentityTrait {
+public class TraitModel {
     private String traitKey;
     private Object traitValue;
 }

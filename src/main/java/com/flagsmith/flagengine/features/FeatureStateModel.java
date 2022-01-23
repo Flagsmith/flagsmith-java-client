@@ -32,4 +32,13 @@ public class FeatureStateModel extends BaseModel {
         return null;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof FeatureStateModel)) {
+            return false;
+        }
+
+        return this.getFeature().getId() == ((FeatureStateModel) o).getFeature().getId();
+
+    }
 }

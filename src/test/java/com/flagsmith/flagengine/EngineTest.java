@@ -1,8 +1,6 @@
 package com.flagsmith.flagengine;
 
 import com.flagsmith.flagengine.environments.EnvironmentModel;
-import com.flagsmith.flagengine.data.FeatureState;
-import com.flagsmith.flagengine.data.FeatureStates;
 import com.flagsmith.flagengine.identities.IdentityModel;
 import com.flagsmith.flagengine.models.EngineTestCase;
 import com.flagsmith.flagengine.models.ResponseJSON;
