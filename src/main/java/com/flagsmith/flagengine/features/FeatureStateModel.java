@@ -1,10 +1,13 @@
 package com.flagsmith.flagengine.features;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.flagsmith.flagengine.utils.Hashing;
 import com.flagsmith.flagengine.utils.models.BaseModel;
 import lombok.Data;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Data
 public class FeatureStateModel extends BaseModel {
@@ -21,15 +24,39 @@ public class FeatureStateModel extends BaseModel {
 
     public Object getValue(Integer identityId) {
 
-        if (identityId != null && multivariateFeatureStateValues.size() > 0) {
-
+        if (identityId != null && multivariateFeatureStateValues != null && multivariateFeatureStateValues.size() > 0) {
+            return getMultiVariateValue(identityId);
         }
 
         return value;
     }
 
     private Object getMultiVariateValue(Integer identityId) {
-        return null;
+
+        List<String> objectIds = Arrays.asList(
+                (djangoId != null && djangoId != 0 ? djangoId.toString() : featurestateUuid),
+                identityId.toString()
+        );
+
+        Float percentageValue = Hashing.getHashedPercentageForObjectIds(objectIds);
+        Float startPercentage = 0f;
+
+        List<MultivariateFeatureStateValueModel> sortedMultiVariateFeatureStates = multivariateFeatureStateValues
+                .stream()
+                .sorted((smvfs1, smvfs2) -> smvfs1.getSortValue().compareTo(smvfs2.getSortValue()))
+                .collect(Collectors.toList());
+
+        for (MultivariateFeatureStateValueModel multiVariate: sortedMultiVariateFeatureStates) {
+            Float limit = multiVariate.getPercentageAllocation() + startPercentage;
+
+            if (startPercentage <= percentageValue && percentageValue < limit) {
+                return multiVariate.getMultivariateFeatureOption().getValue();
+            }
+
+            startPercentage = limit;
+        }
+
+        return value;
     }
 
     @Override
@@ -42,3 +69,4 @@ public class FeatureStateModel extends BaseModel {
 
     }
 }
+;

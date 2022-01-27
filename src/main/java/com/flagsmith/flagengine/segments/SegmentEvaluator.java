@@ -1,6 +1,5 @@
 package com.flagsmith.flagengine.segments;
 
-import com.flagsmith.IdentityTraits;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.identities.IdentityModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
@@ -35,14 +34,20 @@ public class SegmentEvaluator {
         List<SegmentRuleModel> segmentRules = segment.getRules();
         List<TraitModel> traits = overrideTraits != null ? overrideTraits : identity.getIdentityTraits();
 
-        return segmentRules != null && segmentRules.size() > 0 && segmentRules.stream().allMatch(
-            (rule) -> traitsMatchSegmentRule(
-                traits,
-                rule,
-                segment.getId(),
-                identity.getCompositeKey()
-            )
-        );
+        if (segmentRules != null && segmentRules.size() > 0) {
+            List<Boolean> segmentRuleEvaluations =  segmentRules.stream().map(
+                    (rule) -> traitsMatchSegmentRule(
+                            traits,
+                            rule,
+                            segment.getId(),
+                            identity.getCompositeKey()
+                    )
+            ).collect(Collectors.toList());
+
+            return segmentRuleEvaluations.stream().allMatch((bool) -> bool);
+        }
+
+        return Boolean.FALSE;
     }
 
     private static Boolean traitsMatchSegmentRule(List<TraitModel> identityTraits, SegmentRuleModel rule,
@@ -50,9 +55,12 @@ public class SegmentEvaluator {
         Boolean matchingCondition = Boolean.TRUE;
 
         if (rule.getConditions() != null && rule.getConditions().size() > 0) {
+            List<Boolean> conditionEvaluations = rule.getConditions().stream()
+                    .map((condition) -> traitsMatchSegmentCondition(identityTraits, condition, segmentId, identityId))
+                    .collect(Collectors.toList());
+
             matchingCondition = rule.matchingFunction(
-                rule.getConditions().stream(),
-                (condition) -> traitsMatchSegmentCondition(identityTraits, condition, segmentId, identityId)
+                    conditionEvaluations.stream()
             );
         }
 
@@ -80,13 +88,15 @@ public class SegmentEvaluator {
             }
         }
 
-        Optional<TraitModel> matchingTrait = identityTraits
-                .stream()
-                .filter((trait) -> trait.getTraitKey().equals(condition.getProperty_()))
-                .findFirst();
+        if (identityTraits != null) {
+            Optional<TraitModel> matchingTrait = identityTraits
+                    .stream()
+                    .filter((trait) -> trait.getTraitKey().equals(condition.getProperty_()))
+                    .findFirst();
 
-        if (matchingTrait.isPresent()) {
-            return traitsMatchValue(condition, matchingTrait.get().getTraitValue());
+            if (matchingTrait.isPresent()) {
+                return traitsMatchValue(condition, matchingTrait.get().getTraitValue());
+            }
         }
 
         return false;
@@ -100,7 +110,7 @@ public class SegmentEvaluator {
             Pattern pattern = Pattern.compile(condition.getValue());
             return pattern.matcher((String) value).find();
         } else {
-            return TypeCasting.compare(operator, condition.getValue(), value);
+            return TypeCasting.compare(operator, value, condition.getValue());
         }
     }
 

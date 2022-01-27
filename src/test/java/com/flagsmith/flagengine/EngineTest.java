@@ -7,6 +7,7 @@ import com.flagsmith.flagengine.identities.IdentityModel;
 import com.flagsmith.flagengine.models.ResponseJSON;
 import com.flagsmith.flagengine.utils.encode.JSONEncoder;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
@@ -51,7 +52,6 @@ public class EngineTest {
                     ResponseJSON expectedResponse = objectMapper.treeToValue(identityAndResponse.get("response"), ResponseJSON.class);
 
                     Object[] parameterValues = new Object[] {
-//                            environmentModel,
                             identityModel,
                             expectedResponse
                     };
@@ -73,7 +73,7 @@ public class EngineTest {
     @Test(dataProvider = "environmentdata")
     public void testEngine(IdentityModel identity, ResponseJSON expectedResponse) {
         List<FeatureStateModel> featureStates = engine.getIdentityFeatureStates(environmentModel, identity);
-
+        
         List<FeatureStateModel> sortedFeatureStates = featureStates
                 .stream()
                 .sorted((featureState1, t1)
@@ -92,16 +92,12 @@ public class EngineTest {
 
         int index = 0;
         for(FeatureStateModel featureState : sortedFeatureStates) {
-            // sortedResponse is not feature states but maps
-            assert(featureState.getValue(identity.getDjangoId()) == sortedResponse.get(index).getValue(identity.getDjangoId()));
+            Object featureStateValue = featureState.getValue(identity.getDjangoId());
+            Object expectedResponseValue = sortedResponse.get(index).getValue(identity.getDjangoId());
 
-            assert(featureState.getEnabled() == sortedResponse.get(index).getEnabled());
-
+            Assert.assertEquals(featureStateValue, expectedResponseValue);
+            Assert.assertEquals(featureState.getEnabled(), sortedResponse.get(index).getEnabled());
             index++;
         }
-
-
     }
-
-
 }

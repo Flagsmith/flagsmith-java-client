@@ -2,15 +2,14 @@ package com.flagsmith.flagengine.utils.types;
 
 import com.flagsmith.flagengine.segments.constants.SegmentConditions;
 
-import java.util.Locale;
-
 public class TypeCasting {
 
     public static Boolean compare(SegmentConditions condition, Object value1, Object value2) {
-        if (TypeCasting.isFloat(value1) && TypeCasting.isFloat(value2)) {
-            return compare(condition, TypeCasting.toFloat(value1), TypeCasting.toFloat(value2));
-        } else if (TypeCasting.isInteger(value1) && TypeCasting.isInteger(value2)) {
+
+        if (TypeCasting.isInteger(value1) && TypeCasting.isInteger(value2)) {
             return compare(condition, TypeCasting.toInteger(value1), TypeCasting.toInteger(value2));
+        } else if (TypeCasting.isFloat(value1) && TypeCasting.isFloat(value2)) {
+            return compare(condition, TypeCasting.toFloat(value1), TypeCasting.toFloat(value2));
         }  else if (TypeCasting.isBoolean(value1) && TypeCasting.isBoolean(value2)) {
             return compare(condition, TypeCasting.toBoolean(value1), TypeCasting.toBoolean(value2));
         }
@@ -64,13 +63,16 @@ public class TypeCasting {
 
     public static Boolean toBoolean(Object str) {
         try {
-            return Boolean.parseBoolean(((String) str).toLowerCase(Locale.ROOT));
+            String value = ((String) str).toLowerCase();
+            return Boolean.parseBoolean(value);
         } catch (NumberFormatException nfe) {
             return null;
         }
     }
 
-    public static Boolean isBoolean(Object number) {
-        return toBoolean(number) != null;
+    public static Boolean isBoolean(Object str) {
+        String value = ((String) str).toLowerCase();
+        return Boolean.TRUE.toString().toLowerCase().equals(value)
+                || Boolean.FALSE.toString().toLowerCase().equals(value);
     }
 }

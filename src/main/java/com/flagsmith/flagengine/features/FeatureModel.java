@@ -14,7 +14,7 @@ public class FeatureModel {
             return false;
         }
 
-        return this.id == ((FeatureModel) o).getId();
+        return id != null && id.equals(((FeatureModel) o).getId());
     }
 
     @Override

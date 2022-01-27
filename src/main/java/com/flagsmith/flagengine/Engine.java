@@ -49,13 +49,13 @@ public class Engine {
     }
 
     /**
-     *
+     * Get a list of feature states for a given identity in a given environment.
      * @param environmentModel
      * @param identityModel
      * @return
      */
     public static List<FeatureStateModel> getIdentityFeatureStates(EnvironmentModel environmentModel, IdentityModel identityModel) {
-        return getIdentityFeatureStates(environmentModel, identityModel);
+        return getIdentityFeatureStates(environmentModel, identityModel, null);
     }
 
     /**
@@ -65,7 +65,8 @@ public class Engine {
      * @return
      */
     public static List<FeatureStateModel> getIdentityFeatureStates(EnvironmentModel environmentModel, IdentityModel identityModel, List<TraitModel> overrideTraits) {
-        List<FeatureStateModel> featureStates = (List<FeatureStateModel>) getIdentityFeatureMap(environmentModel, identityModel, overrideTraits).values();
+        List<FeatureStateModel> featureStates = getIdentityFeatureMap(environmentModel, identityModel, overrideTraits)
+                .values().stream().collect(Collectors.toList());
 
         if (environmentModel.getProject().getHideDisabledFlags()) {
             return featureStates
@@ -96,7 +97,7 @@ public class Engine {
     }
 
     /**
-     *
+     * Build a feature map with feature as key and feature state as value.
      * @param environmentModel
      * @param identityModel
      * @param overrideTraits
@@ -108,7 +109,7 @@ public class Engine {
         Map<FeatureModel, FeatureStateModel> featureStates = new HashMap<>();
 
         if (environmentModel.getFeatureStates() != null) {
-            environmentModel.getFeatureStates()
+            featureStates = environmentModel.getFeatureStates()
                     .stream()
                     .collect(Collectors.toMap(
                             FeatureStateModel::getFeature,

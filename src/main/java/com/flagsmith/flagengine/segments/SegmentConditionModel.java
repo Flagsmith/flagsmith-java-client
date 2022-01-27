@@ -8,5 +8,4 @@ public class SegmentConditionModel {
     private SegmentConditions operator;
     private String value;
     private String property_;
-
 }
