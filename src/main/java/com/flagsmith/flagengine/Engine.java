@@ -1,11 +1,17 @@
 package com.flagsmith.flagengine;
 
 import com.flagsmith.flagengine.environments.EnvironmentModel;
+import com.flagsmith.flagengine.features.FeatureModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.IdentityModel;
+import com.flagsmith.flagengine.identities.traits.TraitModel;
+import com.flagsmith.flagengine.segments.SegmentEvaluator;
+import com.flagsmith.flagengine.segments.SegmentModel;
 import com.flagsmith.flagengine.utils.exceptions.FeatureStateNotFound;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Engine {
@@ -42,13 +48,88 @@ public class Engine {
                 .findFirst().orElseThrow(() -> new FeatureStateNotFound());
     }
 
+    /**
+     *
+     * @param environmentModel
+     * @param identityModel
+     * @return
+     */
     public static List<FeatureStateModel> getIdentityFeatureStates(EnvironmentModel environmentModel, IdentityModel identityModel) {
-        return null;
+        return getIdentityFeatureStates(environmentModel, identityModel);
     }
-    void getIdentityFeatureState() {
 
+    /**
+     * Get a list of feature states for a given identity in a given environment.
+     * @param environmentModel
+     * @param identityModel
+     * @return
+     */
+    public static List<FeatureStateModel> getIdentityFeatureStates(EnvironmentModel environmentModel, IdentityModel identityModel, List<TraitModel> overrideTraits) {
+        List<FeatureStateModel> featureStates = (List<FeatureStateModel>) getIdentityFeatureMap(environmentModel, identityModel, overrideTraits).values();
+
+        if (environmentModel.getProject().getHideDisabledFlags()) {
+            return featureStates
+                    .stream()
+                    .filter((featureState) -> featureState.getEnabled())
+                    .collect(Collectors.toList());
+        }
+        return featureStates;
     }
-    private void _get_identity_feature_states_dict() {
 
+    /**
+     * Get a specific feature state for a given identity in a given environment.
+     * @param environmentModel
+     * @param identityModel
+     * @param featureName
+     * @param overrideTraits
+     */
+    public static FeatureStateModel getIdentityFeatureState(EnvironmentModel environmentModel, IdentityModel identityModel,
+             String featureName, List<TraitModel> overrideTraits) throws FeatureStateNotFound {
+        Map<FeatureModel, FeatureStateModel> featureStates = getIdentityFeatureMap(environmentModel, identityModel, overrideTraits);
+
+        FeatureModel feature = featureStates.keySet()
+                .stream()
+                .filter((featureModel) -> featureModel.getName().equals(featureName))
+                .findFirst().orElseThrow(() -> new FeatureStateNotFound());
+
+        return featureStates.get(feature);
+    }
+
+    /**
+     *
+     * @param environmentModel
+     * @param identityModel
+     * @param overrideTraits
+     * @return
+     */
+    private static Map<FeatureModel, FeatureStateModel> getIdentityFeatureMap(EnvironmentModel environmentModel,
+            IdentityModel identityModel, List<TraitModel> overrideTraits) {
+
+        Map<FeatureModel, FeatureStateModel> featureStates = new HashMap<>();
+
+        if (environmentModel.getFeatureStates() != null) {
+            environmentModel.getFeatureStates()
+                    .stream()
+                    .collect(Collectors.toMap(
+                            FeatureStateModel::getFeature,
+                            (featureState) -> featureState)
+                    );
+        }
+
+        List<SegmentModel> identitySegments = SegmentEvaluator.getIdentitySegments(environmentModel, identityModel, overrideTraits);
+
+        for (SegmentModel segmentModel: identitySegments) {
+            for ( FeatureStateModel featureState: segmentModel.getFeatureStates()) {
+                featureStates.put(featureState.getFeature(), featureState);
+            }
+        }
+
+        for (FeatureStateModel featureState: identityModel.getIdentityFeatures()) {
+            if (featureStates.containsKey(featureState.getFeature())) {
+                featureStates.put(featureState.getFeature(), featureState);
+            }
+        }
+
+        return featureStates;
     }
 }

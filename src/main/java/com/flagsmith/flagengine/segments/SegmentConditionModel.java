@@ -1,22 +1,12 @@
 package com.flagsmith.flagengine.segments;
 
+import com.flagsmith.flagengine.segments.constants.SegmentConditions;
 import lombok.Data;
 
 @Data
 public class SegmentConditionModel {
-    private String operator;
+    private SegmentConditions operator;
     private String value;
     private String property_;
 
-    public Boolean matchesTraitValue() {
-        return false;
-    }
-
-    private Boolean evaluateNotContains() {
-        return false;
-    }
-
-    private Boolean evaluateRegex() {
-        return false;
-    }
 }

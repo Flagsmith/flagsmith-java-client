@@ -12,4 +12,5 @@ public class SegmentModel extends BaseModel {
     private String name;
     private List<SegmentRuleModel> rules;
     private List<FeatureStateModel> featureStates;
+
 }

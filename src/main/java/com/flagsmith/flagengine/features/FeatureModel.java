@@ -15,6 +15,10 @@ public class FeatureModel {
         }
 
         return this.id == ((FeatureModel) o).getId();
+    }
 
+    @Override
+    public int hashCode() {
+        return id.hashCode();
     }
 }
