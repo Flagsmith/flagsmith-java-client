@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 public class SegmentConditionModel {
-    private SegmentConditions operator;
-    private String value;
-    private String property_;
+  private SegmentConditions operator;
+  private String value;
+  private String property_;
 }

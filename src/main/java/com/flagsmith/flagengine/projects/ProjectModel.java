@@ -10,10 +10,10 @@ import java.util.List;
 
 @Data
 public class ProjectModel extends BaseModel {
-    private Integer id;
-    private String name;
-    @JsonProperty("hide_disabled_flags")
-    private Boolean hideDisabledFlags;
-    private OrganisationModel organisation;
-    private List<SegmentModel> segments;
+  private Integer id;
+  private String name;
+  @JsonProperty("hide_disabled_flags")
+  private Boolean hideDisabledFlags;
+  private OrganisationModel organisation;
+  private List<SegmentModel> segments;
 }

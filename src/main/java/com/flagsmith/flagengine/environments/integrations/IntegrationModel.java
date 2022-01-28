@@ -5,8 +5,8 @@ import lombok.Data;
 
 @Data
 public class IntegrationModel {
-    @JsonProperty("api_key")
-    private String apiKey;
-    @JsonProperty("base_url")
-    private String baseUrl;
+  @JsonProperty("api_key")
+  private String apiKey;
+  @JsonProperty("base_url")
+  private String baseUrl;
 }

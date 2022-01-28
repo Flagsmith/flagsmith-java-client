@@ -15,107 +15,114 @@ import java.util.stream.Collectors;
 
 public class SegmentEvaluator {
 
-    public static List<SegmentModel> getIdentitySegments(EnvironmentModel environment, IdentityModel identity) {
-        return getIdentitySegments(environment, identity, null);
+  public static List<SegmentModel> getIdentitySegments(EnvironmentModel environment,
+                                                       IdentityModel identity) {
+    return getIdentitySegments(environment, identity, null);
+  }
+
+  public static List<SegmentModel> getIdentitySegments(EnvironmentModel environment,
+                                                       IdentityModel identity,
+                                                       List<TraitModel> overrideTraits) {
+    return environment
+        .getProject()
+        .getSegments()
+        .stream()
+        .filter((segment) -> evaluateIdentityInSegment(identity, segment, overrideTraits))
+        .collect(Collectors.toList());
+  }
+
+  public static Boolean evaluateIdentityInSegment(IdentityModel identity, SegmentModel segment,
+                                                  List<TraitModel> overrideTraits) {
+    List<SegmentRuleModel> segmentRules = segment.getRules();
+    List<TraitModel> traits =
+        overrideTraits != null ? overrideTraits : identity.getIdentityTraits();
+
+    if (segmentRules != null && segmentRules.size() > 0) {
+      List<Boolean> segmentRuleEvaluations = segmentRules.stream().map(
+          (rule) -> traitsMatchSegmentRule(
+              traits,
+              rule,
+              segment.getId(),
+              identity.getCompositeKey()
+          )
+      ).collect(Collectors.toList());
+
+      return segmentRuleEvaluations.stream().allMatch((bool) -> bool);
     }
 
-    public static List<SegmentModel> getIdentitySegments(EnvironmentModel environment, IdentityModel identity,
-                                                         List<TraitModel> overrideTraits) {
-        return environment
-                .getProject()
-                .getSegments()
-                .stream()
-                .filter((segment) -> evaluateIdentityInSegment(identity, segment, overrideTraits))
-                .collect(Collectors.toList());
+    return Boolean.FALSE;
+  }
+
+  private static Boolean traitsMatchSegmentRule(List<TraitModel> identityTraits,
+                                                SegmentRuleModel rule,
+                                                Integer segmentId, String identityId) {
+    Boolean matchingCondition = Boolean.TRUE;
+
+    if (rule.getConditions() != null && rule.getConditions().size() > 0) {
+      List<Boolean> conditionEvaluations = rule.getConditions().stream()
+          .map((condition) -> traitsMatchSegmentCondition(identityTraits, condition, segmentId,
+              identityId))
+          .collect(Collectors.toList());
+
+      matchingCondition = rule.matchingFunction(
+          conditionEvaluations.stream()
+      );
     }
 
-    public static Boolean evaluateIdentityInSegment(IdentityModel identity, SegmentModel segment,
-                                                    List<TraitModel> overrideTraits) {
-        List<SegmentRuleModel> segmentRules = segment.getRules();
-        List<TraitModel> traits = overrideTraits != null ? overrideTraits : identity.getIdentityTraits();
+    List<SegmentRuleModel> rules = rule.getRules();
 
-        if (segmentRules != null && segmentRules.size() > 0) {
-            List<Boolean> segmentRuleEvaluations =  segmentRules.stream().map(
-                    (rule) -> traitsMatchSegmentRule(
-                            traits,
-                            rule,
-                            segment.getId(),
-                            identity.getCompositeKey()
-                    )
-            ).collect(Collectors.toList());
+    if (rules != null) {
+      matchingCondition = matchingCondition && rules.stream()
+          .allMatch((segmentRule) -> traitsMatchSegmentRule(
+              identityTraits,
+              segmentRule,
+              segmentId,
+              identityId
+          ));
+    }
 
-            return segmentRuleEvaluations.stream().allMatch((bool) -> bool);
-        }
+    return matchingCondition;
+  }
 
+  private static Boolean traitsMatchSegmentCondition(List<TraitModel> identityTraits,
+                                                     SegmentConditionModel condition,
+                                                     Integer segmentId, String identityId) {
+    if (condition.getOperator().equals(SegmentConditions.PERCENTAGE_SPLIT)) {
+      try {
+        Float floatValue = Float.parseFloat(condition.getValue());
+        return Hashing.getHashedPercentageForObjectIds(
+            Arrays.asList(segmentId.toString(), identityId)) <= floatValue;
+
+      } catch (NumberFormatException nfe) {
         return Boolean.FALSE;
+      }
     }
 
-    private static Boolean traitsMatchSegmentRule(List<TraitModel> identityTraits, SegmentRuleModel rule,
-                                                  Integer segmentId, String identityId) {
-        Boolean matchingCondition = Boolean.TRUE;
+    if (identityTraits != null) {
+      Optional<TraitModel> matchingTrait = identityTraits
+          .stream()
+          .filter((trait) -> trait.getTraitKey().equals(condition.getProperty_()))
+          .findFirst();
 
-        if (rule.getConditions() != null && rule.getConditions().size() > 0) {
-            List<Boolean> conditionEvaluations = rule.getConditions().stream()
-                    .map((condition) -> traitsMatchSegmentCondition(identityTraits, condition, segmentId, identityId))
-                    .collect(Collectors.toList());
-
-            matchingCondition = rule.matchingFunction(
-                    conditionEvaluations.stream()
-            );
-        }
-
-        List<SegmentRuleModel> rules = rule.getRules();
-
-        if (rules != null) {
-            matchingCondition = matchingCondition && rules.stream()
-                    .allMatch((segmentRule) -> traitsMatchSegmentRule(
-                        identityTraits,
-                        segmentRule,
-                        segmentId,
-                        identityId
-                ));
-        }
-
-        return matchingCondition;
+      if (matchingTrait.isPresent()) {
+        return traitsMatchValue(condition, matchingTrait.get().getTraitValue());
+      }
     }
 
-    private static Boolean traitsMatchSegmentCondition(List<TraitModel> identityTraits, SegmentConditionModel condition,
-                                                       Integer segmentId, String identityId) {
-        if (condition.getOperator().equals(SegmentConditions.PERCENTAGE_SPLIT)) {
-            try {
-                Float floatValue = Float.parseFloat(condition.getValue());
-                return Hashing.getHashedPercentageForObjectIds(Arrays.asList(segmentId.toString(), identityId)) <= floatValue;
+    return false;
+  }
 
-            } catch (NumberFormatException nfe) {
-                return Boolean.FALSE;
-            }
-        }
-
-        if (identityTraits != null) {
-            Optional<TraitModel> matchingTrait = identityTraits
-                    .stream()
-                    .filter((trait) -> trait.getTraitKey().equals(condition.getProperty_()))
-                    .findFirst();
-
-            if (matchingTrait.isPresent()) {
-                return traitsMatchValue(condition, matchingTrait.get().getTraitValue());
-            }
-        }
-
-        return false;
+  private static Boolean traitsMatchValue(SegmentConditionModel condition, Object value) {
+    SegmentConditions operator = condition.getOperator();
+    if (operator.equals(SegmentConditions.NOT_CONTAINS)) {
+      return ((String) value).indexOf(condition.getValue()) > -1;
+    } else if (operator.equals(SegmentConditions.REGEX)) {
+      Pattern pattern = Pattern.compile(condition.getValue());
+      return pattern.matcher((String) value).find();
+    } else {
+      return TypeCasting.compare(operator, value, condition.getValue());
     }
-
-    private static Boolean traitsMatchValue(SegmentConditionModel condition, Object value) {
-        SegmentConditions operator = condition.getOperator();
-        if (operator.equals(SegmentConditions.NOT_CONTAINS)) {
-            return ((String) value).indexOf(condition.getValue()) > -1;
-        } else if (operator.equals(SegmentConditions.REGEX)) {
-            Pattern pattern = Pattern.compile(condition.getValue());
-            return pattern.matcher((String) value).find();
-        } else {
-            return TypeCasting.compare(operator, value, condition.getValue());
-        }
-    }
+  }
 
 
 }

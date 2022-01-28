@@ -11,21 +11,21 @@ import java.util.List;
 
 @Data
 public class EnvironmentModel extends BaseModel {
-    private Integer id;
+  private Integer id;
 
-    @JsonProperty("api_key")
-    private String apiKey;
-    private ProjectModel project;
+  @JsonProperty("api_key")
+  private String apiKey;
+  private ProjectModel project;
 
-    @JsonProperty("feature_states")
-    private List<FeatureStateModel> featureStates;
+  @JsonProperty("feature_states")
+  private List<FeatureStateModel> featureStates;
 
-    @JsonProperty("amplitude_config")
-    private IntegrationModel amplitudeConfig;
-    @JsonProperty("segment_config")
-    private IntegrationModel segmentConfig;
-    @JsonProperty("mixpanel_config")
-    private IntegrationModel mixpanelConfig;
-    @JsonProperty("heap_config")
-    private IntegrationModel heapConfig;
+  @JsonProperty("amplitude_config")
+  private IntegrationModel amplitudeConfig;
+  @JsonProperty("segment_config")
+  private IntegrationModel segmentConfig;
+  @JsonProperty("mixpanel_config")
+  private IntegrationModel mixpanelConfig;
+  @JsonProperty("heap_config")
+  private IntegrationModel heapConfig;
 }

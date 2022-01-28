@@ -9,10 +9,10 @@ import java.util.List;
 
 @Data
 public class SegmentModel extends BaseModel {
-    private Integer id;
-    private String name;
-    private List<SegmentRuleModel> rules;
-    @JsonProperty("feature_states")
-    private List<FeatureStateModel> featureStates;
+  private Integer id;
+  private String name;
+  private List<SegmentRuleModel> rules;
+  @JsonProperty("feature_states")
+  private List<FeatureStateModel> featureStates;
 
 }

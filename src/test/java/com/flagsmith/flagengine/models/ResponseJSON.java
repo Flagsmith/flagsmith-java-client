@@ -8,9 +8,9 @@ import java.util.List;
 
 @Data
 public class ResponseJSON {
-    // TODO - this is not featureStates in essence,
-    //  this is a response object
+  // TODO - this is not featureStates in essence,
+  //  this is a response object
 
-    private List<FeatureStateModel> flags;
-    private List<TraitModel> traits;
+  private List<FeatureStateModel> flags;
+  private List<TraitModel> traits;
 }

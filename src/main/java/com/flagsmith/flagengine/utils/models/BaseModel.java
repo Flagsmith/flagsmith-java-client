@@ -8,13 +8,13 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.flagsmith.flagengine.utils.encode.JSONEncoder;
 
 public abstract class BaseModel {
-    public static <T extends BaseModel> T load(JsonNode json, Class<T> clazz) {
-        JsonMapper mapper = JSONEncoder.getMapper();
-        try {
-            return mapper.treeToValue(json, clazz);
-        } catch (JsonProcessingException e) {
-            return null;
-        }
+  public static <T extends BaseModel> T load(JsonNode json, Class<T> clazz) {
+    JsonMapper mapper = JSONEncoder.getMapper();
+    try {
+      return mapper.treeToValue(json, clazz);
+    } catch (JsonProcessingException e) {
+      return null;
     }
+  }
 
 }

@@ -12,62 +12,64 @@ import java.util.stream.Collectors;
 
 @Data
 public class FeatureStateModel extends BaseModel {
-    private FeatureModel feature;
-    private Boolean enabled;
-    @JsonProperty("django_id")
-    private Integer djangoId;
-    @JsonProperty("featurestate_uuid")
-    private String featurestateUuid = UUID.randomUUID().toString();
-    @JsonProperty("multivariate_feature_state_values")
-    private List<MultivariateFeatureStateValueModel> multivariateFeatureStateValues;
-    @JsonProperty("feature_state_value")
-    private Object value;
+  private FeatureModel feature;
+  private Boolean enabled;
+  @JsonProperty("django_id")
+  private Integer djangoId;
+  @JsonProperty("featurestate_uuid")
+  private String featurestateUuid = UUID.randomUUID().toString();
+  @JsonProperty("multivariate_feature_state_values")
+  private List<MultivariateFeatureStateValueModel> multivariateFeatureStateValues;
+  @JsonProperty("feature_state_value")
+  private Object value;
 
-    public Object getValue(Integer identityId) {
+  public Object getValue(Object identityId) {
 
-        if (identityId != null && multivariateFeatureStateValues != null && multivariateFeatureStateValues.size() > 0) {
-            return getMultiVariateValue(identityId);
-        }
-
-        return value;
+    if (identityId != null && multivariateFeatureStateValues != null &&
+        multivariateFeatureStateValues.size() > 0) {
+      return getMultiVariateValue(identityId);
     }
 
-    private Object getMultiVariateValue(Integer identityId) {
+    return value;
+  }
 
-        List<String> objectIds = Arrays.asList(
-                (djangoId != null && djangoId != 0 ? djangoId.toString() : featurestateUuid),
-                identityId.toString()
-        );
+  private Object getMultiVariateValue(Object identityId) {
 
-        Float percentageValue = Hashing.getHashedPercentageForObjectIds(objectIds);
-        Float startPercentage = 0f;
+    List<String> objectIds = Arrays.asList(
+        (djangoId != null && djangoId != 0 ? djangoId.toString() : featurestateUuid),
+        identityId.toString()
+    );
 
-        List<MultivariateFeatureStateValueModel> sortedMultiVariateFeatureStates = multivariateFeatureStateValues
-                .stream()
-                .sorted((smvfs1, smvfs2) -> smvfs1.getSortValue().compareTo(smvfs2.getSortValue()))
-                .collect(Collectors.toList());
+    Float percentageValue = Hashing.getHashedPercentageForObjectIds(objectIds);
+    Float startPercentage = 0f;
 
-        for (MultivariateFeatureStateValueModel multiVariate: sortedMultiVariateFeatureStates) {
-            Float limit = multiVariate.getPercentageAllocation() + startPercentage;
+    List<MultivariateFeatureStateValueModel> sortedMultiVariateFeatureStates =
+        multivariateFeatureStateValues
+            .stream()
+            .sorted((smvfs1, smvfs2) -> smvfs1.getSortValue().compareTo(smvfs2.getSortValue()))
+            .collect(Collectors.toList());
 
-            if (startPercentage <= percentageValue && percentageValue < limit) {
-                return multiVariate.getMultivariateFeatureOption().getValue();
-            }
+    for (MultivariateFeatureStateValueModel multiVariate : sortedMultiVariateFeatureStates) {
+      Float limit = multiVariate.getPercentageAllocation() + startPercentage;
 
-            startPercentage = limit;
-        }
+      if (startPercentage <= percentageValue && percentageValue < limit) {
+        return multiVariate.getMultivariateFeatureOption().getValue();
+      }
 
-        return value;
+      startPercentage = limit;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (!(o instanceof FeatureStateModel)) {
-            return false;
-        }
+    return value;
+  }
 
-        return this.getFeature().getId() == ((FeatureStateModel) o).getFeature().getId();
-
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof FeatureStateModel)) {
+      return false;
     }
+
+    return this.getFeature().getId() == ((FeatureStateModel) o).getFeature().getId();
+
+  }
 }
 ;

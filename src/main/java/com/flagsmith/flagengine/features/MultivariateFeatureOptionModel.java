@@ -5,6 +5,6 @@ import lombok.Data;
 
 @Data
 public class MultivariateFeatureOptionModel extends BaseModel {
-    private String value;
-    private Integer id;
+  private String value;
+  private Integer id;
 }
