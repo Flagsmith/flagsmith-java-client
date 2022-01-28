@@ -66,14 +66,17 @@ public class SegmentEvaluator {
 
         List<SegmentRuleModel> rules = rule.getRules();
 
-        return matchingCondition
-            && rules != null
-            && rules.stream().allMatch((segmentRule) -> traitsMatchSegmentRule(
-                identityTraits,
-                segmentRule,
-                segmentId,
-                identityId
-        ));
+        if (rules != null) {
+            matchingCondition = matchingCondition && rules.stream()
+                    .allMatch((segmentRule) -> traitsMatchSegmentRule(
+                        identityTraits,
+                        segmentRule,
+                        segmentId,
+                        identityId
+                ));
+        }
+
+        return matchingCondition;
     }
 
     private static Boolean traitsMatchSegmentCondition(List<TraitModel> identityTraits, SegmentConditionModel condition,

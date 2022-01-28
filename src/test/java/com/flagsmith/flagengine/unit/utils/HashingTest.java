@@ -48,7 +48,7 @@ public class HashingTest {
         Float hashValue = Hashing.getHashedPercentageForObjectIds(objectIds1);
         Float hashValueTheSecond = Hashing.getHashedPercentageForObjectIds(objectIds2);
 
-        Assert.assertTrue(!hashValue.equals(hashValueTheSecond));
+        Assert.assertFalse(hashValue.equals(hashValueTheSecond));
     }
 
     @Test

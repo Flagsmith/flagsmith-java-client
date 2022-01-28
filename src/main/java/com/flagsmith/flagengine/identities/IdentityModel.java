@@ -8,8 +8,7 @@ import lombok.Data;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Data
 public class IdentityModel extends BaseModel {
@@ -21,11 +20,11 @@ public class IdentityModel extends BaseModel {
 //    @JsonProperty("created_date")
 //    private LocalDateTime createdDate;
     @JsonProperty("identity_uuid")
-    private String identityUuid;
+    private String identityUuid = UUID.randomUUID().toString();
     @JsonProperty("identity_traits")
-    private List<TraitModel> identityTraits;
+    private List<TraitModel> identityTraits = new ArrayList<>();
     @JsonProperty("identity_features")
-    private Set<FeatureStateModel> identityFeatures;
+    private Set<FeatureStateModel> identityFeatures = new HashSet<>();
     @JsonProperty("composite_key")
     private String compositeKey;
 

@@ -1,10 +1,11 @@
 package com.flagsmith.flagengine.organisations;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.flagsmith.flagengine.utils.models.BaseModel;
 import lombok.Data;
 
 @Data
-public class OrganisationModel {
+public class OrganisationModel extends BaseModel {
     private Integer id;
     private String name;
     @JsonProperty("feature_analytics")

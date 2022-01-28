@@ -7,6 +7,7 @@ import lombok.Data;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Data
@@ -16,7 +17,7 @@ public class FeatureStateModel extends BaseModel {
     @JsonProperty("django_id")
     private Integer djangoId;
     @JsonProperty("featurestate_uuid")
-    private String featurestateUuid;
+    private String featurestateUuid = UUID.randomUUID().toString();
     @JsonProperty("multivariate_feature_state_values")
     private List<MultivariateFeatureStateValueModel> multivariateFeatureStateValues;
     @JsonProperty("feature_state_value")

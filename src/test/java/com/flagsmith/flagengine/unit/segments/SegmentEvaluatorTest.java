@@ -18,21 +18,21 @@ public class SegmentEvaluatorTest {
     @DataProvider(name = "identitiesInSegments")
     public Object[][] identitiesInSegments() {
         return new Object[][] {
-//            new Object[] {emptySegment(), emptyIdentityTraits(), Boolean.FALSE},
-//            new Object[] {segmentSingleCondition(), emptyIdentityTraits(), Boolean.FALSE},
+            new Object[] {emptySegment(), emptyIdentityTraits(), Boolean.FALSE},
+            new Object[] {segmentSingleCondition(), emptyIdentityTraits(), Boolean.FALSE},
             new Object[] {segmentSingleCondition(), oneIdentityTrait(), Boolean.TRUE},
-//            new Object[] {segmentMultipleConditionsAll(), emptyIdentityTraits(), Boolean.FALSE},
-//            new Object[] {segmentMultipleConditionsAll(), oneIdentityTrait(), Boolean.FALSE},
+            new Object[] {segmentMultipleConditionsAll(), emptyIdentityTraits(), Boolean.FALSE},
+            new Object[] {segmentMultipleConditionsAll(), oneIdentityTrait(), Boolean.FALSE},
             new Object[] {segmentMultipleConditionsAll(), twoIdentityTraits(), Boolean.TRUE},
-//            new Object[] {segmentMultipleConditionsAny(), emptyIdentityTraits(), Boolean.FALSE},
+            new Object[] {segmentMultipleConditionsAny(), emptyIdentityTraits(), Boolean.FALSE},
             new Object[] {segmentMultipleConditionsAny(), Arrays.asList(secondIdentityTrait()), Boolean.TRUE},
             new Object[] {segmentMultipleConditionsAny(), oneIdentityTrait(), Boolean.TRUE},
             new Object[] {segmentMultipleConditionsAny(), twoIdentityTraits(), Boolean.TRUE},
-//            new Object[] {segmentNestedRules(), emptyIdentityTraits(), Boolean.FALSE},
-//            new Object[] {segmentNestedRules(), oneIdentityTrait(), Boolean.FALSE},
+            new Object[] {segmentNestedRules(), emptyIdentityTraits(), Boolean.FALSE},
+            new Object[] {segmentNestedRules(), oneIdentityTrait(), Boolean.FALSE},
             new Object[] {segmentNestedRules(), threeIdentityTraits(), Boolean.TRUE},
-//            new Object[] {segmentConditionsAndNestedRules(), emptyIdentityTraits(), Boolean.FALSE},
-//            new Object[] {segmentConditionsAndNestedRules(), oneIdentityTrait(), Boolean.FALSE},
+            new Object[] {segmentConditionsAndNestedRules(), emptyIdentityTraits(), Boolean.FALSE},
+            new Object[] {segmentConditionsAndNestedRules(), oneIdentityTrait(), Boolean.FALSE},
             new Object[] {segmentConditionsAndNestedRules(), threeIdentityTraits(), Boolean.TRUE},
         };
     }
