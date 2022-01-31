@@ -7,14 +7,52 @@ import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Hashing {
 
-  public static Float getHashedPercentageForObjectIds(List<String> ids) {
+  private static Hashing instance = null;
+  private static Logger logger = LoggerFactory.getLogger(Hashing.class);
+
+  private Hashing() {}
+
+  /**
+   * Returns the hashing instance.
+   * @return
+   */
+  public static Hashing getInstance() {
+    if (instance == null) {
+      setInstance(new Hashing());
+    }
+
+    return instance;
+  }
+
+  /**
+   * Set the instance object.
+   * @param instanceObj Instance obj of Hashing
+   */
+  public static void setInstance(Hashing instanceObj) {
+    instance = instanceObj;
+  }
+
+  /**
+   * Returns the percentage of hash of the list of object IDs.
+   * @param ids List of string IDs
+   * @return
+   */
+  public Float getHashedPercentageForObjectIds(List<String> ids) {
     return getHashedPercentageForObjectIds(ids, 1);
   }
 
-  public static Float getHashedPercentageForObjectIds(List<String> ids, Integer iterations) {
+  /**
+   * Returns the percentage of hash of the list of object IDs with iteration.
+   * @param ids List of string IDs.
+   * @param iterations Number of iterations for the string to be repeated.
+   * @return
+   */
+  public Float getHashedPercentageForObjectIds(List<String> ids, Integer iterations) {
     String hashTo = ids.stream().collect(Collectors.joining(","));
     String hashToWithIteration = IntStream
         .rangeClosed(1, iterations)
@@ -33,7 +71,12 @@ public class Hashing {
     return hashedFloat;
   }
 
-  private static String getMD5(String hash) {
+  /**
+   * returns the mdt of the string provided.
+   * @param hash String to be hashed.
+   * @return
+   */
+  public String getMD5(String hash) {
     try {
       MessageDigest md = MessageDigest.getInstance("MD5");
       md.update(hash.getBytes("UTF-8"));
@@ -46,10 +89,11 @@ public class Hashing {
       return sb.toString();
 
     } catch (NoSuchAlgorithmException e) {
-
+      logger.error("MD5 Hashing Algorithm not found.");
     } catch (UnsupportedEncodingException e) {
-
+      logger.error("Encoding not supported.");
     }
+
     return null;
   }
 }

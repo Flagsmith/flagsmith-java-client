@@ -4,12 +4,11 @@ import com.flagsmith.flagengine.features.FeatureModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.features.MultivariateFeatureOptionModel;
 import com.flagsmith.flagengine.features.MultivariateFeatureStateValueModel;
-import com.flagsmith.flagengine.utils.encode.JSONEncoder;
+import com.flagsmith.flagengine.utils.encode.JsonEncoder;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import javax.xml.bind.util.JAXBSource;
 import java.util.Arrays;
 
 @Test(groups = "unit")
@@ -105,7 +104,7 @@ public class FeatureModelTest {
   public void loadMultiVariateFeatureOptionWithoutId() throws Exception {
     String json = "{\"value\": 1}";
     MultivariateFeatureOptionModel variate =
-        MultivariateFeatureOptionModel.load(JSONEncoder.getMapper().readTree(json),
+        MultivariateFeatureOptionModel.load(JsonEncoder.getMapper().readTree(json),
             MultivariateFeatureOptionModel.class);
     Assert.assertNull(variate.getId());
   }
@@ -114,7 +113,7 @@ public class FeatureModelTest {
     String json =
         "{ \"multivariate_feature_option\":{\"value\": 1},\"percentage_allocation\": 10 }";
     MultivariateFeatureStateValueModel variate =
-        MultivariateFeatureStateValueModel.load(JSONEncoder.getMapper().readTree(json),
+        MultivariateFeatureStateValueModel.load(JsonEncoder.getMapper().readTree(json),
             MultivariateFeatureStateValueModel.class);
     Assert.assertNull(variate.getId());
     Assert.assertEquals(variate.getPercentageAllocation(), 10f);

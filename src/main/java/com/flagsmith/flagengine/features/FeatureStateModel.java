@@ -3,12 +3,12 @@ package com.flagsmith.flagengine.features;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.flagsmith.flagengine.utils.Hashing;
 import com.flagsmith.flagengine.utils.models.BaseModel;
-import lombok.Data;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import lombok.Data;
 
 @Data
 public class FeatureStateModel extends BaseModel {
@@ -23,16 +23,26 @@ public class FeatureStateModel extends BaseModel {
   @JsonProperty("feature_state_value")
   private Object value;
 
+  /**
+   * Returns the value object.
+   * @param identityId Identity ID
+   * @return
+   */
   public Object getValue(Object identityId) {
 
-    if (identityId != null && multivariateFeatureStateValues != null &&
-        multivariateFeatureStateValues.size() > 0) {
+    if (identityId != null && multivariateFeatureStateValues != null
+        && multivariateFeatureStateValues.size() > 0) {
       return getMultiVariateValue(identityId);
     }
 
     return value;
   }
 
+  /**
+   * Determines the multi variate value.
+   * @param identityId Identity ID
+   * @return
+   */
   private Object getMultiVariateValue(Object identityId) {
 
     List<String> objectIds = Arrays.asList(
@@ -40,7 +50,7 @@ public class FeatureStateModel extends BaseModel {
         identityId.toString()
     );
 
-    Float percentageValue = Hashing.getHashedPercentageForObjectIds(objectIds);
+    Float percentageValue = Hashing.getInstance().getHashedPercentageForObjectIds(objectIds);
     Float startPercentage = 0f;
 
     List<MultivariateFeatureStateValueModel> sortedMultiVariateFeatureStates =
@@ -69,7 +79,5 @@ public class FeatureStateModel extends BaseModel {
     }
 
     return this.getFeature().getId() == ((FeatureStateModel) o).getFeature().getId();
-
   }
 }
-;

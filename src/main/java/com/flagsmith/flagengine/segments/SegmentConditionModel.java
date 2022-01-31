@@ -7,5 +7,7 @@ import lombok.Data;
 public class SegmentConditionModel {
   private SegmentConditions operator;
   private String value;
+  //CHECKSTYLE:OFF
   private String property_;
+  //CHECKSTYLE:ON
 }

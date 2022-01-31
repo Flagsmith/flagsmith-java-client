@@ -17,9 +17,9 @@ import java.util.stream.Collectors;
 public class Engine {
 
   /**
-   * Get a list of feature states for a given environment
+   * Get a list of feature states for a given environment.
    *
-   * @param environment
+   * @param environment Instance of the Environment.
    * @return
    */
   public static List<FeatureStateModel> getEnvironmentFeatureStates(EnvironmentModel environment) {
@@ -33,10 +33,10 @@ public class Engine {
   }
 
   /**
-   * Get a specific feature state for a given feature_name in a given environment
+   * Get a specific feature state for a given feature_name in a given environment.
    *
-   * @param environment
-   * @param featureName
+   * @param environment Instance of the Environment.
+   * @param featureName Feature name to search for.
    * @return
    */
   public static FeatureStateModel getEnvironmentFeatureState(EnvironmentModel environment,
@@ -54,8 +54,8 @@ public class Engine {
   /**
    * Get a list of feature states for a given identity in a given environment.
    *
-   * @param environmentModel
-   * @param identityModel
+   * @param environmentModel Instance of the Environment.
+   * @param identityModel Instance of Identity.
    * @return
    */
   public static List<FeatureStateModel> getIdentityFeatureStates(EnvironmentModel environmentModel,
@@ -66,8 +66,8 @@ public class Engine {
   /**
    * Get a list of feature states for a given identity in a given environment.
    *
-   * @param environmentModel
-   * @param identityModel
+   * @param environmentModel Instance of the Environment.
+   * @param identityModel Instance of Identity.
    * @return
    */
   public static List<FeatureStateModel> getIdentityFeatureStates(EnvironmentModel environmentModel,
@@ -89,10 +89,10 @@ public class Engine {
   /**
    * Get a specific feature state for a given identity in a given environment.
    *
-   * @param environmentModel
-   * @param identityModel
-   * @param featureName
-   * @param overrideTraits
+   * @param environmentModel Instance of the Environment.
+   * @param identityModel Instance of identity.
+   * @param featureName Feature Name to search for.
+   * @param overrideTraits Traits to override identity's traits.
    */
   public static FeatureStateModel getIdentityFeatureState(EnvironmentModel environmentModel,
                                                           IdentityModel identityModel,
@@ -113,9 +113,9 @@ public class Engine {
   /**
    * Build a feature map with feature as key and feature state as value.
    *
-   * @param environmentModel
-   * @param identityModel
-   * @param overrideTraits
+   * @param environmentModel Instance of the Environment.
+   * @param identityModel Instance of identity.
+   * @param overrideTraits Traits to override identity's traits.
    * @return
    */
   private static Map<FeatureModel, FeatureStateModel> getIdentityFeatureMap(

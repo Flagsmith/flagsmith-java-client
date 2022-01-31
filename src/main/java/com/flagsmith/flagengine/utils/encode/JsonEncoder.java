@@ -3,10 +3,14 @@ package com.flagsmith.flagengine.utils.encode;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 
-public class JSONEncoder {
+public class JsonEncoder {
 
   private static JsonMapper mapper;
 
+  /**
+   * Get the JSON Mapper object.
+   * @return
+   */
   public static JsonMapper getMapper() {
     if (mapper == null) {
       mapper = new JsonMapper();

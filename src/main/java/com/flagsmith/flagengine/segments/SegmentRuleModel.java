@@ -1,9 +1,9 @@
 package com.flagsmith.flagengine.segments;
 
+import com.flagsmith.flagengine.segments.constants.SegmentRules;
+
 import java.util.List;
 import java.util.stream.Stream;
-
-import static com.flagsmith.flagengine.segments.constants.SegmentRules.*;
 
 import lombok.Data;
 
@@ -13,12 +13,17 @@ public class SegmentRuleModel {
   private List<SegmentRuleModel> rules;
   private List<SegmentConditionModel> conditions;
 
+  /**
+   * Run the matching function against the boolean stream.
+   * @param booleanStream Boolean stream from trait condition evaluations.
+   * @return
+   */
   public Boolean matchingFunction(Stream<Boolean> booleanStream) {
-    if (ALL_RULE.getRule().equals(type)) {
+    if (SegmentRules.ALL_RULE.getRule().equals(type)) {
       return booleanStream.allMatch((bool) -> bool);
-    } else if (ANY_RULE.getRule().equals(type)) {
+    } else if (SegmentRules.ANY_RULE.getRule().equals(type)) {
       return booleanStream.anyMatch((bool) -> bool);
-    } else if (NONE_RULE.getRule().equals(type)) {
+    } else if (SegmentRules.NONE_RULE.getRule().equals(type)) {
       return !booleanStream.anyMatch((bool) -> bool);
     }
 

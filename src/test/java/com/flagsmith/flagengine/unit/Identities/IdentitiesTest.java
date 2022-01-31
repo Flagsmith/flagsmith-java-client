@@ -2,7 +2,7 @@ package com.flagsmith.flagengine.unit.Identities;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.flagengine.identities.IdentityModel;
-import com.flagsmith.flagengine.utils.encode.JSONEncoder;
+import com.flagsmith.flagengine.utils.encode.JsonEncoder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -18,7 +18,7 @@ public class IdentitiesTest {
         "  \"identity_traits\": [{\"trait_key\": \"trait_key\", \"trait_value\": \"trait_value\"}]\n" +
         "}";
 
-    JsonNode node = JSONEncoder.getMapper().readTree(json);
+    JsonNode node = JsonEncoder.getMapper().readTree(json);
     IdentityModel identityModel = IdentityModel.load(node, IdentityModel.class);
 
     Assert.assertNotNull(identityModel.getIdentityFeatures());
@@ -49,7 +49,7 @@ public class IdentitiesTest {
         "        ]\n" +
         "    }";
 
-    JsonNode node = JSONEncoder.getMapper().readTree(json);
+    JsonNode node = JsonEncoder.getMapper().readTree(json);
     IdentityModel identityModel = IdentityModel.load(node, IdentityModel.class);
 
     Assert.assertNotNull(identityModel.getIdentityFeatures());
@@ -59,7 +59,7 @@ public class IdentitiesTest {
   public void testBuildBuildIdentityModelFromDictCreatesIdentityUuid() throws Exception {
     String json = "{\"identifier\": \"test_user\", \"environment_api_key\": \"some_key\"}";
 
-    JsonNode node = JSONEncoder.getMapper().readTree(json);
+    JsonNode node = JsonEncoder.getMapper().readTree(json);
     IdentityModel identityModel = IdentityModel.load(node, IdentityModel.class);
 
     Assert.assertNotNull(identityModel);
@@ -86,7 +86,7 @@ public class IdentitiesTest {
         "        ]\n" +
         "    }";
 
-    JsonNode node = JSONEncoder.getMapper().readTree(json);
+    JsonNode node = JsonEncoder.getMapper().readTree(json);
     IdentityModel identityModel = IdentityModel.load(node, IdentityModel.class);
 
     Assert.assertNotNull(identityModel);

@@ -2,7 +2,7 @@ package com.flagsmith.flagengine.unit.organizations;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.flagengine.organisations.OrganisationModel;
-import com.flagsmith.flagengine.utils.encode.JSONEncoder;
+import com.flagsmith.flagengine.utils.encode.JsonEncoder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -18,7 +18,7 @@ public class OrganizationsTest {
         "    \"persist_trait_data\": false\n" +
         "}";
 
-    JsonNode node = JSONEncoder.getMapper().readTree(json);
+    JsonNode node = JsonEncoder.getMapper().readTree(json);
     OrganisationModel organisationModel = OrganisationModel.load(node, OrganisationModel.class);
 
     Assert.assertTrue(organisationModel.uniqueSlug().equals("1-test"));

@@ -5,9 +5,9 @@ import com.flagsmith.flagengine.environments.integrations.IntegrationModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.projects.ProjectModel;
 import com.flagsmith.flagengine.utils.models.BaseModel;
+import java.util.List;
 import lombok.Data;
 
-import java.util.List;
 
 @Data
 public class EnvironmentModel extends BaseModel {

@@ -5,7 +5,7 @@ import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.IdentityModel;
 import com.flagsmith.flagengine.models.ResponseJSON;
-import com.flagsmith.flagengine.utils.encode.JSONEncoder;
+import com.flagsmith.flagengine.utils.encode.JsonEncoder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -30,7 +30,7 @@ public class EngineTest {
   @BeforeClass(groups = "unit")
   public void init() {
     engine = new Engine();
-    objectMapper = JSONEncoder.getMapper();
+    objectMapper = JsonEncoder.getMapper();
   }
 
   @DataProvider(name = "environmentdata")
@@ -40,8 +40,7 @@ public class EngineTest {
           readTree(new File(environmentJsonFile));
 
       JsonNode environmentNode = engineTestData.get("environment");
-      environmentModel = objectMapper.treeToValue(environmentNode, EnvironmentModel.class);
-      EnvironmentModel.load(environmentNode, EnvironmentModel.class);
+      environmentModel = EnvironmentModel.load(environmentNode, EnvironmentModel.class);
 
       JsonNode identitiesAndResponses = engineTestData.get("identities_and_responses");
 

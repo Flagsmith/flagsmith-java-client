@@ -4,9 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.flagsmith.flagengine.organisations.OrganisationModel;
 import com.flagsmith.flagengine.segments.SegmentModel;
 import com.flagsmith.flagengine.utils.models.BaseModel;
-import lombok.Data;
-
 import java.util.List;
+import lombok.Data;
 
 @Data
 public class ProjectModel extends BaseModel {

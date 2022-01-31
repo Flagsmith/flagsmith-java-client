@@ -2,9 +2,8 @@ package com.flagsmith.flagengine.features;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.flagsmith.flagengine.utils.models.BaseModel;
-import lombok.Data;
-
 import java.util.UUID;
+import lombok.Data;
 
 @Data
 public class MultivariateFeatureStateValueModel extends BaseModel {

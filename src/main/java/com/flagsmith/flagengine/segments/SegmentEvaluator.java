@@ -15,11 +15,24 @@ import java.util.stream.Collectors;
 
 public class SegmentEvaluator {
 
+  /**
+   * Get segment identities from environment and identity.
+   * @param environment Environment instance.
+   * @param identity Identity Instance.
+   * @return
+   */
   public static List<SegmentModel> getIdentitySegments(EnvironmentModel environment,
                                                        IdentityModel identity) {
     return getIdentitySegments(environment, identity, null);
   }
 
+  /**
+   * Get segment identities from environment and identity along with traits to override.
+   * @param environment Environment Instance.
+   * @param identity Identity Instance.
+   * @param overrideTraits Traits to over ride.
+   * @return
+   */
   public static List<SegmentModel> getIdentitySegments(EnvironmentModel environment,
                                                        IdentityModel identity,
                                                        List<TraitModel> overrideTraits) {
@@ -31,6 +44,13 @@ public class SegmentEvaluator {
         .collect(Collectors.toList());
   }
 
+  /**
+   * Evaluate the traits in identities and overrides with rules from segments.
+   * @param identity Identity instance.
+   * @param segment Segment Instance.
+   * @param overrideTraits Overriden traits.
+   * @return
+   */
   public static Boolean evaluateIdentityInSegment(IdentityModel identity, SegmentModel segment,
                                                   List<TraitModel> overrideTraits) {
     List<SegmentRuleModel> segmentRules = segment.getRules();
@@ -53,6 +73,14 @@ public class SegmentEvaluator {
     return Boolean.FALSE;
   }
 
+  /**
+   * Evaluate whether the trait match the rule from segment.
+   * @param identityTraits Traits to match against.
+   * @param rule Rule from segments to evaluate with.
+   * @param segmentId Segment ID (for hashing)
+   * @param identityId Identity ID (for hashing)
+   * @return
+   */
   private static Boolean traitsMatchSegmentRule(List<TraitModel> identityTraits,
                                                 SegmentRuleModel rule,
                                                 Integer segmentId, String identityId) {
@@ -84,13 +112,21 @@ public class SegmentEvaluator {
     return matchingCondition;
   }
 
+  /**
+   * Evaluate traits and compare them with condition.
+   * @param identityTraits Traits to match against.
+   * @param condition Condition to evaluate with.
+   * @param segmentId Segment ID (for hashing)
+   * @param identityId Identity ID (for hashing)
+   * @return
+   */
   private static Boolean traitsMatchSegmentCondition(List<TraitModel> identityTraits,
                                                      SegmentConditionModel condition,
                                                      Integer segmentId, String identityId) {
     if (condition.getOperator().equals(SegmentConditions.PERCENTAGE_SPLIT)) {
       try {
         Float floatValue = Float.parseFloat(condition.getValue());
-        return Hashing.getHashedPercentageForObjectIds(
+        return Hashing.getInstance().getHashedPercentageForObjectIds(
             Arrays.asList(segmentId.toString(), identityId)) <= floatValue;
 
       } catch (NumberFormatException nfe) {
@@ -112,6 +148,12 @@ public class SegmentEvaluator {
     return false;
   }
 
+  /**
+   * Matches condition value with the trait value.
+   * @param condition Condition to evaluate with.
+   * @param value Trait value to compare with.
+   * @return
+   */
   private static Boolean traitsMatchValue(SegmentConditionModel condition, Object value) {
     SegmentConditions operator = condition.getOperator();
     if (operator.equals(SegmentConditions.NOT_CONTAINS)) {
@@ -123,6 +165,4 @@ public class SegmentEvaluator {
       return TypeCasting.compare(operator, value, condition.getValue());
     }
   }
-
-
 }
