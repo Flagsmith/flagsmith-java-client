@@ -5,7 +5,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.testcontainers.shaded.com.fasterxml.jackson.core.type.TypeReference;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -126,10 +125,11 @@ public class HashingTest {
     });
 
     Float percentageHash = hashingObject.getHashedPercentageForObjectIds(objectIds);
+    Mockito.verify(hashingObject, Mockito.atMostOnce()).getMD5("12,93");
+    Mockito.verify(hashingObject, Mockito.atMostOnce()).getMD5("12,93,12,93");
 
     Assert.assertEquals(percentageHash, 0f);
 
-    Mockito.verify(hashingObject, Mockito.times(2));
-
+    Hashing.setInstance(null);
   }
 }
