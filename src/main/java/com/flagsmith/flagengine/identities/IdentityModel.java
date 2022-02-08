@@ -59,13 +59,13 @@ public class IdentityModel extends BaseModel {
 
     for (TraitModel trait: traits) {
       if (trait.getTraitValue() == null) {
-        existingTraits.put(trait.getTraitKey(), null);
+        existingTraits.remove(trait.getTraitKey());
       } else {
         existingTraits.put(trait.getTraitKey(), trait);
       }
     }
 
     identityTraits = existingTraits.values()
-        .stream().filter((trait) -> trait != null).collect(Collectors.toList());
+        .stream().collect(Collectors.toList());
   }
 }
