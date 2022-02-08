@@ -1,10 +1,9 @@
 package com.flagsmith.flagengine.identities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.flagsmith.Trait;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
-import com.flagsmith.flagengine.utils.models.BaseModel;
+import com.flagsmith.utils.models.BaseModel;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -59,13 +58,13 @@ public class IdentityModel extends BaseModel {
 
     for (TraitModel trait: traits) {
       if (trait.getTraitValue() == null) {
-        existingTraits.put(trait.getTraitKey(), null);
+        existingTraits.remove(trait.getTraitKey());
       } else {
         existingTraits.put(trait.getTraitKey(), trait);
       }
     }
 
     identityTraits = existingTraits.values()
-        .stream().filter((trait) -> trait != null).collect(Collectors.toList());
+        .stream().collect(Collectors.toList());
   }
 }

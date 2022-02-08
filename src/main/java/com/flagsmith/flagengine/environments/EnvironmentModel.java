@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.flagsmith.flagengine.environments.integrations.IntegrationModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.projects.ProjectModel;
-import com.flagsmith.flagengine.utils.models.BaseModel;
+import com.flagsmith.utils.models.BaseModel;
 import java.util.List;
 import lombok.Data;
 
