@@ -1,0 +1,3 @@
+[submodule "src/test/java/com/flagsmith/flagengine/enginetestdata"]
+	path = src/test/java/com/flagsmith/flagengine/enginetestdata
+	url = git@github.com:Flagsmith/engine-test-data.git
