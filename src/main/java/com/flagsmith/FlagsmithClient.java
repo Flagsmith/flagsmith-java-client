@@ -1,12 +1,31 @@
 package com.flagsmith;
 
+import com.flagsmith.config.FlagsmithCacheConfig;
+import com.flagsmith.config.FlagsmithConfig;
+import com.flagsmith.exceptions.FlagsmithAPIError;
+import com.flagsmith.exceptions.FlagsmithClientError;
+import com.flagsmith.flagengine.Engine;
+import com.flagsmith.flagengine.environments.EnvironmentModel;
+import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.flagengine.identities.IdentityModel;
+import com.flagsmith.flagengine.identities.traits.TraitModel;
+import com.flagsmith.interfaces.FlagsmithCache;
+import com.flagsmith.interfaces.FlagsmithSdk;
+import com.flagsmith.models.DefaultFlag;
+import com.flagsmith.models.Flags;
+import com.flagsmith.threads.AnalyticsProcessor;
+import com.flagsmith.threads.PollingManager;
+import com.flagsmith.utils.GeneratorUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import lombok.NonNull;
 import org.slf4j.LoggerFactory;
 
@@ -17,9 +36,11 @@ public class FlagsmithClient {
 
   private final FlagsmithLogger logger = new FlagsmithLogger();
   private FlagsmithSdk flagsmithSdk;
+  private EnvironmentModel environment;
+  private PollingManager pollingManager;
+  private AnalyticsProcessor analyticsProcessor;
 
-  private FlagsmithClient() {
-  }
+  private FlagsmithClient() { }
 
   public static FlagsmithClient.Builder newBuilder() {
     return new FlagsmithClient.Builder();
@@ -241,7 +262,7 @@ public class FlagsmithClient {
    * @return list of default flags, not fetched from Flagsmith
    */
   public List<Flag> getDefaultFlags() {
-    return this.flagsmithSdk.getConfig().flagsmithFlagDefaults.getDefaultFlags();
+    return this.flagsmithSdk.getConfig().getFlagsmithFlagDefaults().getDefaultFlags();
   }
 
   /**
@@ -319,6 +340,135 @@ public class FlagsmithClient {
   }
 
   /**
+   * Load the environment flags in the environment variable from the API.
+   */
+  public void updateEnvironment() {
+    this.environment = flagsmithSdk.getEnvironment();
+  }
+
+  /**
+   * Get all the default for flags for the current environment.
+   *
+   * @return
+   */
+  public Flags getEnvironmentFlags() throws FlagsmithAPIError {
+    if (environment != null) {
+      return getEnvironmentFlagsFromDocument();
+    }
+
+    return getEnvironmentFlagsFromApi();
+  }
+
+  /**
+   * Get all the flags for the current environment for a given identity. Will also
+   * upsert all traits to the Flagsmith API for future evaluations. Providing a
+   * trait with a value of None will remove the trait from the identity if it exists.
+   *
+   * @param identifier
+   * @param traits
+   * @return
+   */
+  public Flags getIdentityFlags(String identifier, Map<String, String> traits)
+      throws FlagsmithClientError {
+    if (environment != null) {
+      return getIdentityFlagsFromDocument(identifier, traits);
+    }
+
+    return getIdentityFlagsFromApi(identifier, traits);
+  }
+
+  private Flags getEnvironmentFlagsFromDocument() {
+    return Flags.fromFeatureStateModels(
+        Engine.getEnvironmentFeatureStates(environment),
+        analyticsProcessor,
+        null,
+        flagsmithSdk.getConfig().getFlagsmithFlagDefaults()
+      );
+  }
+
+  private Flags getIdentityFlagsFromDocument(String identifier, Map<String, String> traits)
+      throws FlagsmithClientError {
+    IdentityModel identity = buildIdentityModel(identifier, traits);
+    List<FeatureStateModel> featureStates = Engine.getIdentityFeatureStates(environment, identity);
+
+    return Flags.fromFeatureStateModels(
+        featureStates,
+        analyticsProcessor,
+        identity.getCompositeKey(),
+        flagsmithSdk.getConfig().getFlagsmithFlagDefaults()
+    );
+  }
+
+  private Flags getEnvironmentFlagsFromApi() throws FlagsmithAPIError {
+    try {
+      List<FeatureStateModel> apiFlags = flagsmithSdk.getFeatureFlags(Boolean.TRUE);
+
+      return Flags.fromApiFlags(
+          apiFlags,
+          analyticsProcessor,
+          flagsmithSdk.getConfig().getFlagsmithFlagDefaults()
+      );
+    } catch (Exception e) {
+      if (flagsmithSdk.getConfig().getFlagsmithFlagDefaults() != null) {
+        Flags flags = new Flags();
+        flags.setDefaultFlagHandler(flagsmithSdk.getConfig().getFlagsmithFlagDefaults());
+
+        return flags;
+      }
+
+      throw new FlagsmithAPIError("Failed to get feature flags.");
+    }
+  }
+
+  private Flags getIdentityFlagsFromApi(String identifier, Map<String, String> traits)
+      throws FlagsmithAPIError {
+    try {
+      IdentityTraits identityTraits = GeneratorUtil.generateIdentitiesData(identifier, traits);
+      FeatureUser featureUser = new FeatureUser();
+      featureUser.setIdentifier(identifier);
+
+      FlagsAndTraits flagsAndTraits = flagsmithSdk.identifyUserWithTraits(featureUser, identityTraits.getTraits(), Boolean.TRUE);
+
+      return Flags.fromApiFlags(
+          flagsAndTraits,
+          analyticsProcessor,
+          flagsmithSdk.getConfig().getFlagsmithFlagDefaults()
+      );
+    } catch (Exception e) {
+      if (flagsmithSdk.getConfig().getFlagsmithFlagDefaults() != null) {
+        Flags flags = new Flags();
+        flags.setDefaultFlagHandler(flagsmithSdk.getConfig().getFlagsmithFlagDefaults());
+
+        return flags;
+      }
+
+      throw new FlagsmithAPIError("Failed to get feature flags.");
+    }
+  }
+
+  private IdentityModel buildIdentityModel(String identifier, Map<String, String> traits)
+      throws FlagsmithClientError {
+    if (environment == null) {
+      throw new FlagsmithClientError("Unable to build identity model when no local environment present.");
+    }
+
+    List<TraitModel> traitsList = traits.entrySet().stream().map((entry) -> {
+      TraitModel trait = new TraitModel();
+      trait.setTraitKey(entry.getKey());
+      trait.setTraitValue(entry.getValue());
+
+      return trait;
+    }).collect(Collectors.toList());
+
+    IdentityModel identity = new IdentityModel();
+    identity.setIdentityTraits(traitsList);
+    identity.setEnvironmentApiKey(environment.getApiKey());
+    identity.setIdentifier(identifier);
+
+    return identity;
+  }
+
+  /**
    * Create or update a list of user Traits for given user identity.
    *
    * <p>Please note this will override any existing identity with given list.
@@ -356,12 +506,12 @@ public class FlagsmithClient {
   }
 
   private boolean evaluateDefaultFlagPredicate(String featureId) {
-    return this.flagsmithSdk.getConfig().flagsmithFlagDefaults
+    return this.flagsmithSdk.getConfig().getFlagsmithFlagDefaults()
         .evaluateDefaultFlagPredicate(featureId);
   }
 
   private String evaluateDefaultFlagValue(String featureId) {
-    return this.flagsmithSdk.getConfig().flagsmithFlagDefaults.evaluateDefaultFlagValue(featureId);
+    return this.flagsmithSdk.getConfig().getFlagsmithFlagDefaults().evaluateDefaultFlagValue(featureId);
   }
 
   public static class Builder {
@@ -371,6 +521,8 @@ public class FlagsmithClient {
     private HashMap<String, String> customHeaders;
     private String apiKey;
     private FlagsmithCacheConfig cacheConfig;
+    private PollingManager pollingManager;
+    private AnalyticsProcessor analyticsProcessor;
 
     private Builder() {
       client = new FlagsmithClient();
@@ -402,7 +554,7 @@ public class FlagsmithClient {
      * @return the Builder
      */
     public Builder setDefaultFlagPredicate(@NonNull Predicate<String> defaultFlagPredicate) {
-      this.configuration.flagsmithFlagDefaults.setDefaultFlagPredicate(defaultFlagPredicate);
+      this.configuration.getFlagsmithFlagDefaults().setDefaultFlagPredicate(defaultFlagPredicate);
       return this;
     }
 
@@ -418,7 +570,7 @@ public class FlagsmithClient {
      */
     public Builder setDefaultFlagValueFunction(
         @NonNull Function<String, String> defaultFlagValueFunction) {
-      this.configuration.flagsmithFlagDefaults.setDefaultFlagValueFunc(defaultFlagValueFunction);
+      this.configuration.getFlagsmithFlagDefaults().setDefaultFlagValueFunc(defaultFlagValueFunction);
       return this;
     }
 
@@ -440,7 +592,7 @@ public class FlagsmithClient {
      * @return the Builder
      */
     public Builder setDefaultFeatureFlags(@NonNull Set<String> defaultFeatureFlags) {
-      this.configuration.flagsmithFlagDefaults.setDefaultFeatureFlags(defaultFeatureFlags);
+      this.configuration.getFlagsmithFlagDefaults().setDefaultFeatureFlags(defaultFeatureFlags);
       return this;
     }
 
@@ -520,19 +672,69 @@ public class FlagsmithClient {
     }
 
     /**
+     * Set the polling manager.
+     *
+     * @param manager
+     * @return
+     */
+    public Builder withPollingManager(PollingManager manager) {
+      pollingManager = manager;
+      return this;
+    }
+
+    /**
+     * Set the analytics processor.
+     *
+     * @param processor
+     * @return
+     */
+    public Builder withAnalyticsProcessor(AnalyticsProcessor processor) {
+      analyticsProcessor = processor;
+      return this;
+    }
+
+    /**
      * Builds a FlagsmithClient.
      *
      * @return a FlagsmithClient
      */
     public FlagsmithClient build() {
       final FlagsmithApiWrapper flagsmithApiWrapper = new FlagsmithApiWrapper(
-          this.configuration, this.customHeaders, client.logger, apiKey);
+          this.configuration,
+          this.customHeaders,
+          client.logger,
+          apiKey
+      );
+
       if (cacheConfig != null) {
-        this.client.flagsmithSdk = new FlagsmithCachedApiWrapper(
-            cacheConfig.cache, flagsmithApiWrapper);
+        client.flagsmithSdk = new FlagsmithCachedApiWrapper(
+            cacheConfig.getCache(), flagsmithApiWrapper);
       } else {
-        this.client.flagsmithSdk = flagsmithApiWrapper;
+        client.flagsmithSdk = flagsmithApiWrapper;
       }
+
+      if (configuration.getEnableAnalytics()) {
+        if (this.analyticsProcessor != null) {
+          client.analyticsProcessor = analyticsProcessor;
+        } else {
+          client.analyticsProcessor = new AnalyticsProcessor(
+              flagsmithApiWrapper,
+              configuration.getHttpClient(),
+              client.logger
+          );
+        }
+      }
+
+      if (configuration.getEnableLocalEvaluation()) {
+        if (this.pollingManager != null) {
+          client.pollingManager = pollingManager;
+        } else {
+          client.pollingManager = new PollingManager(client);
+        }
+
+        client.pollingManager.startPolling();
+      }
+
       return this.client;
     }
   }

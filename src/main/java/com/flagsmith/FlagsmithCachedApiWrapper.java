@@ -1,10 +1,20 @@
 package com.flagsmith;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.flagsmith.config.FlagsmithCacheConfig;
+import com.flagsmith.config.FlagsmithConfig;
+import com.flagsmith.flagengine.environments.EnvironmentModel;
+import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.interfaces.FlagsmithCache;
+import com.flagsmith.interfaces.FlagsmithSdk;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import okhttp3.Request;
 import org.apache.commons.lang3.StringUtils;
 
-class FlagsmithCachedApiWrapper implements FlagsmithSdk {
+public class FlagsmithCachedApiWrapper implements FlagsmithSdk {
 
   private final FlagsmithApiWrapper flagsmithApiWrapper;
   private final FlagsmithCacheConfig.FlagsmithInternalCache cache;
@@ -28,6 +38,11 @@ class FlagsmithCachedApiWrapper implements FlagsmithSdk {
           .get(user.getIdentifier(), k -> flagsmithApiWrapper.getFeatureFlags(user, doThrow));
     }
     return cache.getCache().get(cacheKey, k -> flagsmithApiWrapper.getFeatureFlags(user, doThrow));
+  }
+
+  @Override
+  public List<FeatureStateModel> getFeatureFlags(boolean doThrow) {
+    return flagsmithApiWrapper.getFeatureFlags(doThrow);
   }
 
   @Override
@@ -61,6 +76,11 @@ class FlagsmithCachedApiWrapper implements FlagsmithSdk {
     flagsAndTraits = flagsmithApiWrapper.identifyUserWithTraits(user, traits, doThrow);
     cache.getCache().put(user.getIdentifier(), flagsAndTraits);
     return flagsAndTraits;
+  }
+
+  @Override
+  public EnvironmentModel getEnvironment() {
+    return flagsmithApiWrapper.getEnvironment();
   }
 
   @Override

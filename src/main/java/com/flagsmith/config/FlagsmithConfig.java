@@ -1,10 +1,14 @@
-package com.flagsmith;
+package com.flagsmith.config;
 
+import com.flagsmith.FlagsmithClient;
+import com.flagsmith.FlagsmithFlagDefaults;
+import com.flagsmith.interfaces.DefaultFlagHandler;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
+import lombok.Data;
 import okhttp3.HttpUrl;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
@@ -14,6 +18,7 @@ import okhttp3.OkHttpClient;
  *
  * <p>Created by Pavlo Maksymchuk.
  */
+@Data
 public final class FlagsmithConfig {
 
   private static final int DEFAULT_CONNECT_TIMEOUT_MILLIS = 2000;
@@ -21,18 +26,25 @@ public final class FlagsmithConfig {
   private static final int DEFAULT_READ_TIMEOUT_MILLIS = 5000;
   private static final HttpUrl DEFAULT_BASE_URI = HttpUrl
       .parse("https://api.flagsmith.com/api/v1/");
-  final HttpUrl flagsUri;
-  final HttpUrl identitiesUri;
-  final HttpUrl traitsUri;
-  final OkHttpClient httpClient;
-  final FlagsmithFlagDefaults flagsmithFlagDefaults = new FlagsmithFlagDefaults();
+  private final HttpUrl flagsUri;
+  private final HttpUrl identitiesUri;
+  private final HttpUrl traitsUri;
+  private final HttpUrl environmentUri;
+  private final OkHttpClient httpClient;
+  private final FlagsmithFlagDefaults flagsmithFlagDefaults = new FlagsmithFlagDefaults();
   private final HttpUrl baseUri;
+
+  private final Integer retries;
+  private Boolean enableLocalEvaluation = Boolean.FALSE;
+  private Integer environmentRefreshIntervalSeconds = 60000;
+  private Boolean enableAnalytics = Boolean.FALSE;
 
   protected FlagsmithConfig(Builder builder) {
     this.baseUri = builder.baseUri;
     this.flagsUri = this.baseUri.newBuilder("flags/").build();
     this.identitiesUri = this.baseUri.newBuilder("identities/").build();
     this.traitsUri = this.baseUri.newBuilder("traits/").build();
+    this.environmentUri = this.baseUri.newBuilder("environment-document/").build();
     OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder()
         .connectTimeout(builder.connectTimeoutMillis, TimeUnit.MILLISECONDS)
         .writeTimeout(builder.writeTimeoutMillis, TimeUnit.MILLISECONDS)
@@ -44,6 +56,11 @@ public final class FlagsmithConfig {
       httpBuilder = httpBuilder.addInterceptor(interceptor);
     }
     this.httpClient = httpBuilder.build();
+
+    this.retries = builder.retries;
+    this.enableLocalEvaluation = builder.enableLocalEvaluation;
+    this.environmentRefreshIntervalSeconds = builder.environmentRefreshIntervalSeconds;
+    this.enableAnalytics = builder.enableAnalytics;
   }
 
   public static FlagsmithConfig.Builder newBuilder() {
@@ -57,8 +74,14 @@ public final class FlagsmithConfig {
     private int connectTimeoutMillis = DEFAULT_CONNECT_TIMEOUT_MILLIS;
     private int writeTimeoutMillis = DEFAULT_WRITE_TIMEOUT_MILLIS;
     private int readTimeoutMillis = DEFAULT_READ_TIMEOUT_MILLIS;
+    private Integer retries = 3;
     private SSLSocketFactory sslSocketFactory;
     private X509TrustManager trustManager;
+    private FlagsmithFlagDefaults flagsmithFlagDefaults;
+
+    private Boolean enableLocalEvaluation = Boolean.FALSE;
+    private Integer environmentRefreshIntervalSeconds = 60000;
+    private Boolean enableAnalytics = Boolean.FALSE;
 
     private Builder() {
     }
@@ -131,6 +154,46 @@ public final class FlagsmithConfig {
      */
     public Builder addHttpInterceptor(Interceptor interceptor) {
       this.interceptors.add(interceptor);
+      return this;
+    }
+
+    /**
+     * Add retries for HTTP request to the builder
+     * @param retries no of retries for requests
+     * @return
+     */
+    public Builder retries(Integer retries) {
+      this.retries = retries;
+      return this;
+    }
+
+    /**
+     *
+     * @param localEvaluation
+     * @return
+     */
+    public Builder withLocalEvaluation(Boolean localEvaluation) {
+      this.enableLocalEvaluation = localEvaluation;
+      return this;
+    }
+
+    /**
+     *
+     * @param seconds
+     * @return
+     */
+    public Builder withEnvironmentRefreshIntervalSeconds(Integer seconds) {
+      this.environmentRefreshIntervalSeconds = seconds;
+      return this;
+    }
+
+    /**
+     *
+     * @param enable
+     * @return
+     */
+    public Builder withEnableAnalytics(Boolean enable) {
+      this.enableAnalytics = enable;
       return this;
     }
 

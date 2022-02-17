@@ -30,4 +30,25 @@ public class Flag extends BaseFlag {
 
     return flag;
   }
+
+  public static Flag fromApiFlag(FeatureStateModel node) {
+    Flag flag = new Flag();
+
+    flag.setFeatureId(node.getFeature().getId());
+    flag.setValue(node.getValue());
+    flag.setFeatureName(node.getFeature().getName());
+    flag.setEnabled(node.getEnabled());
+
+    return flag;
+  }
+
+  public static Flag fromApiFlag(com.flagsmith.Flag node) {
+    Flag flag = new Flag();
+
+    flag.setValue(node.getStateValue());
+    flag.setFeatureName(node.getFeature().getName());
+    flag.setEnabled(node.isEnabled());
+
+    return flag;
+  }
 }

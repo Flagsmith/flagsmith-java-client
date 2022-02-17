@@ -1,13 +1,22 @@
-package com.flagsmith;
+package com.flagsmith.interfaces;
 
+import com.flagsmith.FeatureUser;
+import com.flagsmith.FlagsAndTraits;
+import com.flagsmith.Trait;
+import com.flagsmith.config.FlagsmithConfig;
+import com.flagsmith.flagengine.environments.EnvironmentModel;
+import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.interfaces.FlagsmithCache;
 import java.util.List;
 import lombok.NonNull;
 import org.apache.commons.lang3.StringUtils;
 
-interface FlagsmithSdk {
+public interface FlagsmithSdk {
 
   // API Endpoints
   FlagsAndTraits getFeatureFlags(FeatureUser user, boolean doThrow);
+
+  List<FeatureStateModel> getFeatureFlags(boolean doThrow);
 
   FlagsAndTraits getUserFlagsAndTraits(FeatureUser user, boolean doThrow);
 
@@ -16,6 +25,8 @@ interface FlagsmithSdk {
   FlagsAndTraits identifyUserWithTraits(FeatureUser user, List<Trait> traits, boolean doThrow);
 
   FlagsmithConfig getConfig();
+  
+  EnvironmentModel getEnvironment();
 
   // Cache
   default FlagsmithCache getCache() {

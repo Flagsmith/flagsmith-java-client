@@ -1,9 +1,16 @@
 package com.flagsmith.models;
 
-import com.flagsmith.AnalyticsProcessor;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.flagsmith.FlagsAndTraits;
+import com.flagsmith.FlagsmithFlagDefaults;
+import com.flagsmith.interfaces.DefaultFlagHandler;
+import com.flagsmith.threads.AnalyticsProcessor;
+import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.flagengine.features.FeatureStateModel;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Data;
 
@@ -11,19 +18,46 @@ import lombok.Data;
 public class Flags {
   private Map<String, BaseFlag> flags;
   private AnalyticsProcessor analyticsProcessor;
+  private DefaultFlagHandler defaultFlagHandler;
 
   /**
-   *
-   * @param featureStates
-   * @param analyticsProcessor
-   * @param identityId
-   * @param defaults
+   * Build flags object from list of feature states
+   * @param featureStates list of feature states
+   * @param analyticsProcessor instance of analytics processor
+   * @return
+   */
+  public static Flags fromFeatureStateModels(
+      List<FeatureStateModel> featureStates,
+      AnalyticsProcessor analyticsProcessor) {
+    return fromFeatureStateModels(featureStates, analyticsProcessor, null, null);
+  }
+
+  /**
+   * Build flags object from list of feature states
+   * @param featureStates list of feature states
+   * @param analyticsProcessor instance of analytics processor
+   * @param identityId identity ID (optional)
    * @return
    */
   public static Flags fromFeatureStateModels(
       List<FeatureStateModel> featureStates,
       AnalyticsProcessor analyticsProcessor,
-      Object identityId, List<DefaultFlag> defaults) {
+      Object identityId) {
+    return fromFeatureStateModels(featureStates, analyticsProcessor, identityId, null);
+  }
+
+  /**
+   * Build flags object from list of feature states
+   * @param featureStates list of feature states
+   * @param analyticsProcessor instance of analytics processor
+   * @param identityId identity ID (optional)
+   * @param defaultFlagHandler default flags (optional)
+   * @return
+   */
+  public static Flags fromFeatureStateModels(
+      List<FeatureStateModel> featureStates,
+      AnalyticsProcessor analyticsProcessor,
+      Object identityId, DefaultFlagHandler defaultFlagHandler) {
 
     Map<String, BaseFlag> flagMap = featureStates.stream()
         .collect(
@@ -32,18 +66,150 @@ public class Flags {
                 (fs) -> Flag.fromFeatureStateModel(fs, identityId)
             ));
 
-    if (defaults != null && !defaults.isEmpty()) {
-      for (DefaultFlag defaultFlag: defaults) {
-        if (flagMap.containsKey(defaultFlag.getFeatureName())) {
-          flagMap.put(defaultFlag.getFeatureName(), defaultFlag);
-        }
-      }
+    Flags flags = new Flags();
+    flags.setFlags(flagMap);
+    flags.setAnalyticsProcessor(analyticsProcessor);
+    flags.setDefaultFlagHandler(defaultFlagHandler);
+
+    return flags;
+  }
+
+  /**
+   * Return the flags instance
+   * @param apiFlags Dictionary with api flags
+   * @param analyticsProcessor instance of analytics processor
+   * @param defaultFlagHandler handler for default flags if present
+   * @return
+   */
+  public static Flags fromApiFlags(
+      JsonNode apiFlags,
+      AnalyticsProcessor analyticsProcessor,
+      FlagsmithFlagDefaults defaultFlagHandler) {
+
+    Map<String, BaseFlag> flagMap = new HashMap<>();
+
+    for (JsonNode node: apiFlags) {
+      flagMap.put(
+          node.get("feature").get("name").asText(),
+          Flag.fromApiFlag(node)
+      );
     }
 
     Flags flags = new Flags();
     flags.setFlags(flagMap);
     flags.setAnalyticsProcessor(analyticsProcessor);
+    flags.setDefaultFlagHandler(defaultFlagHandler);
 
     return flags;
+  }
+
+  /**
+   * Return the flags instance
+   * @param apiFlags Dictionary with api flags
+   * @param analyticsProcessor instance of analytics processor
+   * @param defaultFlagHandler handler for default flags if present
+   * @return
+   */
+  public static Flags fromApiFlags(
+      List<FeatureStateModel> apiFlags,
+      AnalyticsProcessor analyticsProcessor,
+      FlagsmithFlagDefaults defaultFlagHandler) {
+
+    Map<String, BaseFlag> flagMap = new HashMap<>();
+
+    for (FeatureStateModel flag: apiFlags) {
+      flagMap.put(
+          flag.getFeature().getName(),
+          Flag.fromApiFlag(flag)
+      );
+    }
+
+    Flags flags = new Flags();
+    flags.setFlags(flagMap);
+    flags.setAnalyticsProcessor(analyticsProcessor);
+    flags.setDefaultFlagHandler(defaultFlagHandler);
+
+    return flags;
+  }
+
+  /**
+   * Return the flags instance
+   * @param apiFlags Dictionary with api flags
+   * @param analyticsProcessor instance of analytics processor
+   * @param defaultFlagHandler handler for default flags if present
+   * @return
+   */
+  public static Flags fromApiFlags(
+      FlagsAndTraits flagsAndTraits,
+      AnalyticsProcessor analyticsProcessor,
+      FlagsmithFlagDefaults defaultFlagHandler) {
+
+    Map<String, BaseFlag> flagMap = new HashMap<>();
+
+    for (com.flagsmith.Flag flag: flagsAndTraits.getFlags()) {
+      flagMap.put(
+          flag.getFeature().getName(),
+          Flag.fromApiFlag(flag)
+      );
+    }
+
+    Flags flags = new Flags();
+    flags.setFlags(flagMap);
+    flags.setAnalyticsProcessor(analyticsProcessor);
+    flags.setDefaultFlagHandler(defaultFlagHandler);
+
+    return flags;
+  }
+
+  /**
+   * returns the list of all flags
+   * @return
+   */
+  public List<BaseFlag> getAllFlags() {
+    return flags.values().stream().collect(Collectors.toList());
+  }
+
+  /**
+   * is feature enabled, null if not present
+   * @param featureName Feature name
+   * @return
+   */
+  public Boolean isFeatureEnabled(String featureName) {
+    return flags.containsKey(featureName) ? flags.get(featureName).getEnabled() : null;
+  }
+
+  /**
+   * Get the feature value, null if not present
+   * @param featureName Feature name
+   * @return
+   */
+  public Object getFeatureValue(String featureName) {
+    return flags.containsKey(featureName) ? flags.get(featureName).getValue() : null;
+  }
+
+  /**
+   * Get the feature, null if not present
+   * @param featureName Feature name
+   * @return
+   * @throws FlagsmithClientError
+   */
+  public BaseFlag getFlag(String featureName) throws FlagsmithClientError {
+    if (!flags.containsKey(featureName)) {
+      if (defaultFlagHandler != null) {
+        return defaultFlagHandler.evaluateDefaultFlag(featureName);
+      }
+      throw new FlagsmithClientError("Feature does not exist: " + featureName);
+    }
+
+    BaseFlag flag = flags.get(featureName);
+
+    if (analyticsProcessor != null && flag instanceof Flag ) {
+      Flag flagObj = (Flag) flag;
+      if (flagObj.getFeatureId() != null) {
+        analyticsProcessor.trackFeature(flagObj.getFeatureId());
+      }
+    }
+
+    return flag;
   }
 }

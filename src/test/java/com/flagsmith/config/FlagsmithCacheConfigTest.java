@@ -6,6 +6,7 @@ import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 
+import com.flagsmith.config.FlagsmithCacheConfig;
 import com.github.benmanes.caffeine.cache.Policy;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;

@@ -1,11 +1,19 @@
 package com.flagsmith;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flagsmith.config.FlagsmithConfig;
+import com.flagsmith.flagengine.environments.EnvironmentModel;
+import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.interfaces.FlagsmithSdk;
+import com.flagsmith.threads.RequestProcessor;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import lombok.Data;
 import okhttp3.Call;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -13,7 +21,8 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-class FlagsmithApiWrapper implements FlagsmithSdk {
+@Data
+public class FlagsmithApiWrapper implements FlagsmithSdk {
 
   private static final String AUTH_HEADER = "X-Environment-Key";
   private static final String ACCEPT_HEADER = "Accept";
@@ -22,6 +31,7 @@ class FlagsmithApiWrapper implements FlagsmithSdk {
   private final HashMap<String, String> customHeaders;
   // an api key per environment
   private final String apiKey;
+  private final RequestProcessor requestor;
 
   public FlagsmithApiWrapper(final FlagsmithConfig defaultConfig,
       final HashMap<String, String> customHeaders,
@@ -31,13 +41,14 @@ class FlagsmithApiWrapper implements FlagsmithSdk {
     this.customHeaders = customHeaders;
     this.logger = logger;
     this.apiKey = apiKey;
+    requestor = new RequestProcessor(defaultConfig.getHttpClient(), logger, defaultConfig.getRetries());
   }
 
   @Override
   public FlagsAndTraits getFeatureFlags(FeatureUser user, boolean doThrow) {
     HttpUrl.Builder urlBuilder;
     if (user == null) {
-      urlBuilder = defaultConfig.flagsUri.newBuilder()
+      urlBuilder = defaultConfig.getFlagsUri().newBuilder()
           .addEncodedQueryParameter("page", "1");
     } else {
       return getUserFlagsAndTraits(user, doThrow);
@@ -47,30 +58,68 @@ class FlagsmithApiWrapper implements FlagsmithSdk {
         .url(urlBuilder.build())
         .build();
 
-    Call call = defaultConfig.httpClient.newCall(request);
+    Future<List<Flag>> featureFlagsFuture = requestor.executeAsync(
+        request,
+        new TypeReference<List<Flag>>() {},
+        doThrow
+    );
+
+    List<Flag> featureFlags = null;
     FlagsAndTraits flagsAndTraits = newFlagsAndTraits();
-    try (Response response = call.execute()) {
-      if (response.isSuccessful()) {
-        ObjectMapper mapper = MapperFactory.getMappper();
-        List<Flag> featureFlags = Arrays.asList(mapper.readValue(response.body().string(),
-            Flag[].class));
-        flagsAndTraits.setFlags(featureFlags);
-      } else {
-        logger.httpError(request, response, doThrow);
-      }
-    } catch (IOException io) {
-      logger.httpError(request, io, doThrow);
+
+    try {
+      featureFlags = featureFlagsFuture.get();
+      flagsAndTraits.setFlags(featureFlags);
+    } catch (InterruptedException ie) {
+      logger.error("Interrupted on fetching Feature flags.", ie);
+    } catch (ExecutionException ee) {
+      logger.error("Execution failed on fetching Feature flags.", ee);
     }
+
     flagsAndTraits = enrichWithDefaultFlags(flagsAndTraits);
     logger.info("Got feature flags for user = {}, flags = {}", user, flagsAndTraits);
     return flagsAndTraits;
+  }
+
+  /**
+   * Get Feature Flags from API.
+   *
+   * @param doThrow - whether throw exception or not
+   * @return
+   */
+  public List<FeatureStateModel> getFeatureFlags(boolean doThrow) {
+    HttpUrl.Builder urlBuilder = defaultConfig.getFlagsUri().newBuilder()
+        .addEncodedQueryParameter("page", "1");
+
+    final Request request = this.newRequestBuilder()
+        .url(urlBuilder.build())
+        .build();
+
+    Future<List<FeatureStateModel>> featureFlagsFuture = requestor.executeAsync(
+        request,
+        new TypeReference<List<FeatureStateModel>>() {},
+        doThrow
+    );
+
+    List<FeatureStateModel> featureFlags = null;
+
+    try {
+      featureFlags = featureFlagsFuture.get();
+    } catch (InterruptedException ie) {
+      logger.error("Interrupted on fetching Feature flags.", ie);
+    } catch (ExecutionException ee) {
+      logger.error("Execution failed on fetching Feature flags.", ee);
+    }
+
+    logger.info("Got feature flags for flags = {}", featureFlags);
+    return featureFlags;
   }
 
   @Override
   public FlagsAndTraits getUserFlagsAndTraits(FeatureUser user, boolean doThrow) {
     assertValidUser(user);
 
-    HttpUrl url = defaultConfig.identitiesUri.newBuilder("")
+    HttpUrl url = defaultConfig.getIdentitiesUri().newBuilder("")
         .addEncodedQueryParameter("identifier", user.getIdentifier())
         .build();
 
@@ -78,19 +127,22 @@ class FlagsmithApiWrapper implements FlagsmithSdk {
         .url(url)
         .build();
 
-    Call call = defaultConfig.httpClient.newCall(request);
+    Future<FlagsAndTraits> featureFlagsFuture = requestor.executeAsync(
+        request,
+        new TypeReference<FlagsAndTraits>() {},
+        doThrow
+    );
 
     FlagsAndTraits flagsAndTraits = newFlagsAndTraits();
-    try (Response response = call.execute()) {
-      if (response.isSuccessful()) {
-        ObjectMapper mapper = MapperFactory.getMappper();
-        flagsAndTraits = mapper.readValue(response.body().string(), FlagsAndTraits.class);
-      } else {
-        logger.httpError(request, response, doThrow);
-      }
-    } catch (IOException io) {
-      logger.httpError(request, io, doThrow);
+
+    try {
+      flagsAndTraits = featureFlagsFuture.get();
+    } catch (InterruptedException ie) {
+      logger.error("Interrupted on fetching Feature flags.", ie);
+    } catch (ExecutionException ee) {
+      logger.error("Execution failed on fetching Feature flags.", ee);
     }
+
     flagsAndTraits = enrichWithDefaultFlags(flagsAndTraits);
     logger.info("Got feature flags & traits for user = {}, flagsAndTraits = {}", user,
         flagsAndTraits);
@@ -99,28 +151,32 @@ class FlagsmithApiWrapper implements FlagsmithSdk {
 
   @Override
   public Trait postUserTraits(FeatureUser user, Trait toUpdate, boolean doThrow) {
-    HttpUrl url = defaultConfig.traitsUri;
+    HttpUrl url = defaultConfig.getTraitsUri();
     toUpdate.setIdentity(user);
 
     MediaType json = MediaType.parse("application/json; charset=utf-8");
-    RequestBody body = RequestBody.create(json, toUpdate.toString());
+    RequestBody body = RequestBody.create(toUpdate.toString(), json);
 
     Request request = this.newRequestBuilder()
         .post(body)
         .url(url)
         .build();
 
+
+    Future<Trait> featureFlagsFuture = requestor.executeAsync(
+        request,
+        new TypeReference<Trait>() {},
+        doThrow
+    );
+
+
     Trait trait = null;
-    Call call = defaultConfig.httpClient.newCall(request);
-    try (Response response = call.execute()) {
-      if (response.isSuccessful()) {
-        ObjectMapper mapper = MapperFactory.getMappper();
-        trait = mapper.readValue(response.body().string(), Trait.class);
-      } else {
-        logger.httpError(request, response, doThrow);
-      }
-    } catch (IOException io) {
-      logger.httpError(request, io, doThrow);
+    try {
+      trait = featureFlagsFuture.get();
+    } catch (InterruptedException ie) {
+      logger.error("Interrupted on fetching Feature flags.", ie);
+    } catch (ExecutionException ee) {
+      logger.error("Execution failed on fetching Feature flags.", ee);
     }
     logger.info("Updated trait for user = {}, new trait = {}, updated trait = {}",
         user, toUpdate, trait);
@@ -133,7 +189,7 @@ class FlagsmithApiWrapper implements FlagsmithSdk {
     assertValidUser(user);
 
     // we are using identities endpoint to create bulk user Trait
-    HttpUrl url = defaultConfig.identitiesUri;
+    HttpUrl url = defaultConfig.getIdentitiesUri();
 
     IdentityTraits identityTraits = new IdentityTraits();
     identityTraits.setIdentifier(user.getIdentifier());
@@ -149,21 +205,44 @@ class FlagsmithApiWrapper implements FlagsmithSdk {
         .url(url)
         .build();
 
+    Future<FlagsAndTraits> featureFlagsFuture = requestor.executeAsync(
+        request,
+        new TypeReference<FlagsAndTraits>() {},
+        doThrow
+    );
+
     FlagsAndTraits flagsAndTraits = newFlagsAndTraits();
-    Call call = defaultConfig.httpClient.newCall(request);
-    try (Response response = call.execute()) {
-      if (response.isSuccessful()) {
-        ObjectMapper mapper = MapperFactory.getMappper();
-        flagsAndTraits = mapper.readValue(response.body().string(), FlagsAndTraits.class);
-      } else {
-        logger.httpError(request, response, doThrow);
-      }
-    } catch (IOException io) {
-      logger.httpError(request, io, doThrow);
+
+    try {
+      flagsAndTraits = featureFlagsFuture.get();
+    } catch (InterruptedException ie) {
+      logger.error("Interrupted on fetching Feature flags.", ie);
+    } catch (ExecutionException ee) {
+      logger.error("Execution failed on fetching Feature flags.", ee);
     }
+
     flagsAndTraits = enrichWithDefaultFlags(flagsAndTraits);
     logger.info("Got flags based on identify for user = {}, flags = {}", user, flagsAndTraits);
     return flagsAndTraits;
+  }
+
+  @Override
+  public EnvironmentModel getEnvironment() {
+    final Request request = this.newGetRequest(defaultConfig.getEnvironmentUri());
+
+    Future<EnvironmentModel> environmentFuture = requestor.executeAsync(request,
+        new TypeReference<EnvironmentModel>() {},
+        Boolean.FALSE);
+
+    try {
+      return environmentFuture.get();
+    } catch (InterruptedException ie) {
+      logger.error("Environment loading interrupted.", ie);
+    } catch (ExecutionException ee) {
+      logger.error("Execution failed on Environment loading.", ee);
+    }
+
+    return null;
   }
 
   @Override
@@ -187,8 +266,33 @@ class FlagsmithApiWrapper implements FlagsmithSdk {
     return builder;
   }
 
+  /**
+   * Returns a build request with GET
+   * @param url - URL to invoke
+   * @return
+   */
+  public Request newGetRequest(HttpUrl url) {
+    final Request.Builder builder = newRequestBuilder();
+    builder.url(url);
+
+    return builder.build();
+  }
+
+  /**
+   * Returns a build request with GET
+   * @param url - URL to invoke
+   * @param body - body to post
+   * @return
+   */
+  public Request newPostRequest(HttpUrl url, RequestBody body) {
+    final Request.Builder builder = newRequestBuilder();
+    builder.url(url).post(body);
+
+    return builder.build();
+  }
+
   private FlagsAndTraits enrichWithDefaultFlags(FlagsAndTraits flagsAndTraits) {
-    return this.defaultConfig.flagsmithFlagDefaults.enrichWithDefaultFlags(flagsAndTraits);
+    return this.defaultConfig.getFlagsmithFlagDefaults().enrichWithDefaultFlags(flagsAndTraits);
   }
 
   private FlagsAndTraits newFlagsAndTraits() {

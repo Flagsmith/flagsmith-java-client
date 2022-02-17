@@ -1,5 +1,7 @@
 package com.flagsmith;
 
+import com.flagsmith.interfaces.DefaultFlagHandler;
+import com.flagsmith.models.DefaultFlag;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -9,7 +11,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import lombok.NonNull;
 
-public class FlagsmithFlagDefaults {
+public class FlagsmithFlagDefaults implements DefaultFlagHandler {
 
   private Predicate<String> defaultFlagPredicate = (String flagName) -> false;
   private Function<String, String> defaultFlagValueFunc = (String flagName) -> null;
@@ -91,6 +93,21 @@ public class FlagsmithFlagDefaults {
     } else {
       feature.setType("CONFIG");
     }
+    return flag;
+  }
+
+  /**
+   * evaluate the default feature flag
+   * @param featureName feature name
+   * @return
+   */
+  public DefaultFlag evaluateDefaultFlag(String featureName) {
+    final DefaultFlag flag = new DefaultFlag();
+    flag.setEnabled(evaluateDefaultFlagPredicate(featureName));
+    flag.setValue(evaluateDefaultFlagValue(featureName));
+    flag.setFeatureName(featureName);
+    flag.setIsDefault(Boolean.TRUE);
+
     return flag;
   }
 }

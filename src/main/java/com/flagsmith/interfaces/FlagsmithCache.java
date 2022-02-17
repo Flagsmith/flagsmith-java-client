@@ -1,5 +1,7 @@
-package com.flagsmith;
+package com.flagsmith.interfaces;
 
+import com.flagsmith.FlagsAndTraits;
+import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
 
 /**

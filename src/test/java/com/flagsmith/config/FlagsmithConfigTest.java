@@ -3,6 +3,7 @@ package com.flagsmith;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
+import com.flagsmith.config.FlagsmithConfig;
 import okhttp3.mock.MockInterceptor;
 import org.testng.annotations.Test;
 
