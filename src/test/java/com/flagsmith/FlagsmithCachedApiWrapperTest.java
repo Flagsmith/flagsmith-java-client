@@ -11,6 +11,8 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertThrows;
 
+import com.flagsmith.config.FlagsmithCacheConfig;
+import com.flagsmith.interfaces.FlagsmithCache;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import java.util.ArrayList;

@@ -7,7 +7,14 @@ import java.util.stream.Collectors;
 
 public class GeneratorUtil {
 
-  public static IdentityTraits generateIdentitiesData(String identifier, Map<String, String> traits) {
+  /**
+   * Generate identity traits with identifier and key value map.
+   * @param identifier identifier string
+   * @param traits key value map traits
+   * @return
+   */
+  public static IdentityTraits generateIdentitiesData(
+      String identifier, Map<String, String> traits) {
     IdentityTraits identityTraits = new IdentityTraits();
     identityTraits.setIdentifier(identifier);
     identityTraits.setTraits(

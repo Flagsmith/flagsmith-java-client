@@ -9,6 +9,13 @@ public class Flag extends BaseFlag {
   private Integer featureId;
   private Boolean isDefault;
 
+  /**
+   * return flag from feature state model and identity id.
+   *
+   * @param featureState feature state model
+   * @param identityId identity id
+   * @return
+   */
   public static Flag fromFeatureStateModel(FeatureStateModel featureState, Object identityId) {
     Flag flag = new Flag();
 
@@ -20,6 +27,12 @@ public class Flag extends BaseFlag {
     return flag;
   }
 
+  /**
+   * Flag from api.
+   *
+   * @param node node object
+   * @return
+   */
   public static Flag fromApiFlag(JsonNode node) {
     Flag flag = new Flag();
 
@@ -31,17 +44,12 @@ public class Flag extends BaseFlag {
     return flag;
   }
 
-  public static Flag fromApiFlag(FeatureStateModel node) {
-    Flag flag = new Flag();
-
-    flag.setFeatureId(node.getFeature().getId());
-    flag.setValue(node.getValue());
-    flag.setFeatureName(node.getFeature().getName());
-    flag.setEnabled(node.getEnabled());
-
-    return flag;
-  }
-
+  /**
+   * Flag from SDK flag type.
+   *
+   * @param node flag sdk type
+   * @return
+   */
   public static Flag fromApiFlag(com.flagsmith.Flag node) {
     Flag flag = new Flag();
 

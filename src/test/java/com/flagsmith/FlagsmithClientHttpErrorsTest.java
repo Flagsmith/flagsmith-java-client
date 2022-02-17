@@ -5,6 +5,8 @@ import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 
+import com.flagsmith.config.FlagsmithCacheConfig;
+import com.flagsmith.interfaces.FlagsmithCache;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;

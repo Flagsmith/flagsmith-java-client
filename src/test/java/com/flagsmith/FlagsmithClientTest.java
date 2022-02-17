@@ -16,6 +16,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import com.flagsmith.FlagsmithTestHelper.FlagFeature;
+import com.flagsmith.interfaces.FlagsmithCache;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;

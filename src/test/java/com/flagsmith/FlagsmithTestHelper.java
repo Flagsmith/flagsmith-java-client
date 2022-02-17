@@ -2,6 +2,7 @@ package com.flagsmith;
 
 import static com.flagsmith.IntegrationSuiteTest.BACKEND_PORT;
 
+import com.flagsmith.config.FlagsmithCacheConfig;
 import com.google.common.collect.ImmutableMap;
 import io.restassured.RestAssured;
 import io.restassured.http.Header;

@@ -97,7 +97,7 @@ public class FlagsmithFlagDefaults implements DefaultFlagHandler {
   }
 
   /**
-   * evaluate the default feature flag
+   * evaluate the default feature flag.
    * @param featureName feature name
    * @return
    */

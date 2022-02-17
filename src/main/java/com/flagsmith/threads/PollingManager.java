@@ -15,6 +15,11 @@ public class PollingManager {
     this(client, 10000);
   }
 
+  /**
+   * Instantiate the polling manager with client and interval for refresh.
+   * @param client client object
+   * @param interval interval milliseconds
+   */
   public PollingManager(FlagsmithClient client, Integer interval) {
     this.client = client;
     this.interval = interval;
@@ -22,7 +27,7 @@ public class PollingManager {
   }
 
   /**
-   * Initialize a thread in which to run the polling for environment
+   * Initialize a thread in which to run the polling for environment.
    * @return
    */
   private Thread initializeThread() {
@@ -42,24 +47,18 @@ public class PollingManager {
   }
 
   /**
-   * Start polling of the environment in the new thread
+   * Start polling of the environment in the new thread.
    */
   public void startPolling() {
     internalThread.start();
   }
 
   /**
-   * Stop polling of the new environment
+   * Stop polling of the new environment.
    */
   public void stopPolling() {
     internalThread.interrupt();
   }
 
-  /**
-   * Clean up if the object is destroyed or GCed.
-   */
-  protected void finalize() {
-    stopPolling();
-  }
 
 }

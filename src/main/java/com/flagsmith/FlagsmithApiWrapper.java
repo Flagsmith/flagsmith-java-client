@@ -33,6 +33,13 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   private final String apiKey;
   private final RequestProcessor requestor;
 
+  /**
+   * Instantiate with config, custom headers, logger and apikey.
+   * @param defaultConfig config object
+   * @param customHeaders custom headers list
+   * @param logger logger instance
+   * @param apiKey api key
+   */
   public FlagsmithApiWrapper(final FlagsmithConfig defaultConfig,
       final HashMap<String, String> customHeaders,
       final FlagsmithLogger logger,
@@ -41,7 +48,11 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     this.customHeaders = customHeaders;
     this.logger = logger;
     this.apiKey = apiKey;
-    requestor = new RequestProcessor(defaultConfig.getHttpClient(), logger, defaultConfig.getRetries());
+    requestor = new RequestProcessor(
+        defaultConfig.getHttpClient(),
+        logger,
+        defaultConfig.getRetries()
+    );
   }
 
   @Override
@@ -267,7 +278,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   }
 
   /**
-   * Returns a build request with GET
+   * Returns a build request with GET.
    * @param url - URL to invoke
    * @return
    */
@@ -279,7 +290,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   }
 
   /**
-   * Returns a build request with GET
+   * Returns a build request with GET.
    * @param url - URL to invoke
    * @param body - body to post
    * @return

@@ -3,14 +3,13 @@ package com.flagsmith.models;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.FlagsAndTraits;
 import com.flagsmith.FlagsmithFlagDefaults;
-import com.flagsmith.interfaces.DefaultFlagHandler;
-import com.flagsmith.threads.AnalyticsProcessor;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.interfaces.DefaultFlagHandler;
+import com.flagsmith.threads.AnalyticsProcessor;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Data;
 
@@ -21,7 +20,8 @@ public class Flags {
   private DefaultFlagHandler defaultFlagHandler;
 
   /**
-   * Build flags object from list of feature states
+   * Build flags object from list of feature states.
+   *
    * @param featureStates list of feature states
    * @param analyticsProcessor instance of analytics processor
    * @return
@@ -33,7 +33,8 @@ public class Flags {
   }
 
   /**
-   * Build flags object from list of feature states
+   * Build flags object from list of feature states.
+   *
    * @param featureStates list of feature states
    * @param analyticsProcessor instance of analytics processor
    * @param identityId identity ID (optional)
@@ -47,7 +48,8 @@ public class Flags {
   }
 
   /**
-   * Build flags object from list of feature states
+   * Build flags object from list of feature states.
+   *
    * @param featureStates list of feature states
    * @param analyticsProcessor instance of analytics processor
    * @param identityId identity ID (optional)
@@ -75,7 +77,8 @@ public class Flags {
   }
 
   /**
-   * Return the flags instance
+   * Return the flags instance.
+   *
    * @param apiFlags Dictionary with api flags
    * @param analyticsProcessor instance of analytics processor
    * @param defaultFlagHandler handler for default flags if present
@@ -104,7 +107,8 @@ public class Flags {
   }
 
   /**
-   * Return the flags instance
+   * Return the flags instance.
+   *
    * @param apiFlags Dictionary with api flags
    * @param analyticsProcessor instance of analytics processor
    * @param defaultFlagHandler handler for default flags if present
@@ -120,7 +124,7 @@ public class Flags {
     for (FeatureStateModel flag: apiFlags) {
       flagMap.put(
           flag.getFeature().getName(),
-          Flag.fromApiFlag(flag)
+          Flag.fromFeatureStateModel(flag, null)
       );
     }
 
@@ -133,8 +137,9 @@ public class Flags {
   }
 
   /**
-   * Return the flags instance
-   * @param apiFlags Dictionary with api flags
+   * Return the flags instance.
+   *
+   * @param flagsAndTraits Dictionary with api flags
    * @param analyticsProcessor instance of analytics processor
    * @param defaultFlagHandler handler for default flags if present
    * @return
@@ -162,7 +167,8 @@ public class Flags {
   }
 
   /**
-   * returns the list of all flags
+   * returns the list of all flags.
+   *
    * @return
    */
   public List<BaseFlag> getAllFlags() {
@@ -170,7 +176,8 @@ public class Flags {
   }
 
   /**
-   * is feature enabled, null if not present
+   * is feature enabled, null if not present.
+   *
    * @param featureName Feature name
    * @return
    */
@@ -179,7 +186,8 @@ public class Flags {
   }
 
   /**
-   * Get the feature value, null if not present
+   * Get the feature value, null if not present.
+   *
    * @param featureName Feature name
    * @return
    */
@@ -188,10 +196,10 @@ public class Flags {
   }
 
   /**
-   * Get the feature, null if not present
-   * @param featureName Feature name
+   * Get the feature, null if not present.
+   *
+   * @param featureName feature name
    * @return
-   * @throws FlagsmithClientError
    */
   public BaseFlag getFlag(String featureName) throws FlagsmithClientError {
     if (!flags.containsKey(featureName)) {
@@ -203,7 +211,7 @@ public class Flags {
 
     BaseFlag flag = flags.get(featureName);
 
-    if (analyticsProcessor != null && flag instanceof Flag ) {
+    if (analyticsProcessor != null && flag instanceof Flag) {
       Flag flagObj = (Flag) flag;
       if (flagObj.getFeatureId() != null) {
         analyticsProcessor.trackFeature(flagObj.getFeatureId());

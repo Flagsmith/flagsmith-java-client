@@ -158,7 +158,7 @@ public final class FlagsmithConfig {
     }
 
     /**
-     * Add retries for HTTP request to the builder
+     * Add retries for HTTP request to the builder.
      * @param retries no of retries for requests
      * @return
      */
@@ -168,8 +168,8 @@ public final class FlagsmithConfig {
     }
 
     /**
-     *
-     * @param localEvaluation
+     * Local evaluation config.
+     * @param localEvaluation boolean to enable
      * @return
      */
     public Builder withLocalEvaluation(Boolean localEvaluation) {
@@ -178,8 +178,8 @@ public final class FlagsmithConfig {
     }
 
     /**
-     *
-     * @param seconds
+     * set environment refresh rate with polling manager. Only needed when local evaluation is true.
+     * @param seconds seconds
      * @return
      */
     public Builder withEnvironmentRefreshIntervalSeconds(Integer seconds) {
@@ -188,8 +188,8 @@ public final class FlagsmithConfig {
     }
 
     /**
-     *
-     * @param enable
+     * Enable Analytics Processor.
+     * @param enable boolean to enable
      * @return
      */
     public Builder withEnableAnalytics(Boolean enable) {

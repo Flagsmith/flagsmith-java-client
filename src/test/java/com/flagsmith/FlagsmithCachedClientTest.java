@@ -14,6 +14,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.testng.Assert.assertNull;
 
+import com.flagsmith.interfaces.FlagsmithCache;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import java.util.Arrays;
 import java.util.List;

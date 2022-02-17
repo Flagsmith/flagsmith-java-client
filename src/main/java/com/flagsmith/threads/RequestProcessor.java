@@ -27,6 +27,12 @@ public class RequestProcessor {
     this(client, logger, 3);
   }
 
+  /**
+   * Instantiate with client, logger and retries.
+   * @param client client instance
+   * @param logger logger instance
+   * @param retries retries
+   */
   public RequestProcessor(OkHttpClient client, FlagsmithLogger logger, Integer retries) {
     this.client = client;
     this.logger = logger;
@@ -34,7 +40,7 @@ public class RequestProcessor {
   }
 
   /**
-   * Execute the request in async mode
+   * Execute the request in async mode.
    * @param request request to invoke
    * @param clazz class type of response
    * @param doThrow should throw Exception (boolean)
@@ -54,7 +60,8 @@ public class RequestProcessor {
    * @param <T> Type inference for the response
    * @return
    */
-  public <T> Future<T> executeAsync(Request request, TypeReference<T> clazz, Boolean doThrow, Integer retries) {
+  public <T> Future<T> executeAsync(
+      Request request, TypeReference<T> clazz, Boolean doThrow, Integer retries) {
     CompletableFuture<T> completableFuture = new CompletableFuture<>();
     Call call = getClient().newCall(request);
     // run the execute method in a fixed thread with retries.

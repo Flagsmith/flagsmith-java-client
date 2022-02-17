@@ -33,7 +33,10 @@ public interface FlagsmithSdk {
     return null;
   }
 
-  // Validation
+  /**
+   * validate user has a valid identifier.
+   * @param user user object
+   */
   default void assertValidUser(@NonNull FeatureUser user) {
     if (StringUtils.isBlank(user.getIdentifier())) {
       throw new IllegalArgumentException("Missing user identifier");

@@ -15,6 +15,7 @@ import static org.testng.Assert.assertNull;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flagsmith.config.FlagsmithConfig;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -112,7 +113,7 @@ public class FlagsmithApiWrapperTest {
     interceptor.addRule()
         .get(BASE_URL + "/identities/?identifier=some-user")
         .respond(mapper.writeValueAsString(newFlagsAndTraits()), MEDIATYPE_JSON);
-    defaultConfig.flagsmithFlagDefaults.setDefaultFeatureFlags(new HashSet<String>() {{
+    defaultConfig.getFlagsmithFlagDefaults().setDefaultFeatureFlags(new HashSet<String>() {{
       add("default-flag");
     }});
 
@@ -174,7 +175,7 @@ public class FlagsmithApiWrapperTest {
     interceptor.addRule()
         .get(BASE_URL + "/identities/?identifier=ident")
         .respond(mapper.writeValueAsString(newFlagsAndTraits()), MEDIATYPE_JSON);
-    defaultConfig.flagsmithFlagDefaults.setDefaultFeatureFlags(new HashSet<String>() {{
+    defaultConfig.getFlagsmithFlagDefaults().setDefaultFeatureFlags(new HashSet<String>() {{
       add("default-flag");
     }});
 
@@ -239,7 +240,7 @@ public class FlagsmithApiWrapperTest {
     interceptor.addRule()
         .post(BASE_URL + "/identities/")
         .respond(mapper.writeValueAsString(newFlagsAndTraits()), MEDIATYPE_JSON);
-    defaultConfig.flagsmithFlagDefaults.setDefaultFeatureFlags(new HashSet<String>() {{
+    defaultConfig.getFlagsmithFlagDefaults().setDefaultFeatureFlags(new HashSet<String>() {{
       add("default-flag");
     }});
 
