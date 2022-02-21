@@ -6,6 +6,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flagsmith.flagengine.identities.IdentityModel;
+import com.flagsmith.flagengine.identities.traits.TraitModel;
 import java.io.IOException;
 import java.io.Serializable;
 import lombok.Data;
@@ -16,9 +18,9 @@ import lombok.Data;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Trait implements Serializable {
+class TraitRequest extends TraitModel implements Serializable {
 
-  private FeatureUser identity;
+  private IdentityModel identity;
 
   @JsonProperty("trait_key")
   private String key;
@@ -28,7 +30,7 @@ public class Trait implements Serializable {
   /**
    * Default constructor.
    */
-  public Trait() {
+  public TraitRequest() {
   }
 
   /**
@@ -38,7 +40,7 @@ public class Trait implements Serializable {
    * @param key      a trait key
    * @param value    a trait value
    */
-  public Trait(FeatureUser identity, String key, String value) {
+  public TraitRequest(IdentityModel identity, String key, String value) {
     this.identity = identity;
     this.key = key;
     this.value = value;
@@ -53,12 +55,12 @@ public class Trait implements Serializable {
   @JsonIgnore
   public void parse(String data) throws IOException {
     ObjectMapper mapper = MapperFactory.getMappper();
-    Trait prototype = mapper.readValue(data, Trait.class);
+    TraitRequest prototype = mapper.readValue(data, TraitRequest.class);
     fromPrototype(prototype);
   }
 
   @JsonIgnore
-  private void fromPrototype(Trait prototype) {
+  private void fromPrototype(TraitRequest prototype) {
     setKey(prototype.getKey());
     setValue(prototype.getValue());
     setIdentity(prototype.getIdentity());

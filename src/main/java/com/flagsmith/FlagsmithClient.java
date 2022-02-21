@@ -14,7 +14,6 @@ import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.models.Flags;
 import com.flagsmith.threads.AnalyticsProcessor;
 import com.flagsmith.threads.PollingManager;
-import com.flagsmith.utils.GeneratorUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -51,10 +50,10 @@ public class FlagsmithClient {
    * @param traits list of traits
    * @return a Trait object or null if does not exist
    */
-  private static Trait getTraitByKey(String key, List<Trait> traits) {
+  private static TraitModel getTraitByKey(String key, List<TraitModel> traits) {
     if (traits != null) {
-      for (Trait trait : traits) {
-        if (trait.getKey().equals(key)) {
+      for (TraitModel trait : traits) {
+        if (trait.getTraitKey().equals(key)) {
           return trait;
         }
       }
@@ -67,16 +66,16 @@ public class FlagsmithClient {
    *
    * @return a list of user Trait
    */
-  private static List<Trait> getTraitsByKeys(List<Trait> traits, String[] keys) {
+  private static List<TraitModel> getTraitsByKeys(List<TraitModel> traits, String[] keys) {
     // if no keys provided return all the user traits
     if (keys == null || keys.length == 0 || traits == null) {
       return traits;
     }
 
     // otherwise filter on give user traits keys
-    List<Trait> filteredTraits = new ArrayList<>();
-    for (Trait trait : traits) {
-      if (Arrays.asList(keys).contains(trait.getKey())) {
+    List<TraitModel> filteredTraits = new ArrayList<>();
+    for (TraitModel trait : traits) {
+      if (Arrays.asList(keys).contains(trait.getTraitKey())) {
         filteredTraits.add(trait);
       }
     }
@@ -90,7 +89,7 @@ public class FlagsmithClient {
    * @param flagsAndTraits flags and traits object
    * @return a Trait object or null if does not exist
    */
-  public Trait getTrait(FlagsAndTraits flagsAndTraits, String key) {
+  public TraitModel getTrait(FlagsAndTraits flagsAndTraits, String key) {
     if (flagsAndTraits == null) {
       return null;
     }
@@ -101,11 +100,11 @@ public class FlagsmithClient {
    * Get user Trait for given user identity and trait key.
    *
    * @param key  a unique user trait key
-   * @param user a user in context
+   * @param identifier a user in context
    * @return a Trait object or null if does not exist
    */
-  public Trait getTrait(FeatureUser user, String key) {
-    List<Trait> traits = getUserTraits(user);
+  public TraitModel getTrait(String identifier, String key) {
+    List<TraitModel> traits = getUserTraits(identifier);
     return getTraitByKey(key, traits);
   }
 
@@ -116,19 +115,19 @@ public class FlagsmithClient {
    * @param keys            the trait keys to filter for
    * @return a list of user Trait
    */
-  public List<Trait> getTraits(FlagsAndTraits flagsAndTraits, String... keys) {
+  public List<TraitModel> getTraits(FlagsAndTraits flagsAndTraits, String... keys) {
     return flagsAndTraits == null ? null : getTraitsByKeys(flagsAndTraits.getTraits(), keys);
   }
 
   /**
    * Get a list of user Traits for user identity and trait keys.
    *
-   * @param user  the user to get traits for
+   * @param identifier  the user to get traits for
    * @param keys  the trait keys to filter for      
    * @return a list of user Trait
    */
-  public List<Trait> getTraits(FeatureUser user, String... keys) {
-    return getTraitsByKeys(getUserTraits(user), keys);
+  public List<TraitModel> getTraits(String identifier, String... keys) {
+    return getTraitsByKeys(getUserTraits(identifier), keys);
   }
 
   /**
@@ -136,29 +135,29 @@ public class FlagsmithClient {
    *
    * @return a list of feature flags
    */
-  public List<Flag> getFeatureFlags() {
+  public List<FeatureStateModel> getFeatureFlags() {
     return getFeatureFlags(null);
   }
 
   /**
    * Get a list of existing Features for the given environment and user.
    *
-   * @param user a user in context
+   * @param identifier a user in context
    * @return a list of feature flags
    */
-  public List<Flag> getFeatureFlags(FeatureUser user) {
-    return getFeatureFlags(user, false);
+  public List<FeatureStateModel> getFeatureFlags(String identifier) {
+    return getFeatureFlags(identifier, false);
   }
 
   /**
    * Get a list of existing Features for the given environment and user.
    *
-   * @param user    a user in context
+   * @param identifier    a user in context
    * @param doThrow throw exceptions or fail silently
    * @return a list of feature flags
    */
-  public List<Flag> getFeatureFlags(FeatureUser user, boolean doThrow) {
-    return this.flagsmithSdk.getFeatureFlags(user, doThrow).getFlags();
+  public List<FeatureStateModel> getFeatureFlags(String identifier, boolean doThrow) {
+    return this.flagsmithSdk.getFeatureFlags(identifier, doThrow);
   }
 
   /**
@@ -168,7 +167,7 @@ public class FlagsmithClient {
    * @return true if feature flag exist and enabled, false otherwise
    */
   public boolean hasFeatureFlag(String featureId) {
-    List<Flag> featureFlags = getFeatureFlags();
+    List<FeatureStateModel> featureFlags = getFeatureFlags();
     return hasFeatureFlagByName(featureId, featureFlags);
   }
 
@@ -176,11 +175,11 @@ public class FlagsmithClient {
    * Check if Feature flag exist and is enabled for given user.
    *
    * @param featureId a unique feature name identifier
-   * @param user      a user in context
+   * @param identifier      a user in context
    * @return true if feature flag exist and enabled, false otherwise
    */
-  public boolean hasFeatureFlag(String featureId, FeatureUser user) {
-    List<Flag> featureFlags = getFeatureFlags(user);
+  public boolean hasFeatureFlag(String featureId, String identifier) {
+    List<FeatureStateModel> featureFlags = getFeatureFlags(identifier);
     return hasFeatureFlagByName(featureId, featureFlags);
   }
 
@@ -205,11 +204,11 @@ public class FlagsmithClient {
    * @param featureFlags a list of flags
    * @return true if feature flag exist and enabled, false otherwise
    */
-  private boolean hasFeatureFlagByName(String featureId, List<Flag> featureFlags) {
+  private boolean hasFeatureFlagByName(String featureId, List<FeatureStateModel> featureFlags) {
     if (featureFlags != null) {
-      for (Flag flag : featureFlags) {
+      for (FeatureStateModel flag : featureFlags) {
         if (flag.getFeature().getName().equals(featureId)) {
-          return flag.isEnabled();
+          return flag.getEnabled();
         }
       }
     }
@@ -223,7 +222,7 @@ public class FlagsmithClient {
    * @return a value for the Feature or null if feature does not exist
    */
   public String getFeatureFlagValue(String featureId) {
-    List<Flag> featureFlags = getFeatureFlags();
+    List<FeatureStateModel> featureFlags = getFeatureFlags();
     return getFeatureFlagValueByName(featureId, featureFlags);
   }
 
@@ -231,11 +230,11 @@ public class FlagsmithClient {
    * Get Feature value (remote config) for given feature id and user.
    *
    * @param featureId a unique feature name identifier
-   * @param user      a user in context
+   * @param identifier      a user in context
    * @return a value for the feature or null if does not exist
    */
-  public String getFeatureFlagValue(String featureId, FeatureUser user) {
-    List<Flag> featureFlags = getFeatureFlags(user);
+  public String getFeatureFlagValue(String featureId, String identifier) {
+    List<FeatureStateModel> featureFlags = getFeatureFlags(identifier);
     return getFeatureFlagValueByName(featureId, featureFlags);
   }
 
@@ -259,7 +258,7 @@ public class FlagsmithClient {
    *
    * @return list of default flags, not fetched from Flagsmith
    */
-  public List<Flag> getDefaultFlags() {
+  public List<FeatureStateModel> getDefaultFlags() {
     return this.flagsmithSdk.getConfig().getFlagsmithFlagDefaults().getDefaultFlags();
   }
 
@@ -270,11 +269,11 @@ public class FlagsmithClient {
    * @param featureFlags list of feature flags
    * @return a value for the Feature or null if feature does not exist
    */
-  private String getFeatureFlagValueByName(String featureId, List<Flag> featureFlags) {
+  private String getFeatureFlagValueByName(String featureId, List<FeatureStateModel> featureFlags) {
     if (featureFlags != null) {
-      for (Flag flag : featureFlags) {
+      for (FeatureStateModel flag : featureFlags) {
         if (flag.getFeature().getName().equals(featureId)) {
-          return flag.getStateValue();
+          return flag.getValue().toString();
         }
       }
     }
@@ -285,56 +284,56 @@ public class FlagsmithClient {
   /**
    * Get a list of existing user Traits for the given environment and identity user.
    *
-   * @param user a user in context
+   * @param identifier a user in context
    * @return a list of user Traits
    */
-  private List<Trait> getUserTraits(FeatureUser user) {
-    return getUserFlagsAndTraits(user).getTraits();
+  private List<TraitModel> getUserTraits(String identifier) {
+    return getUserFlagsAndTraits(identifier).getTraits();
   }
 
   /**
    * Get a list of existing user Traits and Flags for the given environment and identity user. It
    * fails silently if there is an error.
    *
-   * @param user a user in context
+   * @param identifier a user in context
    * @return a list of user Traits and Flags or empty FlagsAndTraits
    */
-  public FlagsAndTraits getUserFlagsAndTraits(FeatureUser user) {
-    return getUserFlagsAndTraits(user, false);
+  public FlagsAndTraits getUserFlagsAndTraits(String identifier) {
+    return getUserFlagsAndTraits(identifier, false);
   }
 
   /**
    * Get a list of existing user Traits and Flags for the given environment and identity user.
    *
-   * @param user    a user in context
+   * @param identifier    a user in context
    * @param doThrow indicates if errors should throw an exception or fail silently
    * @return a list of user Traits and Flags
    */
-  public FlagsAndTraits getUserFlagsAndTraits(FeatureUser user, boolean doThrow) {
-    return this.flagsmithSdk.getUserFlagsAndTraits(user, doThrow);
+  public FlagsAndTraits getUserFlagsAndTraits(String identifier, boolean doThrow) {
+    return this.flagsmithSdk.getUserFlagsAndTraits(identifier, doThrow);
   }
 
   /**
    * Update user Trait for given user and Trait details.
    *
    * @param toUpdate a user trait to update
-   * @param user     a user in context
+   * @param identifier     a user in context
    * @return a Trait object or null if does not exist
    */
-  public Trait updateTrait(FeatureUser user, Trait toUpdate) {
-    return updateTrait(user, toUpdate, false);
+  public TraitModel updateTrait(String identifier, TraitModel toUpdate) {
+    return updateTrait(identifier, toUpdate, false);
   }
 
   /**
    * Update user Trait for given user and Trait details.
    *
    * @param toUpdate a user trait to update
-   * @param user     a user in context
+   * @param identifier     a user in context
    * @param doThrow  throw exceptions or fail silently
    * @return a Trait object or null if does not exist
    */
-  public Trait updateTrait(FeatureUser user, Trait toUpdate, boolean doThrow) {
-    return this.flagsmithSdk.postUserTraits(user, toUpdate, doThrow);
+  public TraitModel updateTrait(String identifier, TraitModel toUpdate, boolean doThrow) {
+    return this.flagsmithSdk.postUserTraits(identifier, toUpdate, doThrow);
   }
 
   /**
@@ -421,13 +420,17 @@ public class FlagsmithClient {
   private Flags getIdentityFlagsFromApi(String identifier, Map<String, String> traits)
       throws FlagsmithApiError {
     try {
-      IdentityTraits identityTraits = GeneratorUtil.generateIdentitiesData(identifier, traits);
-      FeatureUser featureUser = new FeatureUser();
-      featureUser.setIdentifier(identifier);
+      List<TraitModel> traitsList = traits.entrySet().stream().map((row) -> {
+        TraitModel trait = new TraitModel();
+        trait.setTraitValue(row.getValue());
+        trait.setTraitKey(row.getKey());
+
+        return trait;
+      }).collect(Collectors.toList());
 
       FlagsAndTraits flagsAndTraits = flagsmithSdk.identifyUserWithTraits(
-          featureUser,
-          identityTraits.getTraits(),
+          identifier,
+          traitsList,
           Boolean.TRUE
       );
 
@@ -476,12 +479,12 @@ public class FlagsmithClient {
    *
    * <p>Please note this will override any existing identity with given list.
    *
-   * @param user   a user in context
+   * @param identifier   a user in context
    * @param traits a list of Trait object to be created or updated
    * @return a FlagsAndTraits object
    */
-  public FlagsAndTraits identifyUserWithTraits(FeatureUser user, List<Trait> traits) {
-    return identifyUserWithTraits(user, traits, false);
+  public FlagsAndTraits identifyUserWithTraits(String identifier, List<TraitModel> traits) {
+    return identifyUserWithTraits(identifier, traits, false);
   }
 
   /**
@@ -489,14 +492,14 @@ public class FlagsmithClient {
    *
    * <p>Please note this will override any existing identity with given list.
    *
-   * @param user    a user in context
+   * @param identifier    a user in context
    * @param traits  a list of Trait object to be created or updated
    * @param doThrow throw exceptions or fail silently
    * @return a FlagsAndTraits object
    */
-  public FlagsAndTraits identifyUserWithTraits(FeatureUser user, List<Trait> traits,
+  public FlagsAndTraits identifyUserWithTraits(String identifier, List<TraitModel> traits,
       boolean doThrow) {
-    return flagsmithSdk.identifyUserWithTraits(user, traits, doThrow);
+    return flagsmithSdk.identifyUserWithTraits(identifier, traits, doThrow);
   }
 
   /**

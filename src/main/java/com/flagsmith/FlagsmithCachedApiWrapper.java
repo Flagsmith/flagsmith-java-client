@@ -1,6 +1,5 @@
 package com.flagsmith;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
@@ -9,9 +8,6 @@ import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import okhttp3.Request;
 import org.apache.commons.lang3.StringUtils;
 
 public class FlagsmithCachedApiWrapper implements FlagsmithSdk {
@@ -53,7 +49,7 @@ public class FlagsmithCachedApiWrapper implements FlagsmithSdk {
   }
 
   @Override
-  public Trait postUserTraits(FeatureUser user, Trait toUpdate, boolean doThrow) {
+  public TraitRequest postUserTraits(FeatureUser user, TraitRequest toUpdate, boolean doThrow) {
     assertValidUser(user);
     final FlagsAndTraits flagsAndTraits = getCachedFlagsIfTraitsMatch(user,
         Arrays.asList(toUpdate));
@@ -67,7 +63,7 @@ public class FlagsmithCachedApiWrapper implements FlagsmithSdk {
 
   @Override
   public FlagsAndTraits identifyUserWithTraits(
-      FeatureUser user, List<Trait> traits, boolean doThrow) {
+      FeatureUser user, List<TraitRequest> traits, boolean doThrow) {
     assertValidUser(user);
     FlagsAndTraits flagsAndTraits = getCachedFlagsIfTraitsMatch(user, traits);
     if (flagsAndTraits != null) {
@@ -93,7 +89,7 @@ public class FlagsmithCachedApiWrapper implements FlagsmithSdk {
     return cache;
   }
 
-  private FlagsAndTraits getCachedFlagsIfTraitsMatch(FeatureUser user, List<Trait> traitsToMatch) {
+  private FlagsAndTraits getCachedFlagsIfTraitsMatch(FeatureUser user, List<TraitRequest> traitsToMatch) {
     final FlagsAndTraits flagsAndTraits = cache.getCache().getIfPresent(user.getIdentifier());
     if (flagsAndTraits == null) {
       // cache doesnt exist for this user
@@ -105,7 +101,7 @@ public class FlagsmithCachedApiWrapper implements FlagsmithSdk {
               || traitsToMatch.isEmpty()
               || traitsToMatch.stream()
               .allMatch(t -> {
-                final Trait newTrait = new Trait(null, t.getKey(), t.getValue());
+                final TraitRequest newTrait = new TraitRequest(null, t.getKey(), t.getValue());
                 return flagsAndTraits.getTraits().contains(newTrait);
               });
 

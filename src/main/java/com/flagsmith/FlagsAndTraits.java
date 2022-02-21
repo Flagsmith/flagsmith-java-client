@@ -5,6 +5,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.flagengine.identities.traits.TraitModel;
+import com.flagsmith.models.BaseFlag;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
@@ -18,8 +21,8 @@ import lombok.Data;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class FlagsAndTraits implements Serializable {
 
-  private List<Flag> flags;
-  private List<Trait> traits;
+  private List<FeatureStateModel> flags;
+  private List<TraitModel> traits;
 
   /**
    * Parses given string into FlagsAndTraits object.

@@ -1,7 +1,8 @@
 package com.flagsmith;
 
+import com.flagsmith.flagengine.features.FeatureModel;
+import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.interfaces.DefaultFlagHandler;
-import com.flagsmith.models.DefaultFlag;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -48,52 +49,35 @@ public class FlagsmithFlagDefaults implements DefaultFlagHandler {
    *
    * @return list of default flags, not fetched from Flagsmith
    */
-  public List<Flag> getDefaultFlags() {
-    return this.defaultFeatureFlags.stream().map(this::createDefaultFlag).collect(
+  public List<FeatureStateModel> getDefaultFlags() {
+    return this.defaultFeatureFlags.stream().map(this::evaluateDefaultFlag).collect(
         Collectors.toList());
   }
 
   /**
    * It adds any default flags that may be missing from flagsAndTraits.getFlags().
    *
-   * @param flagsAndTraits the user's flags and traits
+   * @param baseFlags the user's flags and traits
    * @return flags and traits
    */
-  public FlagsAndTraits enrichWithDefaultFlags(FlagsAndTraits flagsAndTraits) {
-    if (flagsAndTraits.getFlags() == null) {
-      flagsAndTraits.setFlags(new ArrayList<>());
+  public List<FeatureStateModel> enrichWithDefaultFlags(List<FeatureStateModel> baseFlags) {
+    if (baseFlags == null) {
+      return new ArrayList<>();
     }
 
     final Set<String> flagsNotFound = defaultFeatureFlags.stream()
-        .filter(defaultFlagName -> !isFlagWithNameFound(flagsAndTraits, defaultFlagName))
+        .filter(defaultFlagName -> !isFlagWithNameFound(baseFlags, defaultFlagName))
         .collect(Collectors.toSet());
 
     for (String flagNameToBeAdded : flagsNotFound) {
-      flagsAndTraits.getFlags().add(createDefaultFlag(flagNameToBeAdded));
+      baseFlags.add(evaluateDefaultFlag(flagNameToBeAdded));
     }
-    return flagsAndTraits;
+    return baseFlags;
   }
 
-  private boolean isFlagWithNameFound(FlagsAndTraits flagsAndTraits, String defaultFlagName) {
-    return flagsAndTraits.getFlags().stream()
+  private boolean isFlagWithNameFound(List<FeatureStateModel> baseFlag, String defaultFlagName) {
+    return baseFlag.stream()
         .anyMatch(existingFlag -> existingFlag.getFeature().getName().equals(defaultFlagName));
-  }
-
-  private Flag createDefaultFlag(String flagName) {
-    final Flag flag = new Flag();
-    flag.setEnabled(this.evaluateDefaultFlagPredicate(flagName));
-    flag.setStateValue(this.evaluateDefaultFlagValue(flagName));
-
-    final Feature feature = new Feature();
-    feature.setName(flagName);
-    flag.setFeature(feature);
-
-    if (flag.getStateValue() == null) {
-      feature.setType("FLAG");
-    } else {
-      feature.setType("CONFIG");
-    }
-    return flag;
   }
 
   /**
@@ -101,12 +85,15 @@ public class FlagsmithFlagDefaults implements DefaultFlagHandler {
    * @param featureName feature name
    * @return
    */
-  public DefaultFlag evaluateDefaultFlag(String featureName) {
-    final DefaultFlag flag = new DefaultFlag();
+  public FeatureStateModel evaluateDefaultFlag(String featureName) {
+    final FeatureStateModel flag = new FeatureStateModel();
     flag.setEnabled(evaluateDefaultFlagPredicate(featureName));
     flag.setValue(evaluateDefaultFlagValue(featureName));
-    flag.setFeatureName(featureName);
-    flag.setIsDefault(Boolean.TRUE);
+
+    FeatureModel featureModel = new FeatureModel();
+    featureModel.setName(featureName);
+
+    flag.setFeature(featureModel);
 
     return flag;
   }

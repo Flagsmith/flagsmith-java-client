@@ -1,12 +1,10 @@
 package com.flagsmith.interfaces;
 
-import com.flagsmith.FeatureUser;
 import com.flagsmith.FlagsAndTraits;
-import com.flagsmith.Trait;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
-import com.flagsmith.interfaces.FlagsmithCache;
+import com.flagsmith.flagengine.identities.traits.TraitModel;
 import java.util.List;
 import lombok.NonNull;
 import org.apache.commons.lang3.StringUtils;
@@ -14,15 +12,15 @@ import org.apache.commons.lang3.StringUtils;
 public interface FlagsmithSdk {
 
   // API Endpoints
-  FlagsAndTraits getFeatureFlags(FeatureUser user, boolean doThrow);
+  List<FeatureStateModel> getFeatureFlags(String identifier, boolean doThrow);
 
   List<FeatureStateModel> getFeatureFlags(boolean doThrow);
 
-  FlagsAndTraits getUserFlagsAndTraits(FeatureUser user, boolean doThrow);
+  FlagsAndTraits getUserFlagsAndTraits(String identifier, boolean doThrow);
 
-  Trait postUserTraits(FeatureUser user, Trait toUpdate, boolean doThrow);
+  TraitModel postUserTraits(String identifier, TraitModel toUpdate, boolean doThrow);
 
-  FlagsAndTraits identifyUserWithTraits(FeatureUser user, List<Trait> traits, boolean doThrow);
+  FlagsAndTraits identifyUserWithTraits(String identifier, List<TraitModel> traits, boolean doThrow);
 
   FlagsmithConfig getConfig();
   
@@ -39,6 +37,16 @@ public interface FlagsmithSdk {
    */
   default void assertValidUser(@NonNull FeatureUser user) {
     if (StringUtils.isBlank(user.getIdentifier())) {
+      throw new IllegalArgumentException("Missing user identifier");
+    }
+  }
+
+  /**
+   * validate user has a valid identifier.
+   * @param identifier user identifier
+   */
+  default void assertValidUser(@NonNull String identifier) {
+    if (StringUtils.isBlank(identifier)) {
       throw new IllegalArgumentException("Missing user identifier");
     }
   }

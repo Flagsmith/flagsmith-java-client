@@ -148,22 +148,7 @@ public class Flags {
       FlagsAndTraits flagsAndTraits,
       AnalyticsProcessor analyticsProcessor,
       FlagsmithFlagDefaults defaultFlagHandler) {
-
-    Map<String, BaseFlag> flagMap = new HashMap<>();
-
-    for (com.flagsmith.Flag flag: flagsAndTraits.getFlags()) {
-      flagMap.put(
-          flag.getFeature().getName(),
-          Flag.fromApiFlag(flag)
-      );
-    }
-
-    Flags flags = new Flags();
-    flags.setFlags(flagMap);
-    flags.setAnalyticsProcessor(analyticsProcessor);
-    flags.setDefaultFlagHandler(defaultFlagHandler);
-
-    return flags;
+    return fromApiFlags(flagsAndTraits.getFlags(), analyticsProcessor, defaultFlagHandler);
   }
 
   /**

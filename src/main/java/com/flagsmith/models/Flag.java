@@ -43,20 +43,4 @@ public class Flag extends BaseFlag {
 
     return flag;
   }
-
-  /**
-   * Flag from SDK flag type.
-   *
-   * @param node flag sdk type
-   * @return
-   */
-  public static Flag fromApiFlag(com.flagsmith.Flag node) {
-    Flag flag = new Flag();
-
-    flag.setValue(node.getStateValue());
-    flag.setFeatureName(node.getFeature().getName());
-    flag.setEnabled(node.isEnabled());
-
-    return flag;
-  }
 }
