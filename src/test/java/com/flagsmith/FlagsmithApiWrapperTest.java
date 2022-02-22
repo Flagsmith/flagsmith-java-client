@@ -16,6 +16,10 @@ import static org.testng.Assert.assertNull;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flagsmith.config.FlagsmithConfig;
+import com.flagsmith.flagengine.features.FeatureModel;
+import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.flagengine.identities.IdentityModel;
+import com.flagsmith.flagengine.identities.traits.TraitModel;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,7 +51,7 @@ public class FlagsmithApiWrapperTest {
         .httpError(any(), any(IOException.class), eq(true));
 
     interceptor = new MockInterceptor();
-    defaultConfig = FlagsmithConfig.newBuilder().addHttpInterceptor(interceptor).baseUri(BASE_URL)
+    defaultConfig = FlagsmithConfig.newBuilder().addHttpInterceptor(interceptor).retries(1).baseUri(BASE_URL)
         .build();
     sut = new FlagsmithApiWrapper(defaultConfig, null, flagsmithLogger, API_KEY);
   }
@@ -60,16 +64,16 @@ public class FlagsmithApiWrapperTest {
         .respond(mapper.writeValueAsString(newFlagsAndTraits().getFlags()), MEDIATYPE_JSON);
 
     // Act
-    final FlagsAndTraits actualFeatureFlags = sut.getFeatureFlags(null, true);
+    final List<FeatureStateModel> actualFeatureFlags = sut.getFeatureFlags(null, true);
 
     // Assert
-    assertEquals(newFlagsAndTraits(), actualFeatureFlags);
+    assertEquals(newFlagsAndTraits().getFlags(), actualFeatureFlags);
     verify(flagsmithLogger, times(1)).info(anyString(), any(), any());
     verify(flagsmithLogger, times(0)).httpError(any(), any(Response.class), anyBoolean());
     verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
   }
 
-  @Test(groups = "unit")
+  @Test(groups = "unit") // problem wala
   public void getFeatureFlags_noUser_fail() {
     // Arrange
     interceptor.addRule()
@@ -77,10 +81,10 @@ public class FlagsmithApiWrapperTest {
         .respond(500, ResponseBody.create("error", MEDIATYPE_JSON));
 
     // Act
-    final FlagsAndTraits actualFeatureFlags = sut.getFeatureFlags(null, false);
+    final List<FeatureStateModel> actualFeatureFlags = sut.getFeatureFlags(null, false);
 
     // Assert
-    assertEquals(getEmptyFlagsAndTraits(new ArrayList<>()), actualFeatureFlags);
+    assertEquals(new ArrayList<>(), actualFeatureFlags);
     verify(flagsmithLogger, times(1)).info(anyString(), any(), any());
     verify(flagsmithLogger, times(1)).httpError(any(), any(Response.class), eq(false));
     verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
@@ -89,17 +93,15 @@ public class FlagsmithApiWrapperTest {
   @Test(groups = "unit")
   public void getFeatureFlags_withUser_success() throws JsonProcessingException {
     // Arrange
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("some-user");
     interceptor.addRule()
         .get(BASE_URL + "/identities/?identifier=some-user")
         .respond(mapper.writeValueAsString(newFlagsAndTraits()), MEDIATYPE_JSON);
 
     // Act
-    final FlagsAndTraits actualFeatureFlags = sut.getFeatureFlags(user, false);
+    final List<FeatureStateModel> actualFeatureFlags = sut.getFeatureFlags("some-user", false);
 
     // Assert
-    assertEquals(newFlagsAndTraits(), actualFeatureFlags);
+    assertEquals(newFlagsAndTraits().getFlags(), actualFeatureFlags);
     verify(flagsmithLogger, times(1)).info(anyString(), any(), any());
     verify(flagsmithLogger, times(0)).httpError(any(), any(Response.class), anyBoolean());
     verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
@@ -108,8 +110,6 @@ public class FlagsmithApiWrapperTest {
   @Test(groups = "unit")
   public void getFeatureFlags_withUser_defaultFlags_success() throws JsonProcessingException {
     // Arrange
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("some-user");
     interceptor.addRule()
         .get(BASE_URL + "/identities/?identifier=some-user")
         .respond(mapper.writeValueAsString(newFlagsAndTraits()), MEDIATYPE_JSON);
@@ -118,12 +118,12 @@ public class FlagsmithApiWrapperTest {
     }});
 
     // Act
-    final FlagsAndTraits actualFeatureFlags = sut.getFeatureFlags(user, false);
+    final List<FeatureStateModel> actualFeatureFlags = sut.getFeatureFlags("some-user", false);
 
     // Assert
     final FlagsAndTraits expectedFlags = newFlagsAndTraits();
     expectedFlags.getFlags().add(flag("default-flag", null, "FLAG", false, null));
-    assertEquals(expectedFlags, actualFeatureFlags);
+    assertEquals(expectedFlags.getFlags(), actualFeatureFlags);
     verify(flagsmithLogger, times(1)).info(anyString(), any(), any());
     verify(flagsmithLogger, times(0)).httpError(any(), any(Response.class), anyBoolean());
     verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
@@ -132,14 +132,12 @@ public class FlagsmithApiWrapperTest {
   @Test(groups = "unit")
   public void getUserFlagsAndTraits_success() throws JsonProcessingException {
     // Arrange
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("ident");
     interceptor.addRule()
         .get(BASE_URL + "/identities/?identifier=ident")
         .respond(mapper.writeValueAsString(newFlagsAndTraits()), MEDIATYPE_JSON);
 
     // Act
-    final FlagsAndTraits actualFeatureFlags = sut.getUserFlagsAndTraits(user, true);
+    final FlagsAndTraits actualFeatureFlags = sut.getUserFlagsAndTraits("ident", true);
 
     // Assert
     assertEquals(newFlagsAndTraits(), actualFeatureFlags);
@@ -148,17 +146,15 @@ public class FlagsmithApiWrapperTest {
     verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
   }
 
-  @Test(groups = "unit")
+  @Test(groups = "unit") // problem wala
   public void getUserFlagsAndTraits_fail() {
     // Arrange
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("ident");
     interceptor.addRule()
         .get(BASE_URL + "/identities/?identifier=ident")
         .respond(500, ResponseBody.create("error", MEDIATYPE_JSON));
 
     // Act
-    final FlagsAndTraits actualFeatureFlags = sut.getUserFlagsAndTraits(user, false);
+    final FlagsAndTraits actualFeatureFlags = sut.getUserFlagsAndTraits("ident", false);
 
     // Assert
     assertEquals(getEmptyFlagsAndTraits(new ArrayList<>()), actualFeatureFlags);
@@ -170,8 +166,6 @@ public class FlagsmithApiWrapperTest {
   @Test(groups = "unit")
   public void getUserFlagsAndTraits_defaultFlags_success() throws JsonProcessingException {
     // Arrange
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("ident");
     interceptor.addRule()
         .get(BASE_URL + "/identities/?identifier=ident")
         .respond(mapper.writeValueAsString(newFlagsAndTraits()), MEDIATYPE_JSON);
@@ -180,7 +174,7 @@ public class FlagsmithApiWrapperTest {
     }});
 
     // Act
-    final FlagsAndTraits actualFeatureFlags = sut.getUserFlagsAndTraits(user, true);
+    final FlagsAndTraits actualFeatureFlags = sut.getUserFlagsAndTraits("ident", true);
 
     // Assert
     final FlagsAndTraits expectedFlags = newFlagsAndTraits();
@@ -194,15 +188,13 @@ public class FlagsmithApiWrapperTest {
   @Test(groups = "unit")
   public void identifyUserWithTraits_success() throws JsonProcessingException {
     // Arrange
-    final List<Trait> traits = new ArrayList<Trait>(Arrays.asList(new Trait()));
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("user-w-traits");
+    final List<TraitModel> traits = new ArrayList<TraitModel>(Arrays.asList(new TraitRequest()));
     interceptor.addRule()
         .post(BASE_URL + "/identities/")
         .respond(mapper.writeValueAsString(newFlagsAndTraits()), MEDIATYPE_JSON);
 
     // Act
-    final FlagsAndTraits actualFeatureFlags = sut.identifyUserWithTraits(user, traits, true);
+    final FlagsAndTraits actualFeatureFlags = sut.identifyUserWithTraits("user-w-traits", traits, true);
 
     // Assert
     assertEquals(newFlagsAndTraits(), actualFeatureFlags);
@@ -211,18 +203,16 @@ public class FlagsmithApiWrapperTest {
     verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
   }
 
-  @Test(groups = "unit")
+  @Test(groups = "unit") // problem wala
   public void identifyUserWithTraits_fail() {
     // Arrange
-    final List<Trait> traits = new ArrayList<Trait>(Arrays.asList(new Trait()));
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("user-w-traits");
+    final List<TraitModel> traits = new ArrayList<TraitModel>(Arrays.asList(new TraitRequest()));
     interceptor.addRule()
         .post(BASE_URL + "/identities/")
         .respond(500, ResponseBody.create("error", MEDIATYPE_JSON));
 
     // Act
-    final FlagsAndTraits actualFeatureFlags = sut.identifyUserWithTraits(user, traits, false);
+    final FlagsAndTraits actualFeatureFlags = sut.identifyUserWithTraits("user-w-traits", traits, false);
 
     // Assert
     assertEquals(getEmptyFlagsAndTraits(new ArrayList<>()), actualFeatureFlags);
@@ -234,9 +224,7 @@ public class FlagsmithApiWrapperTest {
   @Test(groups = "unit")
   public void identifyUserWithTraits_defaultFlags_success() throws JsonProcessingException {
     // Arrange
-    final List<Trait> traits = new ArrayList<Trait>(Arrays.asList(new Trait()));
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("user-w-traits");
+    final List<TraitModel> traits = new ArrayList<TraitModel>(Arrays.asList(new TraitRequest()));
     interceptor.addRule()
         .post(BASE_URL + "/identities/")
         .respond(mapper.writeValueAsString(newFlagsAndTraits()), MEDIATYPE_JSON);
@@ -245,12 +233,11 @@ public class FlagsmithApiWrapperTest {
     }});
 
     // Act
-    final FlagsAndTraits actualFeatureFlags = sut.identifyUserWithTraits(user, traits, true);
+    final FlagsAndTraits actualFeatureFlags = sut.identifyUserWithTraits("user-w-traits", traits, true);
 
     // Assert
     final FlagsAndTraits expectedFlags = newFlagsAndTraits();
     expectedFlags.getFlags().add(flag("default-flag", null, "FLAG", false, null));
-    assertEquals(expectedFlags, actualFeatureFlags);
     assertEquals(expectedFlags, actualFeatureFlags);
     verify(flagsmithLogger, times(1)).info(anyString(), any(), any());
     verify(flagsmithLogger, times(0)).httpError(any(), any(Response.class), anyBoolean());
@@ -260,21 +247,22 @@ public class FlagsmithApiWrapperTest {
   @Test(groups = "unit")
   public void postUserTraits_success() throws JsonProcessingException {
     // Arrange
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("username");
-    final Trait inputTrait = new Trait();
-    final Trait expectedTrait = new Trait();
+    final TraitRequest inputTrait = new TraitRequest();
+    final TraitRequest expectedTrait = new TraitRequest();
     expectedTrait.setValue("some-value");
+    IdentityModel identityModel = new IdentityModel();
+    identityModel.setIdentifier("username");
+    expectedTrait.setIdentity(identityModel);
     interceptor.addRule()
         .post(BASE_URL + "/traits/")
         .respond(mapper.writeValueAsString(expectedTrait), MEDIATYPE_JSON);
 
     // Act
-    final Trait actualTrait = sut.postUserTraits(user, inputTrait, true);
+    final TraitRequest actualTrait = sut.postUserTraits("username", inputTrait, true);
 
     // Assert
     assertEquals(expectedTrait, actualTrait);
-    assertEquals(user.getIdentifier(), inputTrait.getIdentity().getIdentifier());
+    assertEquals("username", actualTrait.getIdentity().getIdentifier());
     verify(flagsmithLogger, times(1)).info(anyString(), any(), any(), any());
     verify(flagsmithLogger, times(0)).httpError(any(), any(Response.class), anyBoolean());
     verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
@@ -283,14 +271,12 @@ public class FlagsmithApiWrapperTest {
   @Test(groups = "unit")
   public void postUserTraits_fail() {
     // Arrange
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("username");
     interceptor.addRule()
         .post(BASE_URL + "/traits/")
         .respond(500, ResponseBody.create("error", MEDIATYPE_JSON));
 
     // Act
-    final Trait actualTrait = sut.postUserTraits(user, new Trait(), false);
+    final TraitModel actualTrait = sut.postUserTraits("username", new TraitRequest(), false);
 
     // Assert
     assertNull(actualTrait);
@@ -300,17 +286,17 @@ public class FlagsmithApiWrapperTest {
   }
 
   private FlagsAndTraits newFlagsAndTraits() {
-    final Feature feature = new Feature();
+    final FeatureModel feature = new FeatureModel();
     feature.setName("my-test-flag");
-    final Flag flag = new Flag();
+    final FeatureStateModel flag = new FeatureStateModel();
     flag.setFeature(feature);
-    final List<Flag> flags = new ArrayList<>();
+    final List<FeatureStateModel> flags = new ArrayList<>();
     flags.add(flag);
 
     return getEmptyFlagsAndTraits(flags);
   }
 
-  private FlagsAndTraits getEmptyFlagsAndTraits(List<Flag> flags) {
+  private FlagsAndTraits getEmptyFlagsAndTraits(List<FeatureStateModel> flags) {
     final FlagsAndTraits flagsAndTraits = new FlagsAndTraits();
     flagsAndTraits.setFlags(flags);
     flagsAndTraits.setTraits(new ArrayList<>());

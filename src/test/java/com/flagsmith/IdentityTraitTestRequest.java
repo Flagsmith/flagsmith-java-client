@@ -6,7 +6,7 @@ import static org.testng.Assert.assertTrue;
 import java.io.IOException;
 import org.testng.annotations.Test;
 
-public class IdentityTraitTest {
+public class IdentityTraitTestRequest {
 
   private static final String json = "{\n" +
       "  \"identifier\": \"test \",\n" +

@@ -3,6 +3,7 @@ package com.flagsmith;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
 
+import com.flagsmith.flagengine.features.FeatureStateModel;
 import java.io.IOException;
 import org.testng.annotations.Test;
 
@@ -30,14 +31,13 @@ public class FlagTest {
 
   @Test(groups = "unit")
   public void test_When_Parsed_Then_Success() throws IOException {
-    Flag flag = new Flag();
-    flag.parse(json);
+    FeatureStateModel flag = new FeatureStateModel();
+    flag = FeatureStateModel.load(MapperFactory.getMappper().readTree(json), FeatureStateModel.class);
 
-    assertNotNull(flag.getStateValue(), "Should have flag value");
-    assertTrue(flag.isEnabled(), "Flag should be enabled");
+    assertNotNull(flag.getValue(), "Should have flag value");
+    assertTrue(flag.getEnabled(), "Flag should be enabled");
     assertNotNull(flag.getFeature(), "Flag should have feature");
     assertNotNull(flag.getFeature().getName(), "Feature should have type");
     assertNotNull(flag.getFeature().getType(), "Feature should have name");
-    assertNotNull(flag.getFeature().getDescription(), "Feature should have description");
   }
 }

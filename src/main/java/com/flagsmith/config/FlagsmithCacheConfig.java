@@ -1,6 +1,7 @@
 package com.flagsmith.config;
 
 import com.flagsmith.FlagsAndTraits;
+import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;

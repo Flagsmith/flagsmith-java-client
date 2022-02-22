@@ -12,10 +12,13 @@ import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertThrows;
 
 import com.flagsmith.config.FlagsmithCacheConfig;
+import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import java.util.ArrayList;
+import java.util.List;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -48,41 +51,6 @@ public class FlagsmithCachedApiWrapperTest {
   }
 
   @Test(groups = "unit")
-  public void getFeatureFlags_envFlags_cacheDisabled() {
-    // Arrange
-    final FlagsAndTraits flagsAndTraits = new FlagsAndTraits();
-    when(flagsmithAPIWrapper.getFeatureFlags(null, true)).thenReturn(flagsAndTraits);
-    when(flagsmithInternalCache.getEnvFlagsCacheKey()).thenReturn(null);
-
-    // Act
-    final FlagsAndTraits actualFeatureFlags = sut.getFeatureFlags(null, true);
-
-    // Assert
-    verify(flagsmithAPIWrapper, times(1)).getFeatureFlags(eq(null), eq(true));
-    verify(flagsmithInternalCache, times(0)).getCache();
-    assertEquals(flagsAndTraits, actualFeatureFlags);
-    assertEquals(0, cache.estimatedSize());
-  }
-
-  @Test(groups = "unit")
-  public void getFeatureFlags_envFlags_cacheEnabled_fetchFlagsWhenNotInCache() {
-    // Arrange
-    final String cacheKey = "cacheKey";
-    final FlagsAndTraits flagsAndTraits = new FlagsAndTraits();
-    when(flagsmithAPIWrapper.getFeatureFlags(null, true)).thenReturn(flagsAndTraits);
-    when(flagsmithInternalCache.getEnvFlagsCacheKey()).thenReturn(cacheKey);
-
-    // Act
-    final FlagsAndTraits actualFeatureFlags = sut.getFeatureFlags(null, true);
-
-    // Assert
-    verify(flagsmithAPIWrapper, times(1)).getFeatureFlags(eq(null), eq(true));
-    verify(flagsmithInternalCache, times(1)).getCache();
-    assertEquals(flagsAndTraits, actualFeatureFlags);
-    assertEquals(1, cache.estimatedSize());
-  }
-
-  @Test(groups = "unit")
   public void getFeatureFlags_envFlags_cacheEnabled_dontFetchFlagsWhenInCache() {
     // Arrange
     final String cacheKey = "cacheKey";
@@ -91,20 +59,19 @@ public class FlagsmithCachedApiWrapperTest {
     cache.put(cacheKey, flagsAndTraits);
 
     // Act
-    final FlagsAndTraits actualFeatureFlags = sut.getFeatureFlags(null, true);
+    final List<FeatureStateModel> actualFeatureFlags = sut.getFeatureFlags(null, true);
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).getFeatureFlags(any(), eq(true));
     verify(flagsmithInternalCache, times(1)).getCache();
-    assertEquals(flagsAndTraits, actualFeatureFlags);
+    assertEquals(flagsAndTraits.getFlags(), actualFeatureFlags);
     assertEquals(1, cache.estimatedSize());
   }
 
   @Test(groups = "unit")
   public void getFeatureFlags_nullIdentifier() {
     // Act
-    final FeatureUser user = new FeatureUser();
-    assertThrows(IllegalArgumentException.class, () -> sut.getFeatureFlags(user, true));
+    assertThrows(IllegalArgumentException.class, () -> sut.getFeatureFlags("", true));
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).getFeatureFlags(any(), anyBoolean());
@@ -115,19 +82,17 @@ public class FlagsmithCachedApiWrapperTest {
   @Test(groups = "unit")
   public void getFeatureFlags_fetchFlagsFromFlagsmithAndStoreThemInCache() {
     // Arrange
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("test-user");
 
-    final FlagsAndTraits flagsAndTraits = new FlagsAndTraits();
-    when(flagsmithAPIWrapper.getFeatureFlags(user, true)).thenReturn(flagsAndTraits);
+    final List<FeatureStateModel> flagsAndTraits = new ArrayList<>();
+    when(flagsmithAPIWrapper.getFeatureFlags("test-user", true)).thenReturn(flagsAndTraits);
 
     // Act
-    final FlagsAndTraits actualFeatureFlags = sut.getFeatureFlags(user, true);
+    final List<FeatureStateModel> actualFeatureFlags = sut.getFeatureFlags("test-user", true);
 
     // Assert
-    verify(flagsmithAPIWrapper, times(1)).getFeatureFlags(eq(user), eq(true));
+    verify(flagsmithAPIWrapper, times(1)).getFeatureFlags(eq("test-user"), eq(true));
     verify(flagsmithInternalCache, times(1)).getCache();
-    assertEquals(flagsAndTraits, cache.getIfPresent(user.getIdentifier()));
+    assertEquals(flagsAndTraits, cache.getIfPresent("test-user"));
     assertEquals(flagsAndTraits, actualFeatureFlags);
     assertEquals(1, cache.estimatedSize());
   }
@@ -135,19 +100,17 @@ public class FlagsmithCachedApiWrapperTest {
   @Test(groups = "unit")
   public void getFeatureFlags_fetchFlagsFromCacheAndNotFromFlagsmith() {
     // Arrange
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("test-user");
 
     final FlagsAndTraits flagsAndTraits = new FlagsAndTraits();
-    cache.put(user.getIdentifier(), flagsAndTraits);
+    cache.put("test-user", flagsAndTraits);
 
     // Act
-    final FlagsAndTraits actualFeatureFlags = sut.getFeatureFlags(user, true);
+    final List<FeatureStateModel> actualFeatureFlags = sut.getFeatureFlags("test-user", true);
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).getFeatureFlags(any(), anyBoolean());
     verify(flagsmithInternalCache, times(1)).getCache();
-    assertEquals(flagsAndTraits, cache.getIfPresent(user.getIdentifier()));
+    assertEquals(flagsAndTraits, cache.getIfPresent("test-user"));
     assertEquals(flagsAndTraits, actualFeatureFlags);
     assertEquals(1, cache.estimatedSize());
   }
@@ -167,7 +130,7 @@ public class FlagsmithCachedApiWrapperTest {
   public void getUserFlagsAndTraits_nullUserIdentifier() {
     // Act
     assertThrows(IllegalArgumentException.class,
-        () -> sut.getUserFlagsAndTraits(new FeatureUser(), true));
+        () -> sut.getUserFlagsAndTraits("", true));
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).getUserFlagsAndTraits(any(), anyBoolean());
@@ -178,19 +141,16 @@ public class FlagsmithCachedApiWrapperTest {
   @Test(groups = "unit")
   public void getUserFlagsAndTraits_fetchFlagsFromFlagsmithAndStoreThemInCache() {
     // Arrange
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("test-user");
-
     final FlagsAndTraits flagsAndTraits = new FlagsAndTraits();
-    when(flagsmithAPIWrapper.getUserFlagsAndTraits(user, true)).thenReturn(flagsAndTraits);
+    when(flagsmithAPIWrapper.getUserFlagsAndTraits("test-user", true)).thenReturn(flagsAndTraits);
 
     // Act
-    final FlagsAndTraits actualUserFlagsAndTraits = sut.getUserFlagsAndTraits(user, true);
+    final FlagsAndTraits actualUserFlagsAndTraits = sut.getUserFlagsAndTraits("test-user", true);
 
     // Assert
-    verify(flagsmithAPIWrapper, times(1)).getUserFlagsAndTraits(eq(user), eq(true));
+    verify(flagsmithAPIWrapper, times(1)).getUserFlagsAndTraits(eq("test-user"), eq(true));
     verify(flagsmithInternalCache, times(1)).getCache();
-    assertEquals(flagsAndTraits, cache.getIfPresent(user.getIdentifier()));
+    assertEquals(flagsAndTraits, cache.getIfPresent("test-user"));
     assertEquals(flagsAndTraits, actualUserFlagsAndTraits);
     assertEquals(1, cache.estimatedSize());
   }
@@ -198,19 +158,17 @@ public class FlagsmithCachedApiWrapperTest {
   @Test(groups = "unit")
   public void getUserFlagsAndTraits_fetchFlagsFromCacheAndNotFromFlagsmith() {
     // Arrange
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("test-user");
 
     final FlagsAndTraits flagsAndTraits = new FlagsAndTraits();
-    cache.put(user.getIdentifier(), flagsAndTraits);
+    cache.put("test-user", flagsAndTraits);
 
     // Act
-    final FlagsAndTraits actualUserFlagsAndTraits = sut.getUserFlagsAndTraits(user, true);
+    final FlagsAndTraits actualUserFlagsAndTraits = sut.getUserFlagsAndTraits("test-user", true);
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).getUserFlagsAndTraits(any(), anyBoolean());
     verify(flagsmithInternalCache, times(1)).getCache();
-    assertEquals(flagsAndTraits, cache.getIfPresent(user.getIdentifier()));
+    assertEquals(flagsAndTraits, cache.getIfPresent("test-user"));
     assertEquals(flagsAndTraits, actualUserFlagsAndTraits);
     assertEquals(1, cache.estimatedSize());
   }
@@ -218,7 +176,7 @@ public class FlagsmithCachedApiWrapperTest {
   @Test(groups = "unit")
   public void postUserTraits_nullUser() {
     // Act
-    assertThrows(IllegalArgumentException.class, () -> sut.postUserTraits(null, new Trait(), true));
+    assertThrows(IllegalArgumentException.class, () -> sut.postUserTraits(null, new TraitRequest(), true));
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).postUserTraits(any(), any(), anyBoolean());
@@ -231,7 +189,7 @@ public class FlagsmithCachedApiWrapperTest {
   public void postUserTraits_nullUserIdentifier() {
     // Act
     assertThrows(IllegalArgumentException.class,
-        () -> sut.postUserTraits(new FeatureUser(), new Trait(), true));
+        () -> sut.postUserTraits("", new TraitRequest(), true));
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).postUserTraits(any(), any(), anyBoolean());
@@ -243,27 +201,25 @@ public class FlagsmithCachedApiWrapperTest {
   @Test(groups = "unit")
   public void postUserTraits_updateBecauseFlagsNotCached() {
     // Arrange
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("test-user");
 
-    final Trait oldTrait = new Trait();
+    final TraitRequest oldTrait = new TraitRequest();
     oldTrait.setKey("old-key");
     oldTrait.setValue("old-val");
 
-    final Trait newTrait = new Trait();
+    final TraitRequest newTrait = new TraitRequest();
     newTrait.setKey("old-key");
     newTrait.setValue("new-val");
 
-    when(flagsmithAPIWrapper.postUserTraits(user, oldTrait, true)).thenReturn(newTrait);
+    when(flagsmithAPIWrapper.postUserTraits("test-user", oldTrait, true)).thenReturn(newTrait);
 
     // Act
-    final Trait actualTrait = sut.postUserTraits(user, oldTrait, true);
+    final TraitModel actualTrait = sut.postUserTraits("test-user", oldTrait, true);
 
     // Assert
-    verify(flagsmithAPIWrapper, times(1)).postUserTraits(eq(user), eq(oldTrait), eq(true));
+    verify(flagsmithAPIWrapper, times(1)).postUserTraits(eq("test-user"), eq(oldTrait), eq(true));
     verify(flagsmithAPIWrapper, times(0)).getLogger();
     verify(flagsmithInternalCache, times(1)).getCache();
-    assertNull(cache.getIfPresent(user.getIdentifier()));
+    assertNull(cache.getIfPresent("test-user"));
     assertEquals(0, cache.estimatedSize());
     assertEquals(newTrait, actualTrait);
   }
@@ -271,31 +227,28 @@ public class FlagsmithCachedApiWrapperTest {
   @Test(groups = "unit")
   public void postUserTraits_updateBecauseTraitValueHasChangedFromCache() {
     // Arrange
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("test-user");
-
-    final Trait oldTrait = new Trait();
+    final TraitRequest oldTrait = new TraitRequest();
     oldTrait.setKey("old-key");
     oldTrait.setValue("old-val");
 
-    final Trait newTrait = new Trait();
+    final TraitRequest newTrait = new TraitRequest();
     newTrait.setKey("old-key");
     newTrait.setValue("new-val");
 
     final FlagsAndTraits flagsAndTraits = new FlagsAndTraits();
-    cache.put(user.getIdentifier(), flagsAndTraits);
+    cache.put("test-user", flagsAndTraits);
     assertEquals(1, cache.estimatedSize());
 
-    when(flagsmithAPIWrapper.postUserTraits(user, oldTrait, true)).thenReturn(newTrait);
+    when(flagsmithAPIWrapper.postUserTraits("test-user", oldTrait, true)).thenReturn(newTrait);
 
     // Act
-    final Trait actualTrait = sut.postUserTraits(user, oldTrait, true);
+    final TraitModel actualTrait = sut.postUserTraits("test-user", oldTrait, true);
 
     // Assert
-    verify(flagsmithAPIWrapper, times(1)).postUserTraits(eq(user), eq(oldTrait), eq(true));
+    verify(flagsmithAPIWrapper, times(1)).postUserTraits(eq("test-user"), eq(oldTrait), eq(true));
     verify(flagsmithAPIWrapper, times(0)).getLogger();
     verify(flagsmithInternalCache, times(2)).getCache();
-    assertNull(cache.getIfPresent(user.getIdentifier()));
+    assertNull(cache.getIfPresent("test-user"));
     assertEquals(0, cache.estimatedSize());
     assertEquals(newTrait, actualTrait);
   }
@@ -303,30 +256,28 @@ public class FlagsmithCachedApiWrapperTest {
   @Test(groups = "unit")
   public void postUserTraits_doNotUpdateBecauseTraitValueHasNotChangedFromCache() {
     // Arrange
-    final Trait newTrait = new Trait();
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("test-user");
+    final TraitRequest newTrait = new TraitRequest();
 
-    final Trait oldTrait = new Trait();
+    final TraitRequest oldTrait = new TraitRequest();
     oldTrait.setKey("old-key");
     oldTrait.setValue("old-val");
 
     final FlagsAndTraits flagsAndTraits = new FlagsAndTraits();
     flagsAndTraits.setTraits(new ArrayList<>());
     flagsAndTraits.getTraits().add(oldTrait);
-    cache.put(user.getIdentifier(), flagsAndTraits);
+    cache.put("test-user", flagsAndTraits);
     assertEquals(1, cache.estimatedSize());
 
-    when(flagsmithAPIWrapper.postUserTraits(user, oldTrait, true)).thenReturn(newTrait);
+    when(flagsmithAPIWrapper.postUserTraits("test-user", oldTrait, true)).thenReturn(newTrait);
 
     // Act
-    final Trait actualTrait = sut.postUserTraits(user, oldTrait, true);
+    final TraitModel actualTrait = sut.postUserTraits("test-user", oldTrait, true);
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).postUserTraits(any(), any(), anyBoolean());
     verify(flagsmithAPIWrapper, times(1)).getLogger();
     verify(flagsmithInternalCache, times(1)).getCache();
-    assertEquals(flagsAndTraits, cache.getIfPresent(user.getIdentifier()));
+    assertEquals(flagsAndTraits, cache.getIfPresent("test-user"));
     assertEquals(1, cache.estimatedSize());
     assertEquals(oldTrait, actualTrait);
   }
@@ -347,10 +298,11 @@ public class FlagsmithCachedApiWrapperTest {
   public void identifyUserWithTraits_nullUserIdentifier() {
     // Act
     assertThrows(IllegalArgumentException.class,
-        () -> sut.identifyUserWithTraits(new FeatureUser(), new ArrayList<>(), true));
+        () -> sut.identifyUserWithTraits("", new ArrayList<>(), true));
 
     // Assert
-    verify(flagsmithAPIWrapper, times(0)).identifyUserWithTraits(any(), any(), anyBoolean());
+    verify(flagsmithAPIWrapper, times(0))
+        .identifyUserWithTraits(any(), any(), anyBoolean());
     verify(flagsmithInternalCache, times(0)).getCache();
     assertEquals(0, cache.estimatedSize());
   }
@@ -358,21 +310,18 @@ public class FlagsmithCachedApiWrapperTest {
   @Test(groups = "unit")
   public void identifyUserWithTraits_fetchFlagsFromFlagsmithAndStoreThemInCache_whenCacheEmpty() {
     // Arrange
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("test-user");
-
-    final ArrayList<Trait> traits = new ArrayList<>();
+    final ArrayList<TraitModel> traits = new ArrayList<>();
 
     final FlagsAndTraits flagsAndTraits = new FlagsAndTraits();
-    when(flagsmithAPIWrapper.identifyUserWithTraits(user, traits, true)).thenReturn(flagsAndTraits);
+    when(flagsmithAPIWrapper.identifyUserWithTraits("test-user", traits, true)).thenReturn(flagsAndTraits);
 
     // Act
-    final FlagsAndTraits actualUserFlagsAndTraits = sut.identifyUserWithTraits(user, traits, true);
+    final FlagsAndTraits actualUserFlagsAndTraits = sut.identifyUserWithTraits("test-user", traits, true);
 
     // Assert
-    verify(flagsmithAPIWrapper, times(1)).identifyUserWithTraits(eq(user), eq(traits), eq(true));
+    verify(flagsmithAPIWrapper, times(1)).identifyUserWithTraits(eq("test-user"), eq(traits), eq(true));
     verify(flagsmithInternalCache, times(2)).getCache();
-    assertEquals(flagsAndTraits, cache.getIfPresent(user.getIdentifier()));
+    assertEquals(flagsAndTraits, cache.getIfPresent("test-user"));
     assertEquals(flagsAndTraits, actualUserFlagsAndTraits);
     assertEquals(1, cache.estimatedSize());
   }
@@ -380,17 +329,14 @@ public class FlagsmithCachedApiWrapperTest {
   @Test(groups = "unit")
   public void identifyUserWithTraits_dontFetchFlagsFromFlagsmithIfInCacheAndNewTraitsAreEmpty() {
     // Arrange
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("test-user");
-
-    final ArrayList<Trait> traits = new ArrayList<>();
+    final ArrayList<TraitModel> traits = new ArrayList<>();
 
     final FlagsAndTraits oldFlags = new FlagsAndTraits();
     oldFlags.setTraits(traits);
-    cache.put(user.getIdentifier(), oldFlags);
+    cache.put("test-user", oldFlags);
 
     // Act
-    final FlagsAndTraits actualUserFlagsAndTraits = sut.identifyUserWithTraits(user, traits, true);
+    final FlagsAndTraits actualUserFlagsAndTraits = sut.identifyUserWithTraits("test-user", traits, true);
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).identifyUserWithTraits(any(), eq(traits), eq(true));
@@ -403,35 +349,33 @@ public class FlagsmithCachedApiWrapperTest {
   public void identifyUserWithTraits_fetchFlagsFromFlagsmithEvenIfInCache_withSameTraitKey() {
     // Arrange
     final String traitKey = "trait-key";
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("test-user");
 
-    final Trait oldTrait = new Trait();
+    final TraitRequest oldTrait = new TraitRequest();
     oldTrait.setKey(traitKey);
     oldTrait.setValue("old-val");
-    final ArrayList<Trait> oldTraits = new ArrayList<>();
+    final ArrayList<TraitModel> oldTraits = new ArrayList<>();
     oldTraits.add(oldTrait);
     final FlagsAndTraits oldFlags = new FlagsAndTraits();
     oldFlags.setTraits(oldTraits);
-    cache.put(user.getIdentifier(), oldFlags);
+    cache.put("test-user", oldFlags);
 
-    final Trait newTrait = new Trait();
+    final TraitRequest newTrait = new TraitRequest();
     newTrait.setKey(traitKey);
     newTrait.setValue("new-val");
-    final ArrayList<Trait> newTraits = new ArrayList<>();
+    final ArrayList<TraitModel> newTraits = new ArrayList<>();
     newTraits.add(newTrait);
     final FlagsAndTraits newFlags = new FlagsAndTraits();
     newFlags.setTraits(newTraits);
-    when(flagsmithAPIWrapper.identifyUserWithTraits(user, newTraits, true)).thenReturn(newFlags);
+    when(flagsmithAPIWrapper.identifyUserWithTraits("test-user", newTraits, true)).thenReturn(newFlags);
 
     // Act
     final FlagsAndTraits actualUserFlagsAndTraits = sut
-        .identifyUserWithTraits(user, newTraits, true);
+        .identifyUserWithTraits("test-user", newTraits, true);
 
     // Assert
     verify(flagsmithAPIWrapper, times(1)).identifyUserWithTraits(any(), eq(newTraits), eq(true));
     verify(flagsmithInternalCache, times(3)).getCache();
-    assertEquals(newFlags, cache.getIfPresent(user.getIdentifier()));
+    assertEquals(newFlags, cache.getIfPresent("test-user"));
     assertEquals(newFlags, actualUserFlagsAndTraits);
     assertEquals(1, cache.estimatedSize());
   }
@@ -440,35 +384,33 @@ public class FlagsmithCachedApiWrapperTest {
   public void identifyUserWithTraits_fetchFlagsFromFlagsmithEvenIfInCache_withNewTraitKey() {
     // Arrange
     final String traitValue = "value";
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("test-user");
 
-    final Trait oldTrait = new Trait();
+    final TraitRequest oldTrait = new TraitRequest();
     oldTrait.setKey("trait-key-1");
     oldTrait.setValue(traitValue);
-    final ArrayList<Trait> oldTraits = new ArrayList<>();
+    final ArrayList<TraitModel> oldTraits = new ArrayList<>();
     oldTraits.add(oldTrait);
     final FlagsAndTraits oldFlags = new FlagsAndTraits();
     oldFlags.setTraits(oldTraits);
-    cache.put(user.getIdentifier(), oldFlags);
+    cache.put("test-user", oldFlags);
 
-    final Trait newTrait = new Trait();
+    final TraitRequest newTrait = new TraitRequest();
     newTrait.setKey("trait-key-2");
     newTrait.setValue(traitValue);
-    final ArrayList<Trait> newTraits = new ArrayList<>();
+    final ArrayList<TraitModel> newTraits = new ArrayList<>();
     newTraits.add(newTrait);
     final FlagsAndTraits newFlags = new FlagsAndTraits();
     newFlags.setTraits(newTraits);
-    when(flagsmithAPIWrapper.identifyUserWithTraits(user, newTraits, true)).thenReturn(newFlags);
+    when(flagsmithAPIWrapper.identifyUserWithTraits("test-user", newTraits, true)).thenReturn(newFlags);
 
     // Act
     final FlagsAndTraits actualUserFlagsAndTraits = sut
-        .identifyUserWithTraits(user, newTraits, true);
+        .identifyUserWithTraits("test-user", newTraits, true);
 
     // Assert
     verify(flagsmithAPIWrapper, times(1)).identifyUserWithTraits(any(), eq(newTraits), eq(true));
     verify(flagsmithInternalCache, times(3)).getCache();
-    assertEquals(newFlags, cache.getIfPresent(user.getIdentifier()));
+    assertEquals(newFlags, cache.getIfPresent("test-user"));
     assertEquals(newFlags, actualUserFlagsAndTraits);
     assertEquals(1, cache.estimatedSize());
   }
@@ -477,36 +419,33 @@ public class FlagsmithCachedApiWrapperTest {
   public void identifyUserWithTraits_fetchFlagsFromFlagsmithEvenIfInCache_withExtraTrait() {
     // Arrange
     final String traitValue = "value";
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("test-user");
-
-    final Trait oldTrait = new Trait();
+    final TraitRequest oldTrait = new TraitRequest();
     oldTrait.setKey("trait-key-1");
     oldTrait.setValue(traitValue);
-    final ArrayList<Trait> oldTraits = new ArrayList<>();
+    final ArrayList<TraitModel> oldTraits = new ArrayList<>();
     oldTraits.add(oldTrait);
     final FlagsAndTraits oldFlags = new FlagsAndTraits();
     oldFlags.setTraits(oldTraits);
-    cache.put(user.getIdentifier(), oldFlags);
+    cache.put("test-user", oldFlags);
 
-    final Trait newTrait = new Trait();
+    final TraitRequest newTrait = new TraitRequest();
     newTrait.setKey("trait-key-2");
     newTrait.setValue(traitValue);
-    final ArrayList<Trait> newTraits = new ArrayList<>();
+    final ArrayList<TraitModel> newTraits = new ArrayList<>();
     newTraits.add(newTrait);
     newTraits.add(oldTrait);
     final FlagsAndTraits newFlags = new FlagsAndTraits();
     newFlags.setTraits(newTraits);
-    when(flagsmithAPIWrapper.identifyUserWithTraits(user, newTraits, true)).thenReturn(newFlags);
+    when(flagsmithAPIWrapper.identifyUserWithTraits("test-user", newTraits, true)).thenReturn(newFlags);
 
     // Act
     final FlagsAndTraits actualUserFlagsAndTraits = sut
-        .identifyUserWithTraits(user, newTraits, true);
+        .identifyUserWithTraits("test-user", newTraits, true);
 
     // Assert
     verify(flagsmithAPIWrapper, times(1)).identifyUserWithTraits(any(), eq(newTraits), eq(true));
     verify(flagsmithInternalCache, times(3)).getCache();
-    assertEquals(newFlags, cache.getIfPresent(user.getIdentifier()));
+    assertEquals(newFlags, cache.getIfPresent("test-user"));
     assertEquals(newFlags, actualUserFlagsAndTraits);
     assertEquals(1, cache.estimatedSize());
   }
@@ -514,26 +453,24 @@ public class FlagsmithCachedApiWrapperTest {
   @Test(groups = "unit")
   public void identifyUserWithTraits_useCachedValue_whenEmptyTraitList() {
     // Arrange
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("test-user");
 
-    final Trait oldTrait = new Trait();
+    final TraitRequest oldTrait = new TraitRequest();
     oldTrait.setKey("trait-key-1");
     oldTrait.setValue("value");
-    final ArrayList<Trait> oldTraits = new ArrayList<>();
+    final ArrayList<TraitModel> oldTraits = new ArrayList<>();
     oldTraits.add(oldTrait);
     final FlagsAndTraits oldFlags = new FlagsAndTraits();
     oldFlags.setTraits(oldTraits);
-    cache.put(user.getIdentifier(), oldFlags);
+    cache.put("test-user", oldFlags);
 
     // Act
     final FlagsAndTraits actualUserFlagsAndTraits = sut
-        .identifyUserWithTraits(user, new ArrayList<>(), true);
+        .identifyUserWithTraits("test-user", new ArrayList<>(), true);
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).identifyUserWithTraits(any(), any(), eq(true));
     verify(flagsmithInternalCache, times(1)).getCache();
-    assertEquals(oldFlags, cache.getIfPresent(user.getIdentifier()));
+    assertEquals(oldFlags, cache.getIfPresent("test-user"));
     assertEquals(oldFlags, actualUserFlagsAndTraits);
     assertEquals(1, cache.estimatedSize());
   }
@@ -541,25 +478,22 @@ public class FlagsmithCachedApiWrapperTest {
   @Test(groups = "unit")
   public void identifyUserWithTraits_useCachedValue_whenNullTraitList() {
     // Arrange
-    final FeatureUser user = new FeatureUser();
-    user.setIdentifier("test-user");
-
-    final Trait oldTrait = new Trait();
+    final TraitRequest oldTrait = new TraitRequest();
     oldTrait.setKey("trait-key-1");
     oldTrait.setValue("value");
-    final ArrayList<Trait> oldTraits = new ArrayList<>();
+    final ArrayList<TraitModel> oldTraits = new ArrayList<>();
     oldTraits.add(oldTrait);
     final FlagsAndTraits oldFlags = new FlagsAndTraits();
     oldFlags.setTraits(oldTraits);
-    cache.put(user.getIdentifier(), oldFlags);
+    cache.put("test-user", oldFlags);
 
     // Act
-    final FlagsAndTraits actualUserFlagsAndTraits = sut.identifyUserWithTraits(user, null, true);
+    final FlagsAndTraits actualUserFlagsAndTraits = sut.identifyUserWithTraits("test-user", null, true);
 
     // Assert
     verify(flagsmithAPIWrapper, times(0)).identifyUserWithTraits(any(), any(), eq(true));
     verify(flagsmithInternalCache, times(1)).getCache();
-    assertEquals(oldFlags, cache.getIfPresent(user.getIdentifier()));
+    assertEquals(oldFlags, cache.getIfPresent("trait-user"));
     assertEquals(oldFlags, actualUserFlagsAndTraits);
     assertEquals(1, cache.estimatedSize());
   }

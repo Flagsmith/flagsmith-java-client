@@ -4,6 +4,7 @@ import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import java.util.Arrays;
@@ -22,18 +23,27 @@ public class FlagsmithCachedApiWrapper implements FlagsmithSdk {
   }
 
   @Override
-  public FlagsAndTraits getFeatureFlags(FeatureUser user, boolean doThrow) {
+  public List<FeatureStateModel> getFeatureFlags(String identifier, boolean doThrow) {
     String cacheKey = cache.getEnvFlagsCacheKey();
-    if (user == null && StringUtils.isBlank(cacheKey)) {
+    if (identifier == null && StringUtils.isBlank(cacheKey)) {
       // caching environment flags disabled
       return flagsmithApiWrapper.getFeatureFlags(null, doThrow);
     }
-    if (user != null) {
-      assertValidUser(user);
-      return cache.getCache()
-          .get(user.getIdentifier(), k -> flagsmithApiWrapper.getFeatureFlags(user, doThrow));
+    FlagsAndTraits flagsAndTraits = new FlagsAndTraits();
+    if (identifier != null) {
+      assertValidUser(identifier);
+      flagsAndTraits =  cache.getCache()
+          .get(identifier, k -> getCacheObjectFromFlags(
+                  flagsmithApiWrapper.getFeatureFlags(identifier, doThrow)
+              ));
+    } else {
+      flagsAndTraits = cache.getCache()
+          .get(cacheKey, k -> getCacheObjectFromFlags(
+                  flagsmithApiWrapper.getFeatureFlags(null, doThrow)
+              ));
     }
-    return cache.getCache().get(cacheKey, k -> flagsmithApiWrapper.getFeatureFlags(user, doThrow));
+
+    return flagsAndTraits.getFlags();
   }
 
   @Override
@@ -42,35 +52,35 @@ public class FlagsmithCachedApiWrapper implements FlagsmithSdk {
   }
 
   @Override
-  public FlagsAndTraits getUserFlagsAndTraits(FeatureUser user, boolean doThrow) {
-    assertValidUser(user);
+  public FlagsAndTraits getUserFlagsAndTraits(String identifier, boolean doThrow) {
+    assertValidUser(identifier);
     return cache.getCache()
-        .get(user.getIdentifier(), k -> flagsmithApiWrapper.getUserFlagsAndTraits(user, doThrow));
+        .get(identifier, k -> flagsmithApiWrapper.getUserFlagsAndTraits(identifier, doThrow));
   }
 
   @Override
-  public TraitRequest postUserTraits(FeatureUser user, TraitRequest toUpdate, boolean doThrow) {
-    assertValidUser(user);
-    final FlagsAndTraits flagsAndTraits = getCachedFlagsIfTraitsMatch(user,
+  public TraitRequest postUserTraits(String identifier, TraitModel toUpdate, boolean doThrow) {
+    assertValidUser(identifier);
+    final FlagsAndTraits flagsAndTraits = getCachedFlagsIfTraitsMatch(identifier,
         Arrays.asList(toUpdate));
     if (flagsAndTraits != null) {
       flagsmithApiWrapper.getLogger()
-          .info("User trait unchanged for user {}, trait: {}", user.getIdentifier(), toUpdate);
-      return toUpdate;
+          .info("User trait unchanged for user {}, trait: {}", identifier, toUpdate);
+      return new TraitRequest(toUpdate);
     }
-    return flagsmithApiWrapper.postUserTraits(user, toUpdate, doThrow);
+    return flagsmithApiWrapper.postUserTraits(identifier, toUpdate, doThrow);
   }
 
   @Override
   public FlagsAndTraits identifyUserWithTraits(
-      FeatureUser user, List<TraitRequest> traits, boolean doThrow) {
-    assertValidUser(user);
-    FlagsAndTraits flagsAndTraits = getCachedFlagsIfTraitsMatch(user, traits);
+      String identifier, List<TraitModel> traits, boolean doThrow) {
+    assertValidUser(identifier);
+    FlagsAndTraits flagsAndTraits = getCachedFlagsIfTraitsMatch(identifier, traits);
     if (flagsAndTraits != null) {
       return flagsAndTraits;
     }
-    flagsAndTraits = flagsmithApiWrapper.identifyUserWithTraits(user, traits, doThrow);
-    cache.getCache().put(user.getIdentifier(), flagsAndTraits);
+    flagsAndTraits = flagsmithApiWrapper.identifyUserWithTraits(identifier, traits, doThrow);
+    cache.getCache().put(identifier, flagsAndTraits);
     return flagsAndTraits;
   }
 
@@ -89,8 +99,10 @@ public class FlagsmithCachedApiWrapper implements FlagsmithSdk {
     return cache;
   }
 
-  private FlagsAndTraits getCachedFlagsIfTraitsMatch(FeatureUser user, List<TraitRequest> traitsToMatch) {
-    final FlagsAndTraits flagsAndTraits = cache.getCache().getIfPresent(user.getIdentifier());
+  private FlagsAndTraits getCachedFlagsIfTraitsMatch(
+      String identifier, List<TraitModel> traitsToMatch
+  ) {
+    final FlagsAndTraits flagsAndTraits = cache.getCache().getIfPresent(identifier);
     if (flagsAndTraits == null) {
       // cache doesnt exist for this user
       return null;
@@ -101,7 +113,9 @@ public class FlagsmithCachedApiWrapper implements FlagsmithSdk {
               || traitsToMatch.isEmpty()
               || traitsToMatch.stream()
               .allMatch(t -> {
-                final TraitRequest newTrait = new TraitRequest(null, t.getKey(), t.getValue());
+                final TraitRequest newTrait = new TraitRequest(
+                    null, t.getTraitKey(), t.getTraitValue()
+                );
                 return flagsAndTraits.getTraits().contains(newTrait);
               });
 
@@ -112,7 +126,15 @@ public class FlagsmithCachedApiWrapper implements FlagsmithSdk {
     }
 
     // cache exists but does not match the target trait, lets invalidate this cache entry
-    cache.getCache().invalidate(user.getIdentifier());
+    cache.getCache().invalidate(identifier);
     return null;
+  }
+
+  private FlagsAndTraits getCacheObjectFromFlags(List<FeatureStateModel> featureStates) {
+    return FlagsAndTraits.builder().flags(featureStates).build();
+  }
+
+  private FlagsAndTraits getCacheObjectFromTraits(List<TraitModel> traits) {
+    return FlagsAndTraits.builder().traits(traits).build();
   }
 }

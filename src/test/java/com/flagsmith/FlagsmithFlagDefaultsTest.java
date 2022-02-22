@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.testng.AssertJUnit.assertNull;
 import static org.testng.AssertJUnit.assertTrue;
 
+import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.flagengine.identities.traits.TraitModel;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -55,7 +57,7 @@ public class FlagsmithFlagDefaultsTest {
     }});
 
     // Act
-    final List<Flag> defaultFlags = sut.getDefaultFlags();
+    final List<FeatureStateModel> defaultFlags = sut.getDefaultFlags();
 
     // Assert
     assertThat(defaultFlags).hasSize(3).containsExactlyInAnyOrder(
@@ -77,7 +79,7 @@ public class FlagsmithFlagDefaultsTest {
     }});
 
     // Act
-    final List<Flag> defaultFlags = sut.getDefaultFlags();
+    final List<FeatureStateModel> defaultFlags = sut.getDefaultFlags();
 
     // Assert
     assertThat(defaultFlags).hasSize(3).containsExactlyInAnyOrder(
@@ -91,13 +93,13 @@ public class FlagsmithFlagDefaultsTest {
   public void enrichWithDefaultFlags_addDefaultFlagsThatWereNotFetched() {
     // Arrange
     final FlagsAndTraits flagsFetchedFromFlagsmith = new FlagsAndTraits();
-    final ArrayList<Flag> existingFlags = new ArrayList<Flag>() {{
+    final ArrayList<FeatureStateModel> existingFlags = new ArrayList<FeatureStateModel>() {{
       add(flag("fetched-flag-1", null, "CONFIG", true, "fetched-value-1"));
       add(flag("fetched-flag-2", null, "CONFIG", true, "fetched-value-2"));
     }};
     flagsFetchedFromFlagsmith.setFlags(existingFlags);
-    flagsFetchedFromFlagsmith.setTraits(new ArrayList<Trait>() {{
-      add(new Trait());
+    flagsFetchedFromFlagsmith.setTraits(new ArrayList<TraitModel>() {{
+      add(new TraitRequest());
     }});
 
     sut.setDefaultFlagValueFunc((String flagName) -> "myDefaultValue-" + flagName);
@@ -109,18 +111,17 @@ public class FlagsmithFlagDefaultsTest {
     }});
 
     // Act
-    final FlagsAndTraits enrichedFlagsAndTraits = sut
-        .enrichWithDefaultFlags(flagsFetchedFromFlagsmith);
+    final List<FeatureStateModel> enrichedFlagsAndTraits = sut
+        .enrichWithDefaultFlags(flagsFetchedFromFlagsmith.getFlags());
 
     // Assert
-    assertThat(enrichedFlagsAndTraits.getFlags()).hasSize(5).containsExactlyInAnyOrder(
+    assertThat(enrichedFlagsAndTraits).hasSize(5).containsExactlyInAnyOrder(
         flag("fetched-flag-1", null, "CONFIG", true, "fetched-value-1"),
         flag("fetched-flag-2", null, "CONFIG", true, "fetched-value-2"),
         flag("flag-name-1", null, "CONFIG", false, "myDefaultValue-flag-name-1"),
         flag("flag-name-2", null, "CONFIG", false, "myDefaultValue-flag-name-2"),
         flag("flag-name-3", null, "CONFIG", false, "myDefaultValue-flag-name-3")
     );
-    assertThat(enrichedFlagsAndTraits.getTraits()).hasSize(1);
   }
 
   @Test(groups = "unit")
@@ -138,16 +139,15 @@ public class FlagsmithFlagDefaultsTest {
     }});
 
     // Act
-    final FlagsAndTraits enrichedFlagsAndTraits = sut
-        .enrichWithDefaultFlags(flagsFetchedFromFlagsmith);
+    final List<FeatureStateModel> enrichedFlagsAndTraits = sut
+        .enrichWithDefaultFlags(flagsFetchedFromFlagsmith.getFlags());
 
     // Assert
-    assertThat(enrichedFlagsAndTraits.getFlags()).hasSize(3).containsExactlyInAnyOrder(
+    assertThat(enrichedFlagsAndTraits).hasSize(3).containsExactlyInAnyOrder(
         flag("flag-name-1", null, "CONFIG", false, "myDefaultValue-flag-name-1"),
         flag("flag-name-2", null, "CONFIG", false, "myDefaultValue-flag-name-2"),
         flag("flag-name-3", null, "CONFIG", false, "myDefaultValue-flag-name-3")
     );
-    assertNull(enrichedFlagsAndTraits.getTraits());
   }
 
   @Test(groups = "unit")
@@ -166,15 +166,14 @@ public class FlagsmithFlagDefaultsTest {
     }});
 
     // Act
-    final FlagsAndTraits enrichedFlagsAndTraits = sut
-        .enrichWithDefaultFlags(flagsFetchedFromFlagsmith);
+    final List<FeatureStateModel> enrichedFlagsAndTraits = sut
+        .enrichWithDefaultFlags(flagsFetchedFromFlagsmith.getFlags());
 
     // Assert
-    assertThat(enrichedFlagsAndTraits.getFlags()).hasSize(3).containsExactlyInAnyOrder(
+    assertThat(enrichedFlagsAndTraits).hasSize(3).containsExactlyInAnyOrder(
         flag("flag-name-1", null, "CONFIG", false, "myDefaultValue-flag-name-1"),
         flag("flag-name-2", null, "CONFIG", false, "myDefaultValue-flag-name-2"),
         flag("flag-name-3", null, "CONFIG", false, "myDefaultValue-flag-name-3")
     );
-    assertNull(enrichedFlagsAndTraits.getTraits());
   }
 }

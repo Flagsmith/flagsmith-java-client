@@ -1,6 +1,7 @@
 package com.flagsmith.interfaces;
 
 import com.flagsmith.FlagsAndTraits;
+import com.flagsmith.TraitRequest;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
@@ -18,9 +19,11 @@ public interface FlagsmithSdk {
 
   FlagsAndTraits getUserFlagsAndTraits(String identifier, boolean doThrow);
 
-  TraitModel postUserTraits(String identifier, TraitModel toUpdate, boolean doThrow);
+  TraitRequest postUserTraits(String identifier, TraitModel toUpdate, boolean doThrow);
 
-  FlagsAndTraits identifyUserWithTraits(String identifier, List<TraitModel> traits, boolean doThrow);
+  FlagsAndTraits identifyUserWithTraits(
+      String identifier, List<TraitModel> traits, boolean doThrow
+  );
 
   FlagsmithConfig getConfig();
   
@@ -29,16 +32,6 @@ public interface FlagsmithSdk {
   // Cache
   default FlagsmithCache getCache() {
     return null;
-  }
-
-  /**
-   * validate user has a valid identifier.
-   * @param user user object
-   */
-  default void assertValidUser(@NonNull FeatureUser user) {
-    if (StringUtils.isBlank(user.getIdentifier())) {
-      throw new IllegalArgumentException("Missing user identifier");
-    }
   }
 
   /**

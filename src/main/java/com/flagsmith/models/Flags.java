@@ -189,7 +189,9 @@ public class Flags {
   public BaseFlag getFlag(String featureName) throws FlagsmithClientError {
     if (!flags.containsKey(featureName)) {
       if (defaultFlagHandler != null) {
-        return defaultFlagHandler.evaluateDefaultFlag(featureName);
+        return Flag.fromFeatureStateModel(
+            defaultFlagHandler.evaluateDefaultFlag(featureName), null
+        );
       }
       throw new FlagsmithClientError("Feature does not exist: " + featureName);
     }

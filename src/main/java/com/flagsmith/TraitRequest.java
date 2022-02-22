@@ -18,7 +18,7 @@ import lombok.Data;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-class TraitRequest extends TraitModel implements Serializable {
+public class TraitRequest extends TraitModel implements Serializable {
 
   private IdentityModel identity;
 
@@ -44,6 +44,16 @@ class TraitRequest extends TraitModel implements Serializable {
     this.identity = identity;
     this.key = key;
     this.value = value;
+  }
+
+  /**
+   * Trait Request Constructor
+   *
+   * @param trait an Identity user
+   */
+  public TraitRequest(TraitModel trait) {
+    this.key = trait.getTraitKey();
+    this.value = getTraitValue();
   }
 
   /**

@@ -11,7 +11,10 @@ import com.flagsmith.models.BaseFlag;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Holds a list of feature flags and user traits.
@@ -19,6 +22,9 @@ import lombok.Data;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class FlagsAndTraits implements Serializable {
 
   private List<FeatureStateModel> flags;

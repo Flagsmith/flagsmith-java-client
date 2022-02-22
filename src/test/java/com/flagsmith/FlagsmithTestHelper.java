@@ -3,6 +3,10 @@ package com.flagsmith;
 import static com.flagsmith.IntegrationSuiteTest.BACKEND_PORT;
 
 import com.flagsmith.config.FlagsmithCacheConfig;
+import com.flagsmith.flagengine.features.FeatureModel;
+import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.flagengine.identities.IdentityModel;
+import com.flagsmith.models.Flag;
 import com.google.common.collect.ImmutableMap;
 import io.restassured.RestAssured;
 import io.restassured.http.Header;
@@ -224,39 +228,39 @@ public class FlagsmithTestHelper {
         .getInt("id");
   }
 
-  public static Flag flag(String name, String description, String type, boolean enabled, String value) {
-    final com.flagsmith.Feature feature = new com.flagsmith.Feature();
+  public static FeatureStateModel flag(
+      String name, String description, String type, boolean enabled, String value
+  ) {
+    final FeatureModel feature = new FeatureModel();
     feature.setName(name);
-    feature.setDescription(description);
     feature.setType(type);
 
-    final Flag result = new Flag();
+    final FeatureStateModel result = new FeatureStateModel();
     result.setFeature(feature);
     result.setEnabled(enabled);
-    result.setStateValue(value);
+    result.setValue(value);
     return result;
   }
 
-  public static Flag flag(String name, String description, boolean enabled) {
+  public static FeatureStateModel flag(String name, String description, boolean enabled) {
     return flag(name, description, "FLAG", enabled, null);
   }
 
-  public static Flag config(String name, String description, String value) {
-    final com.flagsmith.Feature feature = new com.flagsmith.Feature();
+  public static FeatureStateModel config(String name, String description, String value) {
+    final FeatureModel feature = new FeatureModel();
     feature.setName(name);
-    feature.setDescription(description);
     feature.setType("CONFIG");
 
-    final Flag result = new Flag();
+    final FeatureStateModel result = new FeatureStateModel();
     result.setFeature(feature);
-    result.setStateValue(value);
+    result.setValue(value);
     return result;
   }
 
-  public static Trait trait(String userIdentifier, String key, String value) {
-    final Trait result = new Trait();
+  public static TraitRequest trait(String userIdentifier, String key, String value) {
+    final TraitRequest result = new TraitRequest();
     if (userIdentifier != null) {
-      final FeatureUser user = featureUser(userIdentifier);
+      final IdentityModel user = featureUser(userIdentifier);
       result.setIdentity(user);
     }
     result.setKey(key);
@@ -264,8 +268,8 @@ public class FlagsmithTestHelper {
     return result;
   }
 
-  public static FeatureUser featureUser(String identifier) {
-    final FeatureUser user = new FeatureUser();
+  public static IdentityModel featureUser(String identifier) {
+    final IdentityModel user = new IdentityModel();
     user.setIdentifier(identifier);
     return user;
   }

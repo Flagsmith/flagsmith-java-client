@@ -14,6 +14,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import lombok.Data;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -31,6 +33,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   // an api key per environment
   private final String apiKey;
   private final RequestProcessor requestor;
+  private static final Integer TIMEOUT = 15000;
 
   /**
    * Instantiate with config, custom headers, logger and apikey.
@@ -77,7 +80,9 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     List<FeatureStateModel> featureFlags = null;
 
     try {
-      featureFlags = featureFlagsFuture.get();
+      featureFlags = featureFlagsFuture.get(TIMEOUT, TimeUnit.MILLISECONDS);
+    } catch (TimeoutException ie) {
+      logger.error("Timed out on fetching Feature flags.", ie);
     } catch (InterruptedException ie) {
       logger.error("Interrupted on fetching Feature flags.", ie);
     } catch (ExecutionException ee) {
@@ -112,7 +117,9 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     List<FeatureStateModel> featureFlags = null;
 
     try {
-      featureFlags = featureFlagsFuture.get();
+      featureFlags = featureFlagsFuture.get(TIMEOUT, TimeUnit.MILLISECONDS);
+    } catch (TimeoutException ie) {
+      logger.error("Timed out on fetching Feature flags.", ie);
     } catch (InterruptedException ie) {
       logger.error("Interrupted on fetching Feature flags.", ie);
     } catch (ExecutionException ee) {
@@ -144,11 +151,17 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     FlagsAndTraits flagsAndTraits = newFlagsAndTraits();
 
     try {
-      flagsAndTraits = featureFlagsFuture.get();
+      flagsAndTraits = featureFlagsFuture.get(TIMEOUT, TimeUnit.MILLISECONDS);
+    } catch (TimeoutException ie) {
+      logger.error("Timed out on fetching Feature flags.", ie);
     } catch (InterruptedException ie) {
       logger.error("Interrupted on fetching Feature flags.", ie);
     } catch (ExecutionException ee) {
       logger.error("Execution failed on fetching Feature flags.", ee);
+    }
+
+    if (flagsAndTraits == null) {
+      flagsAndTraits = newFlagsAndTraits();
     }
 
     flagsAndTraits.setFlags(enrichWithDefaultFlags(flagsAndTraits.getFlags()));
@@ -158,7 +171,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   }
 
   @Override
-  public TraitModel postUserTraits(String identifier, TraitModel toUpdate, boolean doThrow) {
+  public TraitRequest postUserTraits(String identifier, TraitModel toUpdate, boolean doThrow) {
     HttpUrl url = defaultConfig.getTraitsUri();
 
     IdentityModel identityModel = new IdentityModel();
@@ -183,7 +196,9 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
 
     TraitRequest trait = null;
     try {
-      trait = featureFlagsFuture.get();
+      trait = featureFlagsFuture.get(TIMEOUT, TimeUnit.MILLISECONDS);
+    } catch (TimeoutException ie) {
+      logger.error("Timed out on fetching Feature flags.", ie);
     } catch (InterruptedException ie) {
       logger.error("Interrupted on fetching Feature flags.", ie);
     } catch (ExecutionException ee) {
@@ -226,15 +241,22 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     FlagsAndTraits flagsAndTraits = newFlagsAndTraits();
 
     try {
-      flagsAndTraits = featureFlagsFuture.get();
+      flagsAndTraits = featureFlagsFuture.get(TIMEOUT, TimeUnit.MILLISECONDS);
+    } catch (TimeoutException ie) {
+      logger.error("Timed out on fetching Feature flags.", ie);
     } catch (InterruptedException ie) {
       logger.error("Interrupted on fetching Feature flags.", ie);
     } catch (ExecutionException ee) {
       logger.error("Execution failed on fetching Feature flags.", ee);
     }
 
+    if (flagsAndTraits == null) {
+      flagsAndTraits = newFlagsAndTraits();
+    }
+
     flagsAndTraits.setFlags(enrichWithDefaultFlags(flagsAndTraits.getFlags()));
-    logger.info("Got flags based on identify for user = {}, flags = {}", identifier, flagsAndTraits);
+    logger.info("Got flags based on identify for identifier = {}, flags = {}",
+        identifier, flagsAndTraits);
     return flagsAndTraits;
   }
 
@@ -247,7 +269,9 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
         Boolean.FALSE);
 
     try {
-      return environmentFuture.get();
+      return environmentFuture.get(TIMEOUT, TimeUnit.MILLISECONDS);
+    } catch (TimeoutException ie) {
+      logger.error("Timed out on fetching Feature flags.", ie);
     } catch (InterruptedException ie) {
       logger.error("Environment loading interrupted.", ie);
     } catch (ExecutionException ee) {

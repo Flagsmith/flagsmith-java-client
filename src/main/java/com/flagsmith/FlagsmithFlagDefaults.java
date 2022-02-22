@@ -62,11 +62,13 @@ public class FlagsmithFlagDefaults implements DefaultFlagHandler {
    */
   public List<FeatureStateModel> enrichWithDefaultFlags(List<FeatureStateModel> baseFlags) {
     if (baseFlags == null) {
-      return new ArrayList<>();
+      baseFlags = new ArrayList<>();
     }
 
+    final List<FeatureStateModel> finalledBaseFlags = baseFlags;
+
     final Set<String> flagsNotFound = defaultFeatureFlags.stream()
-        .filter(defaultFlagName -> !isFlagWithNameFound(baseFlags, defaultFlagName))
+        .filter(defaultFlagName -> !isFlagWithNameFound(finalledBaseFlags, defaultFlagName))
         .collect(Collectors.toSet());
 
     for (String flagNameToBeAdded : flagsNotFound) {

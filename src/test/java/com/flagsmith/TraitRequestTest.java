@@ -11,11 +11,11 @@ import org.testng.annotations.Test;
 /**
  *
  */
-public class TraitTest {
+public class TraitRequestTest {
 
   @Test(groups = "unit")
   public void test_When_Parsed_Then_Success() throws IOException {
-    final Trait trait = new Trait();
+    final TraitRequest trait = new TraitRequest();
     trait.parse(getTraitJson("user-id", "trait-key", "trait-value"));
 
     assertEquals("trait-key", trait.getKey(), "Should have trait key");
@@ -26,9 +26,9 @@ public class TraitTest {
 
   @Test(groups = "unit")
   public void test_When_Compared_Then_Equal() throws IOException {
-    final Trait trait1 = new Trait();
+    final TraitRequest trait1 = new TraitRequest();
     trait1.parse(getTraitJson("user-id", "trait-key", "trait-value"));
-    final Trait trait2 = new Trait();
+    final TraitRequest trait2 = new TraitRequest();
     trait2.parse(getTraitJson("user-id", "trait-key", "trait-value"));
     assertTrue(trait1.equals(trait2));
 
@@ -39,29 +39,29 @@ public class TraitTest {
 
   @Test(groups = "unit")
   public void test_When_Compared_Without_User_Then_Equal() throws IOException {
-    final Trait trait1 = new Trait();
+    final TraitRequest trait1 = new TraitRequest();
     trait1.parse(getTraitJsonWithoutUser("trait-key", "trait-value"));
-    final Trait trait2 = new Trait();
+    final TraitRequest trait2 = new TraitRequest();
     trait2.parse(getTraitJsonWithoutUser("trait-key", "trait-value"));
     assertTrue(trait1.equals(trait2));
   }
 
   @Test(groups = "unit")
   public void test_When_Compared_Then_Not_Equal() throws IOException {
-    final Trait trait1 = new Trait();
-    final Trait trait1Copy = new Trait();
+    final TraitRequest trait1 = new TraitRequest();
+    final TraitRequest trait1Copy = new TraitRequest();
     trait1.parse(getTraitJson("user-id", "trait-key", "trait-value"));
     trait1Copy.parse(getTraitJson("user-id", "trait-key", "trait-value"));
 
-    final Trait trait2 = new Trait();
+    final TraitRequest trait2 = new TraitRequest();
     trait2.parse(getTraitJson("user-id", "trait-key2", "trait-value"));
     assertFalse(trait1.equals(trait2));
 
-    final Trait trait3 = new Trait();
+    final TraitRequest trait3 = new TraitRequest();
     trait3.parse(getTraitJson("user-id3", "trait-key", "trait-value"));
     assertFalse(trait1.equals(trait3));
 
-    final Trait trait4 = new Trait();
+    final TraitRequest trait4 = new TraitRequest();
     trait4.parse(getTraitJson("user-id", "trait-key", "trait-value4"));
     assertFalse(trait1.equals(trait4));
   }

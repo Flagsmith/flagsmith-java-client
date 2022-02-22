@@ -16,6 +16,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import com.flagsmith.FlagsmithTestHelper.FlagFeature;
+import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.flagengine.identities.IdentityModel;
+import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import java.util.Arrays;
 import java.util.Collections;
@@ -56,7 +59,7 @@ public class FlagsmithClientTest {
         environment.projectId,
         "foo"));
 
-    final List<Flag> featureFlags = environment.client.getFeatureFlags();
+    final List<FeatureStateModel> featureFlags = environment.client.getFeatureFlags();
 
     assertThat(featureFlags)
         .isNotNull()
@@ -111,9 +114,9 @@ public class FlagsmithClientTest {
 
     switchFlagForUser(featureId, secondUserId, true, environment.apiKey);
 
-    final FeatureUser user = featureUser("second-user");
+    final String user = "second-user";
 
-    final List<Flag> listForUserEnabled = environment.client.getFeatureFlags(user);
+    final List<FeatureStateModel> listForUserEnabled = environment.client.getFeatureFlags(user);
     assertThat(listForUserEnabled)
         .hasSize(2)
         .containsExactlyInAnyOrder(
@@ -121,14 +124,14 @@ public class FlagsmithClientTest {
             flag("Other Flag", null, false)
         );
 
-    final List<Flag> listWithoutUser = environment.client.getFeatureFlags();
+    final List<FeatureStateModel> listWithoutUser = environment.client.getFeatureFlags();
     assertThat(listWithoutUser)
         .hasSize(2)
-        .allSatisfy(flag -> assertThat(flag.isEnabled()).isFalse());
+        .allSatisfy(flag -> assertThat(flag.getEnabled()).isFalse());
 
     switchFlagForUser(featureId, secondUserId, false, environment.apiKey);
 
-    final List<Flag> listForUserDisabled = environment.client.getFeatureFlags(user);
+    final List<FeatureStateModel> listForUserDisabled = environment.client.getFeatureFlags(user);
     assertThat(listForUserDisabled)
         .hasSize(2)
         .containsExactlyInAnyOrder(
@@ -149,9 +152,9 @@ public class FlagsmithClientTest {
     assignTraitToUserIdentity("user-with-traits", "foo3", 3.14, environment.apiKey);
     assignTraitToUserIdentity("user-with-traits", "foo4", false, environment.apiKey);
 
-    final FeatureUser user = featureUser("user-with-traits");
+    final String user = "user-with-traits";
 
-    final List<Trait> traits = environment.client.getTraits(user);
+    final List<TraitModel> traits = environment.client.getTraits(user);
     assertThat(traits)
         .hasSize(4)
         .containsExactlyInAnyOrder(
@@ -172,9 +175,9 @@ public class FlagsmithClientTest {
     assignTraitToUserIdentity("user-with-key-traits", "foo2", "yyy", environment.apiKey);
     assignTraitToUserIdentity("user-with-key-traits", "foo3", "zzz", environment.apiKey);
 
-    final FeatureUser user = featureUser("user-with-key-traits");
+    final String user = "user-with-key-traits";
 
-    final List<Trait> traits = environment.client.getTraits(user, "foo2", "foo3", "foo-missing");
+    final List<TraitModel> traits = environment.client.getTraits(user, "foo2", "foo3", "foo-missing");
     assertThat(traits)
         .hasSize(2)
         .containsExactlyInAnyOrder(
@@ -182,7 +185,7 @@ public class FlagsmithClientTest {
             trait(null, "foo3", "zzz")
         );
     assertThat(traits)
-        .extracting(Trait::getKey)
+        .extracting(TraitModel::getTraitKey)
         .doesNotContain("foo-missing");
   }
 
@@ -194,9 +197,9 @@ public class FlagsmithClientTest {
 
     assignTraitToUserIdentity("mr-user", "foo", "bar", environment.apiKey);
 
-    final FeatureUser user = featureUser("invalid-user");
+    final String user = "invalid-user";
 
-    final List<Trait> traits = environment.client.getTraits(user);
+    final List<TraitModel> traits = environment.client.getTraits(user);
     assertThat(traits)
         .isEmpty();
   }
@@ -226,7 +229,7 @@ public class FlagsmithClientTest {
     assignTraitToUserIdentity("mr-user-2", "foo1", "xxx", environment.apiKey);
     assignTraitToUserIdentity("mr-user-999", "foo2", "yyy", environment.apiKey);
 
-    final FeatureUser user = featureUser("mr-user-2");
+    final String user = "mr-user-2";
 
     final FlagsAndTraits flagsAndTraits = environment.client.getUserFlagsAndTraits(user);
     assertThat(flagsAndTraits)
@@ -256,7 +259,7 @@ public class FlagsmithClientTest {
 
     assignTraitToUserIdentity("mr-user", "foo", "bar", environment.apiKey);
 
-    final FeatureUser user = featureUser("different-user");
+    final String user = "different-user";
 
     final FlagsAndTraits flagsAndTraits = environment.client.getUserFlagsAndTraits(user);
     assertThat(flagsAndTraits)
@@ -284,10 +287,10 @@ public class FlagsmithClientTest {
     assignTraitToUserIdentity("mr-user", "foo2", "yyy", environment.apiKey);
     assignTraitToUserIdentity("mr-user", "foo3", "zzz", environment.apiKey);
 
-    final FeatureUser user = featureUser("mr-user");
+    final String user = "mr-user";
 
     final FlagsAndTraits flagsAndTraits = environment.client.getUserFlagsAndTraits(user);
-    final Trait trait = environment.client.getTrait(flagsAndTraits, "foo2");
+    final TraitModel trait = environment.client.getTrait(flagsAndTraits, "foo2");
     assertThat(trait)
         .isNotNull()
         .isEqualTo(trait(null, "foo2", "yyy"));
@@ -309,10 +312,10 @@ public class FlagsmithClientTest {
     assignTraitToUserIdentity("mr-user", "foo2", "yyy", environment.apiKey);
     assignTraitToUserIdentity("mr-user", "foo3", "zzz", environment.apiKey);
 
-    final FeatureUser user = featureUser("mr-user");
+    final String user = "mr-user";
 
     final FlagsAndTraits flagsAndTraits = environment.client.getUserFlagsAndTraits(user);
-    final List<Trait> traits = environment.client
+    final List<TraitModel> traits = environment.client
         .getTraits(flagsAndTraits, "foo2", "foo3", "foo-missing");
     assertThat(traits)
         .hasSize(2)
@@ -321,7 +324,7 @@ public class FlagsmithClientTest {
             trait(null, "foo3", "zzz")
         );
     assertThat(traits)
-        .extracting(Trait::getKey)
+        .extracting(TraitModel::getTraitKey)
         .doesNotContain("foo-missing");
   }
 
@@ -344,7 +347,7 @@ public class FlagsmithClientTest {
 
     assignTraitToUserIdentity("mr-user", "foo1", "xxx", environment.apiKey);
 
-    final FeatureUser user = featureUser("mr-user");
+    final String user = "mr-user";
 
     final FlagsAndTraits flagsAndTraits = environment.client.getUserFlagsAndTraits(user);
     final String fontSize = environment.client.getFeatureFlagValue("font_size", flagsAndTraits);
@@ -368,7 +371,7 @@ public class FlagsmithClientTest {
 
     assignTraitToUserIdentity("mr-user", "foo1", "xxx", environment.apiKey);
 
-    final FeatureUser user = featureUser("mr-user");
+    final String user = "mr-user";
 
     final FlagsAndTraits flagsAndTraits = environment.client.getUserFlagsAndTraits(user);
     final boolean enabled = environment.client.hasFeatureFlag("The Flag", flagsAndTraits);
@@ -384,8 +387,8 @@ public class FlagsmithClientTest {
 
     assignTraitToUserIdentity("mr-user", "cookie", "value", environment.apiKey);
 
-    final FeatureUser user = featureUser("mr-user");
-    final Trait trait = environment.client.getTrait(user, "cookie");
+    final String user = "mr-user";
+    final TraitModel trait = environment.client.getTrait(user, "cookie");
     assertThat(trait)
         .isEqualTo(trait(null, "cookie", "value"));
   }
@@ -399,7 +402,7 @@ public class FlagsmithClientTest {
     assignTraitToUserIdentity("mr-user", "cookie", "old value", environment.apiKey);
     assignTraitToUserIdentity("mr-user", "foo", "bar", environment.apiKey);
 
-    final FeatureUser user = featureUser("mr-user");
+    final String user = "mr-user";
 
     assertThat(environment.client.getTrait(user, "cookie"))
         .isEqualTo(trait(null, "cookie", "old value"));
@@ -432,7 +435,7 @@ public class FlagsmithClientTest {
         "TEST");
 
     assertThatThrownBy(() ->
-        environment.client.identifyUserWithTraits(new FeatureUser(),
+        environment.client.identifyUserWithTraits("",
             Collections.singletonList(trait(null, "x", "y"))))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Missing user identifier");
@@ -444,9 +447,9 @@ public class FlagsmithClientTest {
         "testClient_When_Add_Traits_For_Identity_Then_Success",
         "TEST");
 
-    final FeatureUser user = featureUser("i-am-user-with-traits");
+    final String user = "i-am-user-with-traits";
 
-    final List<Trait> traits = environment.client.identifyUserWithTraits(user, Arrays.asList(
+    final List<TraitModel> traits = environment.client.identifyUserWithTraits(user, Arrays.asList(
         trait(null, "trait_1", "some value1"),
         trait(null, "trait_2", "some value2"))).getTraits();
 
@@ -464,9 +467,9 @@ public class FlagsmithClientTest {
         "testClient_When_Add_Traits_For_Identity_Then_Success",
         "TEST");
 
-    final FeatureUser user = featureUser("i-am-user-with-traits");
+    final String user = "i-am-user-with-traits";
 
-    List<Trait> traits = environment.client.identifyUserWithTraits(user, Arrays.asList(
+    List<TraitModel> traits = environment.client.identifyUserWithTraits(user, Arrays.asList(
         trait(null, "trait_1", "some value1"),
         trait(null, "trait_2", "some value2"),
         trait(null, "trait_3", "some value3"))).getTraits();
@@ -509,17 +512,17 @@ public class FlagsmithClientTest {
         false);
     createFeature(feature);
 
-    FeatureUser user = new FeatureUser();
-    user.setIdentifier("my-user");
-    Trait trait = new Trait(user, "trait_key", "trait_value");
-    List<Trait> traits = Arrays.asList(trait);
+    IdentityModel identity = new IdentityModel();
+    identity.setIdentifier("my-user");
+    TraitRequest trait = new TraitRequest(identity, "trait_key", "trait_value");
+    List<TraitModel> traits = Arrays.asList(trait);
 
-    FlagsAndTraits flagsAndTraits = environment.client.identifyUserWithTraits(user, traits);
+    FlagsAndTraits flagsAndTraits = environment.client.identifyUserWithTraits(identity.getIdentifier(), traits);
 
-    List<Trait> returnedTraits = flagsAndTraits.getTraits();
-    List<Flag> returnedFlags = flagsAndTraits.getFlags();
+    List<TraitModel> returnedTraits = flagsAndTraits.getTraits();
+    List<FeatureStateModel> returnedFlags = flagsAndTraits.getFlags();
 
-    Trait expectedTrait = new Trait(null, trait.getKey(), trait.getValue());
+    TraitRequest expectedTrait = new TraitRequest(null, trait.getKey(), trait.getValue());
     assertThat(returnedTraits).hasSize(1);
     assertEquals(expectedTrait, returnedTraits.get(0));
 

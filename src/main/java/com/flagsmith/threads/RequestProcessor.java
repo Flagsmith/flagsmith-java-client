@@ -2,6 +2,7 @@ package com.flagsmith.threads;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flagsmith.FlagsmithException;
 import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.MapperFactory;
 import java.io.IOException;
@@ -68,23 +69,35 @@ public class RequestProcessor {
     executor.submit(() -> {
       Integer localRetries = retries;
       // retry until local retry reaches 0
-      while (localRetries > 0) {
-        Boolean throwOrNot = localRetries == 1 ? doThrow : Boolean.FALSE;
-        try (Response response = call.execute()) {
-          if (response.isSuccessful()) {
-            ObjectMapper mapper = MapperFactory.getMappper();
-            completableFuture.complete(mapper.readValue(response.body().string(), clazz));
-            // break the while
-            break;
+      try {
+        while (localRetries > 0) {
+          Boolean throwOrNot = localRetries == 1 ? doThrow : Boolean.FALSE;
+          try (Response response = call.execute()) {
+            if (response.isSuccessful()) {
+              ObjectMapper mapper = MapperFactory.getMappper();
+              completableFuture.complete(mapper.readValue(response.body().string(), clazz));
+              // break the while
+              break;
 
-          } else {
-            getLogger().httpError(request, response, throwOrNot);
+            } else {
+              getLogger().httpError(request, response, throwOrNot);
+            }
+          } catch (IOException e) {
+            getLogger().httpError(request, e, throwOrNot);
           }
-        } catch (IOException e) {
-          getLogger().httpError(request, e, throwOrNot);
-        }
 
-        localRetries--;
+          localRetries--;
+        }
+      } catch (FlagsmithException e) {
+
+      } finally {
+        if (retries == 1) {
+          if (doThrow) {
+            completableFuture.exceptionally((v) -> null);
+          } else {
+            completableFuture.complete(null);
+          }
+        }
       }
     });
 
