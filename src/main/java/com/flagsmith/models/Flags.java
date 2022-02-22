@@ -1,7 +1,6 @@
 package com.flagsmith.models;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.flagsmith.FlagsAndTraits;
 import com.flagsmith.FlagsmithFlagDefaults;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.flagengine.features.FeatureStateModel;
@@ -137,21 +136,6 @@ public class Flags {
   }
 
   /**
-   * Return the flags instance.
-   *
-   * @param flagsAndTraits Dictionary with api flags
-   * @param analyticsProcessor instance of analytics processor
-   * @param defaultFlagHandler handler for default flags if present
-   * @return
-   */
-  public static Flags fromApiFlags(
-      FlagsAndTraits flagsAndTraits,
-      AnalyticsProcessor analyticsProcessor,
-      FlagsmithFlagDefaults defaultFlagHandler) {
-    return fromApiFlags(flagsAndTraits.getFlags(), analyticsProcessor, defaultFlagHandler);
-  }
-
-  /**
    * returns the list of all flags.
    *
    * @return
@@ -166,8 +150,8 @@ public class Flags {
    * @param featureName Feature name
    * @return
    */
-  public Boolean isFeatureEnabled(String featureName) {
-    return flags.containsKey(featureName) ? flags.get(featureName).getEnabled() : null;
+  public Boolean isFeatureEnabled(String featureName) throws FlagsmithClientError {
+    return flags.containsKey(featureName) ? getFlag(featureName).getEnabled() : null;
   }
 
   /**
@@ -176,8 +160,8 @@ public class Flags {
    * @param featureName Feature name
    * @return
    */
-  public Object getFeatureValue(String featureName) {
-    return flags.containsKey(featureName) ? flags.get(featureName).getValue() : null;
+  public Object getFeatureValue(String featureName) throws FlagsmithClientError {
+    return flags.containsKey(featureName) ? getFlag(featureName).getValue() : null;
   }
 
   /**
@@ -189,9 +173,7 @@ public class Flags {
   public BaseFlag getFlag(String featureName) throws FlagsmithClientError {
     if (!flags.containsKey(featureName)) {
       if (defaultFlagHandler != null) {
-        return Flag.fromFeatureStateModel(
-            defaultFlagHandler.evaluateDefaultFlag(featureName), null
-        );
+        return defaultFlagHandler.evaluateDefaultFlag(featureName);
       }
       throw new FlagsmithClientError("Feature does not exist: " + featureName);
     }

@@ -3,6 +3,7 @@ package com.flagsmith.config;
 import com.flagsmith.FlagsmithClient;
 import com.flagsmith.FlagsmithFlagDefaults;
 import com.flagsmith.interfaces.DefaultFlagHandler;
+import com.flagsmith.threads.AnalyticsProcessor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -34,10 +35,10 @@ public final class FlagsmithConfig {
   private final FlagsmithFlagDefaults flagsmithFlagDefaults = new FlagsmithFlagDefaults();
   private final HttpUrl baseUri;
 
-  private final Integer retries;
+  private final Retry retries;
   private Boolean enableLocalEvaluation = Boolean.FALSE;
   private Integer environmentRefreshIntervalSeconds = 60000;
-  private Boolean enableAnalytics = Boolean.FALSE;
+  private AnalyticsProcessor analyticsProcessor;
 
   protected FlagsmithConfig(Builder builder) {
     this.baseUri = builder.baseUri;
@@ -60,7 +61,14 @@ public final class FlagsmithConfig {
     this.retries = builder.retries;
     this.enableLocalEvaluation = builder.enableLocalEvaluation;
     this.environmentRefreshIntervalSeconds = builder.environmentRefreshIntervalSeconds;
-    this.enableAnalytics = builder.enableAnalytics;
+
+    if (builder.enableAnalytics) {
+      if (builder.analyticsProcessor != null) {
+        analyticsProcessor = builder.analyticsProcessor;
+      } else {
+        analyticsProcessor = new AnalyticsProcessor(httpClient);
+      }
+    }
   }
 
   public static FlagsmithConfig.Builder newBuilder() {
@@ -74,10 +82,11 @@ public final class FlagsmithConfig {
     private int connectTimeoutMillis = DEFAULT_CONNECT_TIMEOUT_MILLIS;
     private int writeTimeoutMillis = DEFAULT_WRITE_TIMEOUT_MILLIS;
     private int readTimeoutMillis = DEFAULT_READ_TIMEOUT_MILLIS;
-    private Integer retries = 3;
+    private Retry retries = new Retry(3);
     private SSLSocketFactory sslSocketFactory;
     private X509TrustManager trustManager;
     private FlagsmithFlagDefaults flagsmithFlagDefaults;
+    private AnalyticsProcessor analyticsProcessor;
 
     private Boolean enableLocalEvaluation = Boolean.FALSE;
     private Integer environmentRefreshIntervalSeconds = 60000;
@@ -162,7 +171,7 @@ public final class FlagsmithConfig {
      * @param retries no of retries for requests
      * @return
      */
-    public Builder retries(Integer retries) {
+    public Builder retries(Retry retries) {
       this.retries = retries;
       return this;
     }
@@ -186,6 +195,19 @@ public final class FlagsmithConfig {
       this.environmentRefreshIntervalSeconds = seconds;
       return this;
     }
+
+    /**
+     * Set the analytics processor.
+     *
+     * @param processor analytics processor object
+     * @return
+     */
+    public Builder withAnalyticsProcessor(AnalyticsProcessor processor) {
+      analyticsProcessor = processor;
+      enableAnalytics = Boolean.TRUE;
+      return this;
+    }
+
 
     /**
      * Enable Analytics Processor.

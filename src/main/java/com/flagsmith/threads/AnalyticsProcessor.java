@@ -6,33 +6,43 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flagsmith.FlagsmithApiWrapper;
 import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.MapperFactory;
+import com.flagsmith.interfaces.FlagsmithSdk;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.Data;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 
+@Data
 public class AnalyticsProcessor {
 
   private final String analyticsEndpoint = "analytics/flags/";
   private final Integer analyticsTimer = 10;
   private Map<Integer, Integer> analyticsData;
-  private FlagsmithApiWrapper api;
+  private FlagsmithSdk api;
   private Long nextFlush;
   private RequestProcessor requestProcessor;
   private HttpUrl analyticsUrl;
   FlagsmithLogger logger;
 
+  /**
+   * instantiate with HTTP client.
+   * @param client client instance
+   */
+  public AnalyticsProcessor(OkHttpClient client) {
+    this(null, client, null);
+  }
 
   /**
    * instantiate with api and client.
    * @param api api instance
    * @param client client instance
    */
-  public AnalyticsProcessor(FlagsmithApiWrapper api, OkHttpClient client) {
+  public AnalyticsProcessor(FlagsmithSdk api, OkHttpClient client) {
     this(api, client, new FlagsmithLogger());
   }
 
@@ -42,7 +52,7 @@ public class AnalyticsProcessor {
    * @param client client instance
    * @param logger logger instance
    */
-  public AnalyticsProcessor(FlagsmithApiWrapper api, OkHttpClient client, FlagsmithLogger logger) {
+  public AnalyticsProcessor(FlagsmithSdk api, OkHttpClient client, FlagsmithLogger logger) {
     this(api, logger, new RequestProcessor(client, logger));
   }
 
@@ -53,12 +63,34 @@ public class AnalyticsProcessor {
    * @param requestProcessor request processor instance
    */
   public AnalyticsProcessor(
-      FlagsmithApiWrapper api, FlagsmithLogger logger, RequestProcessor requestProcessor) {
+      FlagsmithSdk api, FlagsmithLogger logger, RequestProcessor requestProcessor) {
     this.analyticsData = new HashMap<Integer, Integer>();
     this.api = api;
     this.requestProcessor = requestProcessor;
     this.logger = logger;
     analyticsUrl = api.getConfig().getBaseUri().newBuilder(analyticsEndpoint).build();
+  }
+
+  /**
+   * The requestor is private, by default uses FlagsmithSDK requestor.
+   *
+   * @return
+   */
+  private RequestProcessor getRequestProcessor() {
+    if (requestProcessor != null) {
+      return requestProcessor;
+    }
+
+    return api.getRequestor();
+  }
+
+  /**
+   * Set the logger object.
+   *
+   * @param logger logger instance
+   */
+  public void setLogger(FlagsmithLogger logger) {
+    this.logger = logger;
   }
 
   /**
@@ -85,7 +117,7 @@ public class AnalyticsProcessor {
 
     Request request = api.newPostRequest(analyticsUrl, body);
 
-    requestProcessor.executeAsync(request, new TypeReference<Object>() {}, Boolean.FALSE);
+    getRequestProcessor().executeAsync(request, new TypeReference<Object>() {}, Boolean.FALSE);
 
     analyticsData.clear();
     setNextFlush();

@@ -1,12 +1,13 @@
 package com.flagsmith.interfaces;
 
-import com.flagsmith.FlagsAndTraits;
+import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.models.Flags;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
+import java.util.List;
 
 /**
- * Here are the fields we expose from the cache to outside this library. Do not expose the cache
- * here directly, i.e. getCache().
+ * Here are the fields we expose from the cache to outside this library.
  */
 public interface FlagsmithCache {
 
@@ -52,7 +53,7 @@ public interface FlagsmithCache {
    * @param key a key to retrieve value for
    * @return flags and traits in cache or null
    */
-  FlagsAndTraits getIfPresent(String key);
+  Flags getIfPresent(String key);
 
   /**
    * Returns the environment level flags/traits cache key.
@@ -67,4 +68,11 @@ public interface FlagsmithCache {
    * @return string
    */
   String getEnvFlagsCacheKey();
+
+  /**
+   * Returns the Cache instance.
+   *
+   * @return
+   */
+  Cache<String, Flags> getCache();
 }

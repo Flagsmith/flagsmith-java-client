@@ -1,10 +1,12 @@
 package com.flagsmith.threads;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flagsmith.FlagsmithException;
 import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.MapperFactory;
+import com.flagsmith.config.Retry;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -22,10 +24,10 @@ public class RequestProcessor {
   private ExecutorService executor = Executors.newFixedThreadPool(3);
   private OkHttpClient client;
   private FlagsmithLogger logger;
-  private Integer retries = 3;
+  private Retry retries = new Retry(3);
 
   public RequestProcessor(OkHttpClient client, FlagsmithLogger logger) {
-    this(client, logger, 3);
+    this(client, logger, new Retry(3));
   }
 
   /**
@@ -34,7 +36,7 @@ public class RequestProcessor {
    * @param logger logger instance
    * @param retries retries
    */
-  public RequestProcessor(OkHttpClient client, FlagsmithLogger logger, Integer retries) {
+  public RequestProcessor(OkHttpClient client, FlagsmithLogger logger, Retry retries) {
     this.client = client;
     this.logger = logger;
     this.retries = retries;
@@ -53,6 +55,16 @@ public class RequestProcessor {
   }
 
   /**
+   * Execute the response in async mode and do not unmarshall.
+   * @param request request to invoke
+   * @param doThrow whether to throw exception or not
+   * @return
+   */
+  public Future<JsonNode> executeAsync(Request request, Boolean doThrow) {
+    return executeAsync(request, new TypeReference<JsonNode>() {}, doThrow, retries);
+  }
+
+  /**
    * Execute the response in async mode.
    * @param request Request object
    * @param clazz class type of response
@@ -62,17 +74,21 @@ public class RequestProcessor {
    * @return
    */
   public <T> Future<T> executeAsync(
-      Request request, TypeReference<T> clazz, Boolean doThrow, Integer retries) {
+      Request request, TypeReference<T> clazz, Boolean doThrow, Retry retries) {
     CompletableFuture<T> completableFuture = new CompletableFuture<>();
     Call call = getClient().newCall(request);
+    Retry localRetry = retries.toBuilder().build();
     // run the execute method in a fixed thread with retries.
     executor.submit(() -> {
-      Integer localRetries = retries;
       // retry until local retry reaches 0
       try {
-        while (localRetries > 0) {
-          Boolean throwOrNot = localRetries == 1 ? doThrow : Boolean.FALSE;
+        Integer statusCode = null;
+        do {
+          localRetry.waitWithBackoff();
+          Boolean throwOrNot = localRetry.getAttempts() == localRetry.getTotal()
+              ? doThrow : Boolean.FALSE;
           try (Response response = call.execute()) {
+            statusCode = response.code();
             if (response.isSuccessful()) {
               ObjectMapper mapper = MapperFactory.getMappper();
               completableFuture.complete(mapper.readValue(response.body().string(), clazz));
@@ -86,17 +102,15 @@ public class RequestProcessor {
             getLogger().httpError(request, e, throwOrNot);
           }
 
-          localRetries--;
-        }
-      } catch (FlagsmithException e) {
+          localRetry.retryAttempted();
+        } while (localRetry.isRetry(statusCode));
+      } catch (Exception e) {
         // ignore this exception
       } finally {
-        if (retries == 1) {
-          if (doThrow) {
-            completableFuture.exceptionally((v) -> null);
-          } else {
-            completableFuture.complete(null);
-          }
+        if (doThrow) {
+          completableFuture.exceptionally((v) -> null);
+        } else {
+          completableFuture.complete(null);
         }
       }
     });

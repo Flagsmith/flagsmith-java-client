@@ -6,8 +6,7 @@ import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 
-import com.flagsmith.FlagsAndTraits;
-import com.flagsmith.config.FlagsmithCacheConfig;
+import com.flagsmith.models.Flags;
 import com.github.benmanes.caffeine.cache.Policy;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -22,7 +21,7 @@ public class FlagsmithCacheConfigTest {
   @Test(groups = "unit")
   public void testNewBuilder_defaults() {
     final FlagsmithCacheConfig flagsmithCacheConfig = FlagsmithCacheConfig.newBuilder().build();
-    final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache()
+    final Policy<String, Flags> cachePolicy = flagsmithCacheConfig.cache.getCache()
         .policy();
 
     assertNotNull(cachePolicy);
@@ -36,7 +35,7 @@ public class FlagsmithCacheConfigTest {
     verifyDefaultMaxSize(cachePolicy);
   }
 
-  private void verifyDefaultAfterWrite(Policy<String, FlagsAndTraits> cachePolicy) {
+  private void verifyDefaultAfterWrite(Policy<String, Flags> cachePolicy) {
     assertTrue(cachePolicy.expireAfterWrite().isPresent());
     assertEquals(DEFAULT_EXPIRE_AFTER_WRITE,
         cachePolicy.expireAfterWrite().get().getExpiresAfter());
@@ -48,7 +47,7 @@ public class FlagsmithCacheConfigTest {
         .newBuilder()
         .expireAfterWrite(30, TimeUnit.SECONDS)
         .build();
-    final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache()
+    final Policy<String, Flags> cachePolicy = flagsmithCacheConfig.cache.getCache()
         .policy();
 
     assertNotNull(cachePolicy);
@@ -69,7 +68,7 @@ public class FlagsmithCacheConfigTest {
         .newBuilder()
         .expireAfterAccess(20, TimeUnit.HOURS)
         .build();
-    final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache()
+    final Policy<String, Flags> cachePolicy = flagsmithCacheConfig.cache.getCache()
         .policy();
 
     assertNotNull(cachePolicy);
@@ -90,7 +89,7 @@ public class FlagsmithCacheConfigTest {
         .newBuilder()
         .maxSize(210)
         .build();
-    final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache()
+    final Policy<String, Flags> cachePolicy = flagsmithCacheConfig.cache.getCache()
         .policy();
 
     assertNotNull(cachePolicy);
@@ -112,7 +111,7 @@ public class FlagsmithCacheConfigTest {
         .newBuilder()
         .recordStats()
         .build();
-    final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache()
+    final Policy<String, Flags> cachePolicy = flagsmithCacheConfig.cache.getCache()
         .policy();
 
     assertNotNull(cachePolicy);
@@ -139,7 +138,7 @@ public class FlagsmithCacheConfigTest {
         .recordStats()
         .enableEnvLevelCaching(envFlagsCacheKey)
         .build();
-    final Policy<String, FlagsAndTraits> cachePolicy = flagsmithCacheConfig.cache.getCache()
+    final Policy<String, Flags> cachePolicy = flagsmithCacheConfig.cache.getCache()
         .policy();
 
     assertNotNull(cachePolicy);
@@ -182,7 +181,7 @@ public class FlagsmithCacheConfigTest {
         .build();
   }
 
-  private void verifyDefaultMaxSize(Policy<String, FlagsAndTraits> cachePolicy) {
+  private void verifyDefaultMaxSize(Policy<String, Flags> cachePolicy) {
     assertTrue(cachePolicy.eviction().isPresent());
     assertEquals(DEFAULT_MAX_SIZE, cachePolicy.eviction().get().getMaximum());
     assertFalse(cachePolicy.eviction().get().isWeighted());

@@ -6,7 +6,7 @@ import lombok.Data;
 
 @Data
 public class Flag extends BaseFlag {
-  private Integer featureId;
+  private Integer featureId = 0;
   private Boolean isDefault;
 
   /**

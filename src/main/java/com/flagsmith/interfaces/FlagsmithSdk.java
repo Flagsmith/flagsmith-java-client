@@ -1,33 +1,36 @@
 package com.flagsmith.interfaces;
 
-import com.flagsmith.FlagsAndTraits;
-import com.flagsmith.TraitRequest;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
+import com.flagsmith.models.Flags;
+import com.flagsmith.threads.RequestProcessor;
 import java.util.List;
 import lombok.NonNull;
+import okhttp3.HttpUrl;
+import okhttp3.Request;
+import okhttp3.RequestBody;
 import org.apache.commons.lang3.StringUtils;
 
 public interface FlagsmithSdk {
 
-  // API Endpoints
-  List<FeatureStateModel> getFeatureFlags(String identifier, boolean doThrow);
+  Flags getFeatureFlags(boolean doThrow);
 
-  List<FeatureStateModel> getFeatureFlags(boolean doThrow);
-
-  FlagsAndTraits getUserFlagsAndTraits(String identifier, boolean doThrow);
-
-  TraitRequest postUserTraits(String identifier, TraitModel toUpdate, boolean doThrow);
-
-  FlagsAndTraits identifyUserWithTraits(
+  Flags identifyUserWithTraits(
       String identifier, List<TraitModel> traits, boolean doThrow
   );
 
   FlagsmithConfig getConfig();
   
   EnvironmentModel getEnvironment();
+
+  RequestProcessor getRequestor();
+
+  Request newGetRequest(HttpUrl url);
+
+  Request newPostRequest(HttpUrl url, RequestBody body);
 
   // Cache
   default FlagsmithCache getCache() {

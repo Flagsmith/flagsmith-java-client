@@ -6,6 +6,8 @@ import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.flagengine.features.FeatureModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.IdentityModel;
+import com.flagsmith.flagengine.identities.traits.TraitModel;
+import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.Flag;
 import com.google.common.collect.ImmutableMap;
 import io.restassured.RestAssured;
@@ -13,6 +15,8 @@ import io.restassured.http.Header;
 import io.restassured.http.Headers;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 public class FlagsmithTestHelper {
@@ -35,7 +39,7 @@ public class FlagsmithTestHelper {
         .setApiKey(environmentApiKey);
     if (cached) {
       clientBuilder.withCache(FlagsmithCacheConfig.newBuilder()
-          .maxSize(2)
+          .maxSize(2).enableEnvLevelCaching("check")
           .build());
     }
     final FlagsmithClient client = clientBuilder.build();
@@ -228,7 +232,7 @@ public class FlagsmithTestHelper {
         .getInt("id");
   }
 
-  public static FeatureStateModel flag(
+  public static BaseFlag flag(
       String name, String description, String type, boolean enabled, String value
   ) {
     final FeatureModel feature = new FeatureModel();
@@ -239,32 +243,21 @@ public class FlagsmithTestHelper {
     result.setFeature(feature);
     result.setEnabled(enabled);
     result.setValue(value);
-    return result;
+    return Flag.fromFeatureStateModel(result, null);
   }
 
-  public static FeatureStateModel flag(String name, String description, boolean enabled) {
+  public static BaseFlag flag(String name, String description, boolean enabled) {
     return flag(name, description, "FLAG", enabled, null);
   }
 
-  public static FeatureStateModel config(String name, String description, String value) {
-    final FeatureModel feature = new FeatureModel();
-    feature.setName(name);
-    feature.setType("CONFIG");
-
-    final FeatureStateModel result = new FeatureStateModel();
-    result.setFeature(feature);
-    result.setValue(value);
-    return result;
+  public static BaseFlag config(String name, String description, String value) {
+    return flag(name, description, "CONFIG", true, value);
   }
 
-  public static TraitRequest trait(String userIdentifier, String key, String value) {
-    final TraitRequest result = new TraitRequest();
-    if (userIdentifier != null) {
-      final IdentityModel user = featureUser(userIdentifier);
-      result.setIdentity(user);
-    }
-    result.setKey(key);
-    result.setValue(value);
+  public static TraitModel trait(String userIdentifier, String key, String value) {
+    final TraitModel result = new TraitModel();
+    result.setTraitKey(key);
+    result.setTraitValue(value);
     return result;
   }
 
@@ -272,6 +265,12 @@ public class FlagsmithTestHelper {
     final IdentityModel user = new IdentityModel();
     user.setIdentifier(identifier);
     return user;
+  }
+
+  public static <T> Future<T> futurableReturn(T response) {
+    CompletableFuture<T> promise = new CompletableFuture<>();
+    promise.complete(response);
+    return promise;
   }
 
   public static Headers defaultHeaders() {

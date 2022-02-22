@@ -1,5 +1,6 @@
 package com.flagsmith;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithApiError;
@@ -11,6 +12,7 @@ import com.flagsmith.flagengine.identities.IdentityModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.interfaces.FlagsmithSdk;
+import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.Flags;
 import com.flagsmith.threads.AnalyticsProcessor;
 import com.flagsmith.threads.PollingManager;
@@ -41,299 +43,6 @@ public class FlagsmithClient {
 
   public static FlagsmithClient.Builder newBuilder() {
     return new FlagsmithClient.Builder();
-  }
-
-  /**
-   * Get user Trait from a given list of traits and trait key.
-   *
-   * @param key    a unique user trait key
-   * @param traits list of traits
-   * @return a Trait object or null if does not exist
-   */
-  private static TraitModel getTraitByKey(String key, List<TraitModel> traits) {
-    if (traits != null) {
-      for (TraitModel trait : traits) {
-        if (trait.getTraitKey().equals(key)) {
-          return trait;
-        }
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Get a list of user Traits from trait list and trait keys.
-   *
-   * @return a list of user Trait
-   */
-  private static List<TraitModel> getTraitsByKeys(List<TraitModel> traits, String[] keys) {
-    // if no keys provided return all the user traits
-    if (keys == null || keys.length == 0 || traits == null) {
-      return traits;
-    }
-
-    // otherwise filter on give user traits keys
-    List<TraitModel> filteredTraits = new ArrayList<>();
-    for (TraitModel trait : traits) {
-      if (Arrays.asList(keys).contains(trait.getTraitKey())) {
-        filteredTraits.add(trait);
-      }
-    }
-    return filteredTraits;
-  }
-
-  /**
-   * Get user Trait from a given FlagsAndTraits and trait key.
-   *
-   * @param key            a unique user trait key
-   * @param flagsAndTraits flags and traits object
-   * @return a Trait object or null if does not exist
-   */
-  public TraitModel getTrait(FlagsAndTraits flagsAndTraits, String key) {
-    if (flagsAndTraits == null) {
-      return null;
-    }
-    return getTraitByKey(key, flagsAndTraits.getTraits());
-  }
-
-  /**
-   * Get user Trait for given user identity and trait key.
-   *
-   * @param key  a unique user trait key
-   * @param identifier a user in context
-   * @return a Trait object or null if does not exist
-   */
-  public TraitModel getTrait(String identifier, String key) {
-    List<TraitModel> traits = getUserTraits(identifier);
-    return getTraitByKey(key, traits);
-  }
-
-  /**
-   * Get a list of user Traits for user identity and trait keys.
-   *
-   * @param flagsAndTraits  the user's flags and traits
-   * @param keys            the trait keys to filter for
-   * @return a list of user Trait
-   */
-  public List<TraitModel> getTraits(FlagsAndTraits flagsAndTraits, String... keys) {
-    return flagsAndTraits == null ? null : getTraitsByKeys(flagsAndTraits.getTraits(), keys);
-  }
-
-  /**
-   * Get a list of user Traits for user identity and trait keys.
-   *
-   * @param identifier  the user to get traits for
-   * @param keys  the trait keys to filter for      
-   * @return a list of user Trait
-   */
-  public List<TraitModel> getTraits(String identifier, String... keys) {
-    return getTraitsByKeys(getUserTraits(identifier), keys);
-  }
-
-  /**
-   * Get a list of existing Features for the given environment.
-   *
-   * @return a list of feature flags
-   */
-  public List<FeatureStateModel> getFeatureFlags() {
-    return getFeatureFlags(null);
-  }
-
-  /**
-   * Get a list of existing Features for the given environment and user.
-   *
-   * @param identifier a user in context
-   * @return a list of feature flags
-   */
-  public List<FeatureStateModel> getFeatureFlags(String identifier) {
-    return getFeatureFlags(identifier, false);
-  }
-
-  /**
-   * Get a list of existing Features for the given environment and user.
-   *
-   * @param identifier    a user in context
-   * @param doThrow throw exceptions or fail silently
-   * @return a list of feature flags
-   */
-  public List<FeatureStateModel> getFeatureFlags(String identifier, boolean doThrow) {
-    return this.flagsmithSdk.getFeatureFlags(identifier, doThrow);
-  }
-
-  /**
-   * Check if Feature flag exist and is enabled.
-   *
-   * @param featureId an identifier for the feature
-   * @return true if feature flag exist and enabled, false otherwise
-   */
-  public boolean hasFeatureFlag(String featureId) {
-    List<FeatureStateModel> featureFlags = getFeatureFlags();
-    return hasFeatureFlagByName(featureId, featureFlags);
-  }
-
-  /**
-   * Check if Feature flag exist and is enabled for given user.
-   *
-   * @param featureId a unique feature name identifier
-   * @param identifier      a user in context
-   * @return true if feature flag exist and enabled, false otherwise
-   */
-  public boolean hasFeatureFlag(String featureId, String identifier) {
-    List<FeatureStateModel> featureFlags = getFeatureFlags(identifier);
-    return hasFeatureFlagByName(featureId, featureFlags);
-  }
-
-  /**
-   * Check if Feature flag exist and is enabled in a FlagsAndTraits.
-   *
-   * @param featureId      a unique feature name identifier
-   * @param flagsAndTraits flags and traits object
-   * @return true if feature flag exist and enabled, false otherwise
-   */
-  public boolean hasFeatureFlag(String featureId, FlagsAndTraits flagsAndTraits) {
-    if (flagsAndTraits == null) {
-      return evaluateDefaultFlagPredicate(featureId);
-    }
-    return hasFeatureFlagByName(featureId, flagsAndTraits.getFlags());
-  }
-
-  /**
-   * Check if Feature flag exist and is enabled in a list of flags.
-   *
-   * @param featureId    a unique feature name identifier
-   * @param featureFlags a list of flags
-   * @return true if feature flag exist and enabled, false otherwise
-   */
-  private boolean hasFeatureFlagByName(String featureId, List<FeatureStateModel> featureFlags) {
-    if (featureFlags != null) {
-      for (FeatureStateModel flag : featureFlags) {
-        if (flag.getFeature().getName().equals(featureId)) {
-          return flag.getEnabled();
-        }
-      }
-    }
-    return evaluateDefaultFlagPredicate(featureId);
-  }
-
-  /**
-   * Get Feature value (remote config) for given feature id.
-   *
-   * @param featureId a unique feature name identifier
-   * @return a value for the Feature or null if feature does not exist
-   */
-  public String getFeatureFlagValue(String featureId) {
-    List<FeatureStateModel> featureFlags = getFeatureFlags();
-    return getFeatureFlagValueByName(featureId, featureFlags);
-  }
-
-  /**
-   * Get Feature value (remote config) for given feature id and user.
-   *
-   * @param featureId a unique feature name identifier
-   * @param identifier      a user in context
-   * @return a value for the feature or null if does not exist
-   */
-  public String getFeatureFlagValue(String featureId, String identifier) {
-    List<FeatureStateModel> featureFlags = getFeatureFlags(identifier);
-    return getFeatureFlagValueByName(featureId, featureFlags);
-  }
-
-  /**
-   * Get Feature value (remote config) for given feature id and user.
-   *
-   * @param featureId      a unique feature name identifier
-   * @param flagsAndTraits flags and traits object
-   * @return a value for the feature or null if does not exist
-   */
-  public String getFeatureFlagValue(String featureId, FlagsAndTraits flagsAndTraits) {
-    if (flagsAndTraits == null) {
-      return evaluateDefaultFlagValue(featureId);
-    }
-    return getFeatureFlagValueByName(featureId, flagsAndTraits.getFlags());
-  }
-
-  /**
-   * Get the default feature flags. This method can be useful for your unit tests, to ensure you
-   * have setup the defaults correctly.
-   *
-   * @return list of default flags, not fetched from Flagsmith
-   */
-  public List<FeatureStateModel> getDefaultFlags() {
-    return this.flagsmithSdk.getConfig().getFlagsmithFlagDefaults().getDefaultFlags();
-  }
-
-  /**
-   * Get Feature value (remote config) for given feature id from a provided flag list.
-   *
-   * @param featureId    a unique feature name identifier
-   * @param featureFlags list of feature flags
-   * @return a value for the Feature or null if feature does not exist
-   */
-  private String getFeatureFlagValueByName(String featureId, List<FeatureStateModel> featureFlags) {
-    if (featureFlags != null) {
-      for (FeatureStateModel flag : featureFlags) {
-        if (flag.getFeature().getName().equals(featureId)) {
-          return flag.getValue().toString();
-        }
-      }
-    }
-
-    return evaluateDefaultFlagValue(featureId);
-  }
-
-  /**
-   * Get a list of existing user Traits for the given environment and identity user.
-   *
-   * @param identifier a user in context
-   * @return a list of user Traits
-   */
-  private List<TraitModel> getUserTraits(String identifier) {
-    return getUserFlagsAndTraits(identifier).getTraits();
-  }
-
-  /**
-   * Get a list of existing user Traits and Flags for the given environment and identity user. It
-   * fails silently if there is an error.
-   *
-   * @param identifier a user in context
-   * @return a list of user Traits and Flags or empty FlagsAndTraits
-   */
-  public FlagsAndTraits getUserFlagsAndTraits(String identifier) {
-    return getUserFlagsAndTraits(identifier, false);
-  }
-
-  /**
-   * Get a list of existing user Traits and Flags for the given environment and identity user.
-   *
-   * @param identifier    a user in context
-   * @param doThrow indicates if errors should throw an exception or fail silently
-   * @return a list of user Traits and Flags
-   */
-  public FlagsAndTraits getUserFlagsAndTraits(String identifier, boolean doThrow) {
-    return this.flagsmithSdk.getUserFlagsAndTraits(identifier, doThrow);
-  }
-
-  /**
-   * Update user Trait for given user and Trait details.
-   *
-   * @param toUpdate a user trait to update
-   * @param identifier     a user in context
-   * @return a Trait object or null if does not exist
-   */
-  public TraitModel updateTrait(String identifier, TraitModel toUpdate) {
-    return updateTrait(identifier, toUpdate, false);
-  }
-
-  /**
-   * Update user Trait for given user and Trait details.
-   *
-   * @param toUpdate a user trait to update
-   * @param identifier     a user in context
-   * @param doThrow  throw exceptions or fail silently
-   * @return a Trait object or null if does not exist
-   */
-  public TraitModel updateTrait(String identifier, TraitModel toUpdate, boolean doThrow) {
-    return this.flagsmithSdk.postUserTraits(identifier, toUpdate, doThrow);
   }
 
   /**
@@ -398,13 +107,7 @@ public class FlagsmithClient {
 
   private Flags getEnvironmentFlagsFromApi() throws FlagsmithApiError {
     try {
-      List<FeatureStateModel> apiFlags = flagsmithSdk.getFeatureFlags(Boolean.TRUE);
-
-      return Flags.fromApiFlags(
-          apiFlags,
-          analyticsProcessor,
-          flagsmithSdk.getConfig().getFlagsmithFlagDefaults()
-      );
+      return flagsmithSdk.getFeatureFlags(Boolean.TRUE);
     } catch (Exception e) {
       if (flagsmithSdk.getConfig().getFlagsmithFlagDefaults() != null) {
         Flags flags = new Flags();
@@ -428,16 +131,10 @@ public class FlagsmithClient {
         return trait;
       }).collect(Collectors.toList());
 
-      FlagsAndTraits flagsAndTraits = flagsmithSdk.identifyUserWithTraits(
+      return flagsmithSdk.identifyUserWithTraits(
           identifier,
           traitsList,
           Boolean.TRUE
-      );
-
-      return Flags.fromApiFlags(
-          flagsAndTraits,
-          analyticsProcessor,
-          flagsmithSdk.getConfig().getFlagsmithFlagDefaults()
       );
     } catch (Exception e) {
       if (flagsmithSdk.getConfig().getFlagsmithFlagDefaults() != null) {
@@ -475,50 +172,12 @@ public class FlagsmithClient {
   }
 
   /**
-   * Create or update a list of user Traits for given user identity.
-   *
-   * <p>Please note this will override any existing identity with given list.
-   *
-   * @param identifier   a user in context
-   * @param traits a list of Trait object to be created or updated
-   * @return a FlagsAndTraits object
-   */
-  public FlagsAndTraits identifyUserWithTraits(String identifier, List<TraitModel> traits) {
-    return identifyUserWithTraits(identifier, traits, false);
-  }
-
-  /**
-   * Create or update a list of user Traits for given user identity.
-   *
-   * <p>Please note this will override any existing identity with given list.
-   *
-   * @param identifier    a user in context
-   * @param traits  a list of Trait object to be created or updated
-   * @param doThrow throw exceptions or fail silently
-   * @return a FlagsAndTraits object
-   */
-  public FlagsAndTraits identifyUserWithTraits(String identifier, List<TraitModel> traits,
-      boolean doThrow) {
-    return flagsmithSdk.identifyUserWithTraits(identifier, traits, doThrow);
-  }
-
-  /**
    * Returns a FlagsmithCache cache object that encapsulates methods to manipulate the cache.
    *
    * @return a FlagsmithCache if enabled, otherwise null.
    */
   public FlagsmithCache getCache() {
     return this.flagsmithSdk.getCache();
-  }
-
-  private boolean evaluateDefaultFlagPredicate(String featureId) {
-    return this.flagsmithSdk.getConfig().getFlagsmithFlagDefaults()
-        .evaluateDefaultFlagPredicate(featureId);
-  }
-
-  private String evaluateDefaultFlagValue(String featureId) {
-    return this.flagsmithSdk.getConfig().getFlagsmithFlagDefaults()
-        .evaluateDefaultFlagValue(featureId);
   }
 
   public static class Builder {
@@ -529,7 +188,6 @@ public class FlagsmithClient {
     private String apiKey;
     private FlagsmithCacheConfig cacheConfig;
     private PollingManager pollingManager;
-    private AnalyticsProcessor analyticsProcessor;
 
     private Builder() {
       client = new FlagsmithClient();
@@ -551,56 +209,19 @@ public class FlagsmithClient {
     }
 
     /**
-     * When a flag does not exist in Flagsmith or there is an error, the SDK will return false by
-     * default.
-     *
-     * <p>If you would like to override this default behaviour, you can use this method. By default
-     * it will return false for any flags that it does not recognise. 
-     *
-     * @param defaultFlagPredicate the new predicate to use as default flag boolean values
-     * @return the Builder
-     */
-    public Builder setDefaultFlagPredicate(@NonNull Predicate<String> defaultFlagPredicate) {
-      this.configuration.getFlagsmithFlagDefaults().setDefaultFlagPredicate(defaultFlagPredicate);
-      return this;
-    }
-
-    /**
      * When a flag does not exist in Flagsmith or there is an error, the SDK will return null by
      * default.
      *
      * <p>If you would like to override this default behaviour, you can use this method. By default
      * it will return null for any flags that it does not recognise.
      *
-     * @param defaultFlagValueFunction the new function to use as default flag string values
+     * @param defaultFlagValueFunction the new function to use as default flag values
      * @return the Builder
      */
     public Builder setDefaultFlagValueFunction(
-        @NonNull Function<String, String> defaultFlagValueFunction) {
+        @NonNull Function<String, BaseFlag> defaultFlagValueFunction) {
       this.configuration.getFlagsmithFlagDefaults()
           .setDefaultFlagValueFunc(defaultFlagValueFunction);
-      return this;
-    }
-
-    /**
-     * When a flag does not exist in Flagsmith or there is an error, the SDK will return an empty
-     * list of flags by default. For example: if you call identifyUserWithTraits(...) and the call
-     * fails it will return an empty list of flags.
-     *
-     * <p>If you would like the SDK to return a default list of flags with default values, you can
-     * set the default flag names with this method. For example: if you set a default flag with the
-     * name "my-flag" using setDefaultFeatureFlags(["my-flag"]), and if you call
-     * identifyUserWithTraits(...) and the call fails; identifyUserWithTraits(...) will return a
-     * list of flags with 1 flag called "my-flag" and with default values configured with the
-     * methods setDefaultFlagPredicate() and setDefaultFlagValueFunction().
-     *
-     * <p>Default: empty set;
-     *
-     * @param defaultFeatureFlags list of flag names
-     * @return the Builder
-     */
-    public Builder setDefaultFeatureFlags(@NonNull Set<String> defaultFeatureFlags) {
-      this.configuration.getFlagsmithFlagDefaults().setDefaultFeatureFlags(defaultFeatureFlags);
       return this;
     }
 
@@ -691,46 +312,35 @@ public class FlagsmithClient {
     }
 
     /**
-     * Set the analytics processor.
-     *
-     * @param processor analytics processor object
-     * @return
-     */
-    public Builder withAnalyticsProcessor(AnalyticsProcessor processor) {
-      analyticsProcessor = processor;
-      return this;
-    }
-
-    /**
      * Builds a FlagsmithClient.
      *
      * @return a FlagsmithClient
      */
     public FlagsmithClient build() {
-      final FlagsmithApiWrapper flagsmithApiWrapper = new FlagsmithApiWrapper(
-          this.configuration,
-          this.customHeaders,
-          client.logger,
-          apiKey
-      );
+      final FlagsmithApiWrapper flagsmithApiWrapper;
 
       if (cacheConfig != null) {
-        client.flagsmithSdk = new FlagsmithCachedApiWrapper(
-            cacheConfig.getCache(), flagsmithApiWrapper);
+        flagsmithApiWrapper = new FlagsmithApiWrapper(
+            cacheConfig.getCache(),
+            this.configuration,
+            this.customHeaders,
+            client.logger,
+            apiKey
+        );
       } else {
-        client.flagsmithSdk = flagsmithApiWrapper;
+        flagsmithApiWrapper = new FlagsmithApiWrapper(
+            this.configuration,
+            this.customHeaders,
+            client.logger,
+            apiKey
+        );
       }
 
-      if (configuration.getEnableAnalytics()) {
-        if (this.analyticsProcessor != null) {
-          client.analyticsProcessor = analyticsProcessor;
-        } else {
-          client.analyticsProcessor = new AnalyticsProcessor(
-              flagsmithApiWrapper,
-              configuration.getHttpClient(),
-              client.logger
-          );
-        }
+      client.flagsmithSdk = flagsmithApiWrapper;
+
+      if (configuration.getAnalyticsProcessor() != null) {
+        configuration.getAnalyticsProcessor().setApi(flagsmithApiWrapper);
+        configuration.getAnalyticsProcessor().setLogger(client.logger);
       }
 
       if (configuration.getEnableLocalEvaluation()) {
