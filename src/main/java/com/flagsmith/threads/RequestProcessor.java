@@ -89,7 +89,7 @@ public class RequestProcessor {
           localRetries--;
         }
       } catch (FlagsmithException e) {
-
+        // ignore this exception
       } finally {
         if (retries == 1) {
           if (doThrow) {

@@ -47,7 +47,7 @@ public class TraitRequest extends TraitModel implements Serializable {
   }
 
   /**
-   * Trait Request Constructor
+   * Trait Request Constructor.
    *
    * @param trait an Identity user
    */

@@ -110,8 +110,8 @@ public class FlagsmithCachedApiWrapperTest {
     // Assert
     verify(flagsmithAPIWrapper, times(0)).getFeatureFlags(any(), anyBoolean());
     verify(flagsmithInternalCache, times(1)).getCache();
-    assertEquals(flagsAndTraits, cache.getIfPresent("test-user"));
-    assertEquals(flagsAndTraits, actualFeatureFlags);
+    assertEquals(flagsAndTraits.getFlags(), cache.getIfPresent("test-user"));
+    assertEquals(flagsAndTraits.getFlags(), actualFeatureFlags);
     assertEquals(1, cache.estimatedSize());
   }
 
