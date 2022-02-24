@@ -32,13 +32,13 @@ public final class FlagsmithConfig {
   private final HttpUrl traitsUri;
   private final HttpUrl environmentUri;
   private final OkHttpClient httpClient;
-  private final FlagsmithFlagDefaults flagsmithFlagDefaults = new FlagsmithFlagDefaults();
   private final HttpUrl baseUri;
 
   private final Retry retries;
   private Boolean enableLocalEvaluation = Boolean.FALSE;
   private Integer environmentRefreshIntervalSeconds = 60000;
   private AnalyticsProcessor analyticsProcessor;
+  private FlagsmithFlagDefaults flagsmithFlagDefaults = null;
 
   protected FlagsmithConfig(Builder builder) {
     this.baseUri = builder.baseUri;

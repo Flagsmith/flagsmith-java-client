@@ -1,37 +1,53 @@
 package com.flagsmith;
 
-import static com.flagsmith.FlagsmithTestHelper.assignTraitToUserIdentity;
 import static com.flagsmith.FlagsmithTestHelper.config;
 import static com.flagsmith.FlagsmithTestHelper.createFeature;
 import static com.flagsmith.FlagsmithTestHelper.createProjectEnvironment;
 import static com.flagsmith.FlagsmithTestHelper.createUserIdentity;
-import static com.flagsmith.FlagsmithTestHelper.featureUser;
 import static com.flagsmith.FlagsmithTestHelper.flag;
-import static com.flagsmith.FlagsmithTestHelper.switchFlag;
 import static com.flagsmith.FlagsmithTestHelper.switchFlagForUser;
-//import static com.flagsmith.FlagsmithTestHelper.trait;
+import static okhttp3.mock.MediaTypes.MEDIATYPE_JSON;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.*;
+import static org.testng.Assert.assertThrows;
 
-import com.flagsmith.FlagsmithTestHelper.FlagFeature;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithApiError;
+import com.flagsmith.exceptions.FlagsmithClientError;
+import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
-import com.flagsmith.flagengine.identities.IdentityModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
+import com.flagsmith.flagengine.utils.encode.JsonEncoder;
 import com.flagsmith.interfaces.FlagsmithCache;
+import com.flagsmith.models.BaseFlag;
+import com.flagsmith.models.DefaultFlag;
+import com.flagsmith.models.Flag;
 import com.flagsmith.models.Flags;
+import com.flagsmith.threads.PollingManager;
+import com.flagsmith.threads.RequestProcessor;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import okhttp3.Request;
+import okhttp3.ResponseBody;
+import okhttp3.mock.MockInterceptor;
+import okio.Buffer;
+import org.mockito.ArgumentCaptor;
+import org.testng.Assert;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 /**
  * Unit tests are env specific and will probably will need to adjust keys, identities and features
  * ids etc as required.
  */
-@Test(groups = "integration")
+@Test(groups = "unit")
 public class FlagsmithClientTest {
 
   @Test(groups = "integration", enabled = false)
@@ -131,5 +147,223 @@ public class FlagsmithClientTest {
     FlagsmithCache cache = environment.client.getCache();
 
     assertNull(cache);
+  }
+
+  @BeforeMethod(groups = "unit")
+  public void init() {
+
+  }
+
+  @Test(groups = "unit")
+  public void testClient_validateObjectCreation() throws InterruptedException {
+    PollingManager manager = mock(PollingManager.class);
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+        .withPollingManager(manager)
+        .withConfiguration(
+            FlagsmithConfig.newBuilder().withLocalEvaluation(Boolean.TRUE).build()
+        )
+        .build();
+    Thread.sleep(10);
+    verify(manager, times(1)).startPolling();
+  }
+
+  @Test(groups = "unit")
+  public void testClient_validateEnvironment()
+      throws JsonProcessingException {
+    String baseUrl = "http://bad-url";
+    MockInterceptor interceptor = new MockInterceptor();
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+        .withConfiguration(
+            FlagsmithConfig.newBuilder()
+                .baseUri(baseUrl)
+                .addHttpInterceptor(interceptor)
+                .withLocalEvaluation(Boolean.TRUE)
+                .build()
+        ).setApiKey("api-key")
+        .build();
+
+    EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
+
+    interceptor.addRule()
+        .get(baseUrl + "/environment-document/")
+        .respond(
+            MapperFactory.getMappper().writeValueAsString(environmentModel),
+            MEDIATYPE_JSON
+        );
+
+    client.updateEnvironment();
+    Assert.assertNotNull(client.getEnvironment());
+    Assert.assertEquals(client.getEnvironment(), environmentModel);
+  }
+
+  @Test(groups = "unit")
+  public void testClient_flagsApi()
+      throws JsonProcessingException, FlagsmithApiError {
+    String baseUrl = "http://bad-url";
+    MockInterceptor interceptor = new MockInterceptor();
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+        .withConfiguration(
+            FlagsmithConfig.newBuilder()
+                .baseUri(baseUrl)
+                .addHttpInterceptor(interceptor)
+                .build()
+        ).setApiKey("api-key")
+        .build();
+
+    List<FeatureStateModel> featureStateModel = FlagsmithTestHelper.getFlags();
+
+    interceptor.addRule()
+        .get(baseUrl + "/flags/")
+        .respond(
+            MapperFactory.getMappper().writeValueAsString(featureStateModel),
+            MEDIATYPE_JSON
+        );
+
+    List<BaseFlag> flags = client.getEnvironmentFlags().getAllFlags();
+    Assert.assertEquals(flags.get(0).getEnabled(), Boolean.TRUE);
+    Assert.assertEquals(flags.get(0).getValue(), "some-value");
+    Assert.assertEquals(flags.get(0).getFeatureName(), "some_feature");
+  }
+
+  @Test(groups = "unit")
+  public void testClient_identityFlagsApiNoTraits() throws FlagsmithClientError {
+    String baseUrl = "http://bad-url";
+    String identifier = "identifier";
+    MockInterceptor interceptor = new MockInterceptor();
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+        .withConfiguration(
+            FlagsmithConfig.newBuilder()
+                .baseUri(baseUrl)
+                .addHttpInterceptor(interceptor)
+                .build()
+        ).setApiKey("api-key")
+        .build();
+
+    String json = FlagsmithTestHelper.getIdentitiesFlags();
+
+    interceptor.addRule()
+        .post(baseUrl + "/identities/")
+        .respond(
+            json,
+            MEDIATYPE_JSON
+        );
+
+    List<BaseFlag> flags = client.getIdentityFlags(identifier).getAllFlags();
+    Assert.assertEquals(flags.get(0).getEnabled(), Boolean.TRUE);
+    Assert.assertEquals(((JsonNode) flags.get(0).getValue()).asText(), "some-value");
+    Assert.assertEquals(flags.get(0).getFeatureName(), "some_feature");
+  }
+
+  @Test(groups = "unit")
+  public void testClient_identityFlagsApiWithTraits()
+      throws FlagsmithClientError, IOException {
+    String baseUrl = "http://bad-url";
+    String identifier = "identifier";
+    Map<String, String> traits = new HashMap<String, String>() {{
+      put("some_trait", "some_value");
+    }};
+    MockInterceptor interceptor = new MockInterceptor();
+    RequestProcessor requestProcessor = mock(RequestProcessor.class);
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+        .withConfiguration(
+            FlagsmithConfig.newBuilder()
+                .baseUri(baseUrl)
+                .addHttpInterceptor(interceptor)
+                .build()
+        ).setApiKey("api-key")
+        .build();
+    // mocking the requestor
+    ((FlagsmithApiWrapper) client.getFlagsmithSdk()).setRequestor(requestProcessor);
+    String json = FlagsmithTestHelper.getIdentitiesFlags();
+
+    when(requestProcessor.executeAsync(any(), any()))
+        .thenReturn(
+            FlagsmithTestHelper.futurableReturn(
+                JsonEncoder.getMapper().readTree(json)
+            ));
+
+    List<BaseFlag> flags = client.getIdentityFlags(identifier, traits).getAllFlags();
+
+    ArgumentCaptor<Request> argument = ArgumentCaptor.forClass(Request.class);
+    verify(requestProcessor, times(1)).executeAsync(argument.capture(), any());
+
+    Buffer buffer = new Buffer();
+    argument.getValue().body().writeTo(buffer);
+
+    JsonNode expectedRequest = FlagsmithTestHelper.getIdentityRequest(identifier, new ArrayList<TraitModel>() {{
+      add(new TraitModel("some_trait", "some_value"));
+    }});
+
+    Assert.assertEquals(expectedRequest.toString(), buffer.readUtf8());
+    Assert.assertEquals(flags.get(0).getEnabled(), Boolean.TRUE);
+    Assert.assertEquals(((JsonNode) flags.get(0).getValue()).asText(), "some-value");
+    Assert.assertEquals(flags.get(0).getFeatureName(), "some_feature");
+  }
+
+  @Test(groups = "unit")
+  public void testClient_identityFlagsApiWithTraitsWithLocalEnvironment() {
+    String baseUrl = "http://bad-url";
+    String identifier = "identifier";
+    Map<String, String> traits = new HashMap<String, String>() {{
+      put("some_trait", "some_value");
+    }};
+    MockInterceptor interceptor = new MockInterceptor();
+    RequestProcessor requestProcessor = mock(RequestProcessor.class);
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+        .withConfiguration(
+            FlagsmithConfig.newBuilder()
+                .baseUri(baseUrl)
+                .addHttpInterceptor(interceptor)
+                .build()
+        ).setApiKey("api-key")
+        .build();
+
+    interceptor.addRule()
+        .get(baseUrl + "/flags/").anyTimes()
+        .respond(500, ResponseBody.create("error", MEDIATYPE_JSON));
+
+    assertThrows(FlagsmithApiError.class,
+        () -> client.getEnvironmentFlags());
+  }
+
+  @Test(groups = "unit")
+  public void testClient_defaultFlagWithNoEnvironment() throws FlagsmithClientError {
+    String baseUrl = "http://bad-url";
+    String identifier = "identifier";
+    Map<String, String> traits = new HashMap<String, String>() {{
+      put("some_trait", "some_value");
+    }};
+    MockInterceptor interceptor = new MockInterceptor();
+    RequestProcessor requestProcessor = mock(RequestProcessor.class);
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+        .withConfiguration(
+            FlagsmithConfig.newBuilder()
+                .baseUri(baseUrl)
+                .addHttpInterceptor(interceptor)
+                .build()
+        )
+        .setApiKey("api-key")
+        .setDefaultFlagValueFunction((name) -> {
+          DefaultFlag flag = new DefaultFlag();
+          flag.setValue("some-value");
+          flag.setEnabled(true);
+
+          return flag;
+        })
+        .build();
+
+    interceptor.addRule()
+        .get(baseUrl + "/flags/")
+        .respond(
+            "[]",
+            MEDIATYPE_JSON
+        );
+
+    Flags flags = client.getEnvironmentFlags();
+
+    DefaultFlag flag = (DefaultFlag) flags.getFlag("some_feature");
+    Assert.assertEquals(flag.getIsDefault(), Boolean.TRUE);
+    Assert.assertEquals(flag.getEnabled(), Boolean.TRUE);
+    Assert.assertEquals(flag.getValue(), "some-value");
   }
 }

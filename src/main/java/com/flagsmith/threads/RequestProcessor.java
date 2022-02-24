@@ -7,6 +7,7 @@ import com.flagsmith.FlagsmithException;
 import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.config.Retry;
+import com.flagsmith.exceptions.FlagsmithApiError;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -105,12 +106,14 @@ public class RequestProcessor {
           localRetry.retryAttempted();
         } while (localRetry.isRetry(statusCode));
       } catch (Exception e) {
-        // ignore this exception
+        throw new RuntimeException();
       } finally {
-        if (doThrow) {
-          completableFuture.exceptionally((v) -> null);
-        } else {
-          completableFuture.complete(null);
+        if (!completableFuture.isDone()) {
+          if (doThrow) {
+            completableFuture.obtrudeException(new FlagsmithApiError());
+          } else {
+            completableFuture.complete(null);
+          }
         }
       }
     });

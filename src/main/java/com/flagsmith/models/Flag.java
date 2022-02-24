@@ -38,7 +38,7 @@ public class Flag extends BaseFlag {
 
     flag.setFeatureId(node.get("feature").get("id").intValue());
     flag.setValue(node.get("feature_state_value"));
-    flag.setFeatureName(node.get("feature").get("id").toString());
+    flag.setFeatureName(node.get("feature").get("name").asText());
     flag.setEnabled(node.get("enabled").booleanValue());
 
     return flag;

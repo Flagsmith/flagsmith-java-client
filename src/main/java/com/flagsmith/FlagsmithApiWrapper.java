@@ -131,13 +131,15 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
         getCache().getCache().put(getCache().getEnvFlagsCacheKey(), featureFlags);
         logger.info("Got feature flags for flags = {} and cached.", featureFlags);
       }
-
-    } catch (TimeoutException ie) {
-      logger.error("Timed out on fetching Feature flags.", ie);
+    } catch (TimeoutException te) {
+      logger.error("Timed out on fetching Feature flags.", te);
     } catch (InterruptedException ie) {
       logger.error("Interrupted on fetching Feature flags.", ie);
     } catch (ExecutionException ee) {
       logger.error("Execution failed on fetching Feature flags.", ee);
+      if (doThrow) {
+        throw new RuntimeException(ee);
+      }
     }
 
     logger.info("Got feature flags for flags = {}", featureFlags);

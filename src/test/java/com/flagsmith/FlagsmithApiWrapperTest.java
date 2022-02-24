@@ -158,9 +158,6 @@ public class FlagsmithApiWrapperTest {
   }
 
   private JsonNode getFlagsAndTraitsResponse(List<FeatureStateModel> flags, List<TraitModel> traits) {
-    final ObjectNode flagsAndTraits = MapperFactory.getMappper().createObjectNode();
-    flagsAndTraits.putPOJO("flags", flags != null ? flags : new ArrayList<>());
-    flagsAndTraits.putPOJO("traits", traits != null ? traits : new ArrayList<>());
-    return flagsAndTraits;
+    return FlagsmithTestHelper.getFlagsAndTraitsResponse(flags, traits);
   }
 }

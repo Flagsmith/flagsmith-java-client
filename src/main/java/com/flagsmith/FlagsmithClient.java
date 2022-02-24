@@ -25,19 +25,20 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import lombok.Data;
 import lombok.NonNull;
 import org.slf4j.LoggerFactory;
 
 /**
  * A client for Flagsmith API.
  */
+@Data
 public class FlagsmithClient {
 
   private final FlagsmithLogger logger = new FlagsmithLogger();
   private FlagsmithSdk flagsmithSdk;
   private EnvironmentModel environment;
   private PollingManager pollingManager;
-  private AnalyticsProcessor analyticsProcessor;
 
   private FlagsmithClient() { }
 
@@ -71,6 +72,19 @@ public class FlagsmithClient {
    * trait with a value of None will remove the trait from the identity if it exists.
    *
    * @param identifier identifier string
+   * @return
+   */
+  public Flags getIdentityFlags(String identifier)
+      throws FlagsmithClientError {
+    return getIdentityFlags(identifier, new HashMap<>());
+  }
+
+  /**
+   * Get all the flags for the current environment for a given identity. Will also
+   * upsert all traits to the Flagsmith API for future evaluations. Providing a
+   * trait with a value of None will remove the trait from the identity if it exists.
+   *
+   * @param identifier identifier string
    * @param traits list of key value traits
    * @return
    */
@@ -86,7 +100,7 @@ public class FlagsmithClient {
   private Flags getEnvironmentFlagsFromDocument() {
     return Flags.fromFeatureStateModels(
         Engine.getEnvironmentFeatureStates(environment),
-        analyticsProcessor,
+        flagsmithSdk.getConfig().getAnalyticsProcessor(),
         null,
         flagsmithSdk.getConfig().getFlagsmithFlagDefaults()
       );
@@ -99,7 +113,7 @@ public class FlagsmithClient {
 
     return Flags.fromFeatureStateModels(
         featureStates,
-        analyticsProcessor,
+        flagsmithSdk.getConfig().getAnalyticsProcessor(),
         identity.getCompositeKey(),
         flagsmithSdk.getConfig().getFlagsmithFlagDefaults()
     );
@@ -220,6 +234,9 @@ public class FlagsmithClient {
      */
     public Builder setDefaultFlagValueFunction(
         @NonNull Function<String, BaseFlag> defaultFlagValueFunction) {
+      if (this.configuration.getFlagsmithFlagDefaults() == null) {
+        this.configuration.setFlagsmithFlagDefaults(new FlagsmithFlagDefaults());
+      }
       this.configuration.getFlagsmithFlagDefaults()
           .setDefaultFlagValueFunc(defaultFlagValueFunction);
       return this;

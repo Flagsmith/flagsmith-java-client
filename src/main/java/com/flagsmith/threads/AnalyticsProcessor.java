@@ -21,7 +21,7 @@ import okhttp3.RequestBody;
 public class AnalyticsProcessor {
 
   private final String analyticsEndpoint = "analytics/flags/";
-  private final Integer analyticsTimer = 10;
+  private Integer analyticsTimer = 10;
   private Map<Integer, Integer> analyticsData;
   private FlagsmithSdk api;
   private Long nextFlush;
@@ -65,10 +65,10 @@ public class AnalyticsProcessor {
   public AnalyticsProcessor(
       FlagsmithSdk api, FlagsmithLogger logger, RequestProcessor requestProcessor) {
     this.analyticsData = new HashMap<Integer, Integer>();
-    this.api = api;
     this.requestProcessor = requestProcessor;
     this.logger = logger;
-    analyticsUrl = api.getConfig().getBaseUri().newBuilder(analyticsEndpoint).build();
+    this.nextFlush = Instant.now().getEpochSecond() + analyticsTimer;
+    this.api = api;
   }
 
   /**
@@ -94,6 +94,16 @@ public class AnalyticsProcessor {
   }
 
   /**
+   * Get the analytics url.
+   */
+  private HttpUrl getAnalyticsUrl() {
+    if (api != null) {
+      analyticsUrl = api.getConfig().getBaseUri().newBuilder(analyticsEndpoint).build();
+    }
+    return analyticsUrl;
+  }
+
+  /**
    * Push the analytics to the server.
    */
   public void flush() {
@@ -115,9 +125,9 @@ public class AnalyticsProcessor {
     MediaType json = MediaType.parse("application/json; charset=utf-8");
     RequestBody body = RequestBody.create(response, json);
 
-    Request request = api.newPostRequest(analyticsUrl, body);
+    Request request = api.newPostRequest(getAnalyticsUrl(), body);
 
-    getRequestProcessor().executeAsync(request, new TypeReference<Object>() {}, Boolean.FALSE);
+    getRequestProcessor().executeAsync(request, Boolean.FALSE);
 
     analyticsData.clear();
     setNextFlush();
@@ -129,8 +139,7 @@ public class AnalyticsProcessor {
    */
   public void trackFeature(Integer featureId) {
     analyticsData.put(featureId, analyticsData.getOrDefault(featureId, 0) + 1);
-
-    if (nextFlush.compareTo(Instant.now().getEpochSecond()) > 0) {
+    if (nextFlush.compareTo(Instant.now().getEpochSecond()) < 0) {
       this.flush();
     }
   }

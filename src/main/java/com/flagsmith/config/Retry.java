@@ -4,10 +4,11 @@ import java.util.HashSet;
 import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Getter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder(toBuilder = true)
@@ -15,7 +16,7 @@ public class Retry {
   private Integer total = 1;
   private Integer attempts = 0;
   private Float backoffFactor = 0.1f;
-  private Float backoffMax = 1f;
+  private Float backoffMax = 15f;
   private Set<Integer> statusForcelist = new HashSet<Integer>() {{
       add(413);
       add(429);
@@ -38,11 +39,21 @@ public class Retry {
       return Boolean.TRUE;
     }
 
-    return total > 0;
+    return total > attempts;
   }
 
+  /**
+   * The sleep time based on back off factor.
+   *
+   * @return
+   */
   public Long calculateSleepTime() {
-    return ((backoffFactor.longValue() * 1000) * (2 * attempts));
+    Float holdTimeMS = ((backoffFactor) * (2 * attempts));
+    if (holdTimeMS >= backoffMax) {
+      holdTimeMS = backoffMax;
+    }
+
+    return Float.valueOf(holdTimeMS * 1000f).longValue();
   }
 
   public void waitWithBackoff() throws InterruptedException {

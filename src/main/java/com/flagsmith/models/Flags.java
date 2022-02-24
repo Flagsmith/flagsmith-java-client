@@ -14,7 +14,7 @@ import lombok.Data;
 
 @Data
 public class Flags {
-  private Map<String, BaseFlag> flags;
+  private Map<String, BaseFlag> flags = new HashMap<>();
   private AnalyticsProcessor analyticsProcessor;
   private DefaultFlagHandler defaultFlagHandler;
 
