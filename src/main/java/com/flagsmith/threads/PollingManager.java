@@ -12,17 +12,17 @@ public class PollingManager {
   Logger logger = LoggerFactory.getLogger(PollingManager.class);
 
   public PollingManager(FlagsmithClient client) {
-    this(client, 10000);
+    this(client, 10);
   }
 
   /**
    * Instantiate the polling manager with client and interval for refresh.
    * @param client client object
-   * @param interval interval milliseconds
+   * @param interval interval seconds
    */
   public PollingManager(FlagsmithClient client, Integer interval) {
     this.client = client;
-    this.interval = interval;
+    this.interval = interval * 1000; // converting to ms
     this.internalThread = initializeThread();
   }
 

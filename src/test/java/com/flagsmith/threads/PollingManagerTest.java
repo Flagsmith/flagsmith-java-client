@@ -16,7 +16,7 @@ public class PollingManagerTest {
   @BeforeMethod(groups = "unit")
   public void init() {
     client = mock(FlagsmithClient.class);
-    manager = new PollingManager(client, 100);
+    manager = new PollingManager(client, 1);
 
     manager.startPolling();
   }
@@ -24,7 +24,7 @@ public class PollingManagerTest {
   public void PollingManagerTest_checkPollingMethodInvoked() throws InterruptedException {
     Thread.sleep(50);
     verify(client, times(1)).updateEnvironment();
-    Thread.sleep(110);
+    Thread.sleep(1500);
     verify(client, times(2)).updateEnvironment();
   }
 
@@ -32,7 +32,7 @@ public class PollingManagerTest {
     Thread.sleep(50);
     verify(client, times(1)).updateEnvironment();
     manager.stopPolling();
-    Thread.sleep(110);
+    Thread.sleep(1500);
     verify(client, times(1)).updateEnvironment();
   }
 }

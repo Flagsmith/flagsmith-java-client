@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.config.FlagsmithConfig;
+import com.flagsmith.exceptions.FlagsmithApiError;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.IdentityModel;
@@ -95,7 +96,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   public Flags getFeatureFlags(boolean doThrow) {
     Flags featureFlags = new Flags();
 
-    if (cache != null) {
+    if (getCache() != null) {
       featureFlags = getCache().getIfPresent(getCache().getEnvFlagsCacheKey());
 
       if (featureFlags != null) {
@@ -127,7 +128,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
           getConfig().getFlagsmithFlagDefaults()
       );
 
-      if (cache != null) {
+      if (getCache() != null) {
         getCache().getCache().put(getCache().getEnvFlagsCacheKey(), featureFlags);
         logger.info("Got feature flags for flags = {} and cached.", featureFlags);
       }
@@ -154,7 +155,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     assertValidUser(identifier);
     Flags flagsAndTraits = null;
 
-    if (cache != null) {
+    if (getCache() != null) {
       flagsAndTraits = getCache().getIfPresent(getCache().getEnvFlagsCacheKey());
 
       if (flagsAndTraits != null) {
@@ -194,7 +195,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
           getConfig().getFlagsmithFlagDefaults()
       );
 
-      if (cache != null) {
+      if (getCache() != null) {
         getCache().getCache().put("identifier" + identifier, flagsAndTraits);
         logger.info("Got feature flags for flags = {} and cached.", flagsAndTraits);
       }
@@ -205,6 +206,9 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
       logger.error("Interrupted on fetching Feature flags.", ie);
     } catch (ExecutionException ee) {
       logger.error("Execution failed on fetching Feature flags.", ee);
+      if (doThrow) {
+        throw new RuntimeException(ee);
+      }
     }
 
     logger.info("Got flags based on identify for identifier = {}, flags = {}",
@@ -219,7 +223,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
 
     Future<EnvironmentModel> environmentFuture = requestor.executeAsync(request,
         new TypeReference<EnvironmentModel>() {},
-        Boolean.FALSE);
+        Boolean.TRUE);
 
     try {
       return environmentFuture.get(TIMEOUT, TimeUnit.MILLISECONDS);
@@ -229,6 +233,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
       logger.error("Environment loading interrupted.", ie);
     } catch (ExecutionException ee) {
       logger.error("Execution failed on Environment loading.", ee);
+      throw new RuntimeException(ee);
     }
 
     return null;

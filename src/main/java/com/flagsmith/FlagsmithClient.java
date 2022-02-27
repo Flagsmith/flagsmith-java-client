@@ -364,7 +364,10 @@ public class FlagsmithClient {
         if (this.pollingManager != null) {
           client.pollingManager = pollingManager;
         } else {
-          client.pollingManager = new PollingManager(client);
+          client.pollingManager = new PollingManager(
+              client,
+              configuration.getEnvironmentRefreshIntervalSeconds()
+          );
         }
 
         client.pollingManager.startPolling();

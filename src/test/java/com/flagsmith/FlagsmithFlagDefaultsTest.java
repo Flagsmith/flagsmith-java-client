@@ -9,6 +9,7 @@ import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.models.BaseFlag;
+import com.flagsmith.models.DefaultFlag;
 import com.flagsmith.models.Flag;
 import com.flagsmith.models.Flags;
 import java.util.ArrayList;
@@ -27,21 +28,21 @@ public class FlagsmithFlagDefaultsTest {
     sut = new FlagsmithFlagDefaults();
   }
 
-  private BaseFlag createDummyFlag(String name) {
+  private DefaultFlag defaultFlagHandler(String name) {
     if (name.equals("flaggy")) {
-      Flag flag = new Flag();
+      DefaultFlag flag = new DefaultFlag();
       flag.setEnabled(Boolean.TRUE);
       flag.setFeatureName(name);
       return flag;
     }
 
-    return new Flag();
+    return new DefaultFlag();
   }
 
   @Test(groups = "unit")
   public void getDefaultFlags_withCustomDefaultValues() throws FlagsmithClientError {
     // Arrange
-    sut.setDefaultFlagValueFunc((String flagName) -> createDummyFlag(flagName));
+    sut.setDefaultFlagValueFunc((name) -> defaultFlagHandler(name));
 
     // Act
     final Flags flags = Flags.fromApiFlags(new ArrayList<>(), null, sut);

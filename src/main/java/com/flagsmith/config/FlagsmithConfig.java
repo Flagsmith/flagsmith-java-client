@@ -25,6 +25,7 @@ public final class FlagsmithConfig {
   private static final int DEFAULT_CONNECT_TIMEOUT_MILLIS = 2000;
   private static final int DEFAULT_WRITE_TIMEOUT_MILLIS = 5000;
   private static final int DEFAULT_READ_TIMEOUT_MILLIS = 5000;
+  private static final int DEFAULT_ENVIRONMENT_REFRESH_SECONDS = 60;
   private static final HttpUrl DEFAULT_BASE_URI = HttpUrl
       .parse("https://api.flagsmith.com/api/v1/");
   private final HttpUrl flagsUri;
@@ -35,8 +36,8 @@ public final class FlagsmithConfig {
   private final HttpUrl baseUri;
 
   private final Retry retries;
-  private Boolean enableLocalEvaluation = Boolean.FALSE;
-  private Integer environmentRefreshIntervalSeconds = 60000;
+  private Boolean enableLocalEvaluation;
+  private Integer environmentRefreshIntervalSeconds;
   private AnalyticsProcessor analyticsProcessor;
   private FlagsmithFlagDefaults flagsmithFlagDefaults = null;
 
@@ -89,7 +90,7 @@ public final class FlagsmithConfig {
     private AnalyticsProcessor analyticsProcessor;
 
     private Boolean enableLocalEvaluation = Boolean.FALSE;
-    private Integer environmentRefreshIntervalSeconds = 60000;
+    private Integer environmentRefreshIntervalSeconds = DEFAULT_ENVIRONMENT_REFRESH_SECONDS;
     private Boolean enableAnalytics = Boolean.FALSE;
 
     private Builder() {
