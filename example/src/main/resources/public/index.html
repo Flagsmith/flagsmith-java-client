@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Flagsmith Test</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+            integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+            crossorigin="anonymous"></script>
+</head>
+<body>
+    <p>
+        Hello <span id="identifier-name">World!</span>,
+        <button id="secret-button">Secret Button</button>
+    </p>
+    <p>
+        <form id="form">
+            Identify as a user:
+            <label for="identifier">Identifier: </label><input name="identifier" id="identifier"/>
+            <br />
+            With optional traits:
+            <label for="trait-key">Trait Key: </label><input name="trait-key" id="trait-key"/><br />
+            <label for="trait-value">Trait Value: </label><input name="trait-value" id="trait-value"/><br />
+
+            <button type="submit">Identify!</button>
+        </form>
+    </p>
+    <script type="text/javascript">
+        (function($) {
+            $('#secret-button').hide();
+
+            function fetchFeatureValues(data) {
+                return $.get('/status', data);
+            }
+
+            $('#form').submit(function(e) {
+                e.preventDefault();
+                const data = {};
+                data.identifier = $('#identifier').val();
+                data.trait_key = $('#trait-key').val();
+                data.trait_value = $('#trait-value').val();
+
+                fetchFeatureValues(data).then((response) => {
+                    $('#identifier-name').html(data.identifier ? data.identifier : 'World!');
+                    if (response.show_button) {
+                        $('#secret-button').show();
+                    } else {
+                        $('#secret-button').hide();
+                    }
+                    if (response.font_colour) {
+                        $('#secret-button').css('background-color', response.font_colour);
+                    }
+                    console.log(response);
+                });
+            });
+        }(jQuery));
+    </script>
+</body>
+</html>

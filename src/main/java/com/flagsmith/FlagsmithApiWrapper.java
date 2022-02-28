@@ -3,16 +3,12 @@ package com.flagsmith;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.config.FlagsmithConfig;
-import com.flagsmith.exceptions.FlagsmithApiError;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
-import com.flagsmith.flagengine.identities.IdentityModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.interfaces.FlagsmithSdk;
-import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.Flags;
 import com.flagsmith.threads.RequestProcessor;
 import java.util.ArrayList;
@@ -174,7 +170,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     }
 
     MediaType json = MediaType.parse("application/json; charset=utf-8");
-    RequestBody body = RequestBody.create(node.toString(), json);
+    RequestBody body = RequestBody.create(json, node.toString());
 
     final Request request = this.newPostRequest(url, body);
 

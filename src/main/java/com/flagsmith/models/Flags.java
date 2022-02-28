@@ -161,7 +161,7 @@ public class Flags {
    * @return
    */
   public Object getFeatureValue(String featureName) throws FlagsmithClientError {
-    return flags.containsKey(featureName) ? getFlag(featureName).getValue() : null;
+    return getFlag(featureName).getValue();
   }
 
   /**

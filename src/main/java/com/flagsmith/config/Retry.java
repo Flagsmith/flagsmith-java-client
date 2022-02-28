@@ -5,9 +5,12 @@ import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/**
+ * An implementation in Java for the Retry component of the Python urllib3 library.
+ * https://urllib3.readthedocs.io/en/latest/reference/urllib3.util.html#urllib3.util.Retry
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
