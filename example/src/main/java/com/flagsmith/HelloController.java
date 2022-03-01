@@ -19,6 +19,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.ModelAndView;
 
 @Controller
 public class HelloController {
@@ -30,18 +31,12 @@ public class HelloController {
       .setApiKey(System.getenv("FLAGSMITH_API_KEY"))
       .build();
 
-
   @GetMapping("")
-  public String index() {
-    return "index.html";
-  }
-
-  @GetMapping("/status")
   @ResponseBody
-  public ButtonResponse index(
-      @RequestParam("identifier") String identifier,
-      @RequestParam("trait_key") String traitKey,
-      @RequestParam("trait_value") String traitValue
+  public ModelAndView index(
+      @RequestParam(name = "identifier", defaultValue = "") String identifier,
+      @RequestParam(name = "trait_key", defaultValue = "") String traitKey,
+      @RequestParam(name = "trait_value", defaultValue = "") String traitValue
   ) throws FlagsmithApiError, FlagsmithClientError {
     Map<String, String> traits = new HashMap<String, String>();
     if (!StringUtils.isBlank(traitKey) && !StringUtils.isBlank(traitValue)) {
@@ -54,12 +49,21 @@ public class HelloController {
     Boolean isFontColourEnabled = flags.isFeatureEnabled(featureName);
 
     Object value = flags.getFeatureValue(featureName);
+    String buttonValue = null;
 
-    String buttonValue = ((TextNode) flags.getFeatureValue(featureName)).textValue();
+    if (value instanceof String) {
+      buttonValue = (String) value;
+    } else {
+      buttonValue = ((TextNode) flags.getFeatureValue(featureName)).textValue();
+    }
 
     FontColour fontColor = parse(buttonValue, FontColour.class);
 
-    return new ButtonResponse(isFontColourEnabled, fontColor.getColour());
+    ModelAndView view = new ModelAndView();
+    view.setViewName("index");
+    view.addObject("show_button", isFontColourEnabled);
+    view.addObject("font_colour", fontColor.getColour());
+    return view;
   }
 
   private static DefaultFlag defaultFlagHandler(String featureName) {
@@ -67,8 +71,6 @@ public class HelloController {
     flag.setEnabled(Boolean.FALSE);
 
     if (featureName.equals("secret_button")) {
-      ObjectNode text = getMapper().createObjectNode();
-      text.put("colour", "#b8b8b8");
       flag.setValue("{\"colour\": \"#ababab\"}");
     } else {
       flag.setValue(null);
@@ -93,26 +95,6 @@ public class HelloController {
       return getMapper().treeToValue(json, clazz);
     } catch (JsonProcessingException e) {
       return null;
-    }
-  }
-
-  class ButtonResponse {
-    @JsonProperty("show_button")
-    private Boolean showButton;
-    @JsonProperty("font_colour")
-    private String fontColour;
-
-    public ButtonResponse(Boolean showButton, String fontColour) {
-      this.fontColour = fontColour;
-      this.showButton = showButton;
-    }
-
-    public String getFontColour() {
-      return fontColour;
-    }
-
-    public Boolean getshowButton() {
-      return showButton;
     }
   }
 }
