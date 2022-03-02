@@ -1,11 +1,11 @@
 package com.flagsmith.flagengine;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.flagsmith.MapperFactory;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.IdentityModel;
 import com.flagsmith.flagengine.models.ResponseJSON;
-import com.flagsmith.flagengine.utils.encode.JsonEncoder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -30,7 +30,7 @@ public class EngineTest {
   @BeforeClass(groups = "unit")
   public void init() {
     engine = new Engine();
-    objectMapper = JsonEncoder.getMapper();
+    objectMapper = MapperFactory.getMapper();
   }
 
   @DataProvider(name = "environmentdata")

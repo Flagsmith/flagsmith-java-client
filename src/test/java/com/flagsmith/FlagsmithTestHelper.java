@@ -12,7 +12,6 @@ import com.flagsmith.flagengine.features.FeatureModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.IdentityModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
-import com.flagsmith.flagengine.utils.encode.JsonEncoder;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.Flag;
 import com.google.common.collect.ImmutableMap;
@@ -310,7 +309,7 @@ public class FlagsmithTestHelper {
         "}";
 
     try {
-      return EnvironmentModel.load(MapperFactory.getMappper().readTree(environment), EnvironmentModel.class);
+      return EnvironmentModel.load(MapperFactory.getMapper().readTree(environment), EnvironmentModel.class);
     } catch (JsonProcessingException e) {
       // environment model json
     }
@@ -341,7 +340,7 @@ public class FlagsmithTestHelper {
         "]";
 
     try {
-      return JsonEncoder.getMapper().readValue(
+      return MapperFactory.getMapper().readValue(
           featureJson,
           new TypeReference<List<FeatureStateModel>>() {}
       );
@@ -394,14 +393,14 @@ public class FlagsmithTestHelper {
   }
 
   public static JsonNode getIdentityRequest(String identifier, List<TraitModel> traits) {
-    final ObjectNode flagsAndTraits = MapperFactory.getMappper().createObjectNode();
+    final ObjectNode flagsAndTraits = MapperFactory.getMapper().createObjectNode();
     flagsAndTraits.putPOJO("identifier", identifier);
     flagsAndTraits.putPOJO("traits", traits != null ? traits : new ArrayList<>());
     return flagsAndTraits;
   }
 
   public static JsonNode getFlagsAndTraitsResponse(List<FeatureStateModel> flags, List<TraitModel> traits) {
-    final ObjectNode flagsAndTraits = MapperFactory.getMappper().createObjectNode();
+    final ObjectNode flagsAndTraits = MapperFactory.getMapper().createObjectNode();
     flagsAndTraits.putPOJO("flags", flags != null ? flags : new ArrayList<>());
     flagsAndTraits.putPOJO("traits", traits != null ? traits : new ArrayList<>());
     return flagsAndTraits;

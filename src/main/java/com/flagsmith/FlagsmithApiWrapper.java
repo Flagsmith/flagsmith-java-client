@@ -162,7 +162,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     // we are using identities endpoint to create bulk user Trait
     HttpUrl url = defaultConfig.getIdentitiesUri();
 
-    ObjectNode node = MapperFactory.getMappper().createObjectNode();
+    ObjectNode node = MapperFactory.getMapper().createObjectNode();
     node.put("identifier", identifier);
 
     if (traits != null) {
@@ -183,7 +183,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
       JsonNode flagsAndTraitsResponse = featureFlagsFuture.get(TIMEOUT, TimeUnit.MILLISECONDS);
       JsonNode flagsArray = flagsAndTraitsResponse != null
           && flagsAndTraitsResponse.has("flags")
-          ? flagsAndTraitsResponse.get("flags") : MapperFactory.getMappper().createArrayNode();
+          ? flagsAndTraitsResponse.get("flags") : MapperFactory.getMapper().createArrayNode();
 
       flagsAndTraits = Flags.fromApiFlags(
           flagsArray,

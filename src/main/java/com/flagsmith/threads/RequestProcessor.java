@@ -3,7 +3,6 @@ package com.flagsmith.threads;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.flagsmith.FlagsmithException;
 import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.config.Retry;
@@ -91,7 +90,7 @@ public class RequestProcessor {
           try (Response response = call.execute()) {
             statusCode = response.code();
             if (response.isSuccessful()) {
-              ObjectMapper mapper = MapperFactory.getMappper();
+              ObjectMapper mapper = MapperFactory.getMapper();
               completableFuture.complete(mapper.readValue(response.body().string(), clazz));
               // break the while
               break;

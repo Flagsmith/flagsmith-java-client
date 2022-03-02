@@ -1,9 +1,7 @@
 package com.flagsmith.threads;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.flagsmith.FlagsmithApiWrapper;
 import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.interfaces.FlagsmithSdk;
@@ -115,7 +113,7 @@ public class AnalyticsProcessor {
     String response;
 
     try {
-      ObjectMapper mapper = MapperFactory.getMappper();
+      ObjectMapper mapper = MapperFactory.getMapper();
       response = mapper.writeValueAsString(analyticsData);
     } catch (JsonProcessingException jpe) {
       logger.error("Error parsing analytics data to JSON.", jpe);

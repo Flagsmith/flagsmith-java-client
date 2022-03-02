@@ -1,10 +1,10 @@
 package com.flagsmith.flagengine.unit.environments;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.flagsmith.MapperFactory;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.helpers.FeatureStateHelper;
-import com.flagsmith.flagengine.utils.encode.JsonEncoder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -55,7 +55,7 @@ public class EnvironmentTest {
         "        ]\n" +
         "    }";
 
-    JsonNode node = JsonEncoder.getMapper().readTree(json);
+    JsonNode node = MapperFactory.getMapper().readTree(json);
     EnvironmentModel environmentModel = EnvironmentModel.load(node, EnvironmentModel.class);
 
     Assert.assertNotNull(environmentModel);
@@ -128,7 +128,7 @@ public class EnvironmentTest {
         "    ]\n" +
         "}\n";
 
-    JsonNode node = JsonEncoder.getMapper().readTree(json);
+    JsonNode node = MapperFactory.getMapper().readTree(json);
     EnvironmentModel environmentModel = EnvironmentModel.load(node, EnvironmentModel.class);
 
     Assert.assertNotNull(environmentModel);

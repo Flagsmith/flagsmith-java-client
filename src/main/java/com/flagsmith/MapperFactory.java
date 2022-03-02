@@ -16,11 +16,12 @@ public class MapperFactory {
    *
    * @return an ObjectMapper
    */
-  public static ObjectMapper getMappper() {
+  public static ObjectMapper getMapper() {
     if (null == mapper) {
       mapper = new ObjectMapper();
       mapper.configure(MapperFeature.USE_ANNOTATIONS, true);
       mapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
+      mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
     return mapper;
   }

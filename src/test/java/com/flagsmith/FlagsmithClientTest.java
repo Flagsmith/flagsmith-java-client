@@ -13,7 +13,6 @@ import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
-import com.flagsmith.flagengine.utils.encode.JsonEncoder;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.DefaultFlag;
@@ -108,7 +107,7 @@ public class FlagsmithClientTest {
         .get(baseUrl + "/environment-document/")
         .anyTimes()
         .respond(
-            MapperFactory.getMappper().writeValueAsString(environmentModel),
+            MapperFactory.getMapper().writeValueAsString(environmentModel),
             MEDIATYPE_JSON
         );
 
@@ -186,7 +185,7 @@ public class FlagsmithClientTest {
     interceptor.addRule()
         .get(baseUrl + "/flags/")
         .respond(
-            MapperFactory.getMappper().writeValueAsString(featureStateModel),
+            MapperFactory.getMapper().writeValueAsString(featureStateModel),
             MEDIATYPE_JSON
         );
 
@@ -274,7 +273,7 @@ public class FlagsmithClientTest {
     when(requestProcessor.executeAsync(any(), any()))
         .thenReturn(
             FlagsmithTestHelper.futurableReturn(
-                JsonEncoder.getMapper().readTree(json)
+                MapperFactory.getMapper().readTree(json)
             ));
 
     List<BaseFlag> flags = client.getIdentityFlags(identifier, traits).getAllFlags();

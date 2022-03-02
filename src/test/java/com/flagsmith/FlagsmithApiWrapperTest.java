@@ -15,14 +15,12 @@ import static org.testng.Assert.assertNull;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.config.Retry;
 import com.flagsmith.flagengine.features.FeatureModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.models.BaseFlag;
-import com.flagsmith.models.Flag;
 import com.flagsmith.models.Flags;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -40,7 +38,7 @@ public class FlagsmithApiWrapperTest {
 
   private final String API_KEY = "OUR_API_KEY";
   private final String BASE_URL = "https://unit-test.com";
-  private final ObjectMapper mapper = MapperFactory.getMappper();
+  private final ObjectMapper mapper = MapperFactory.getMapper();
   private FlagsmithApiWrapper sut;
   private FlagsmithLogger flagsmithLogger;
   private FlagsmithConfig defaultConfig;

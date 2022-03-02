@@ -152,7 +152,7 @@ public class FlagsmithApiWrapperCachingTest {
     String identifier = "test-user";
     final ArrayList<TraitModel> traits = new ArrayList<>();
 
-    final ObjectNode flagsAndTraits = MapperFactory.getMappper().createObjectNode();
+    final ObjectNode flagsAndTraits = MapperFactory.getMapper().createObjectNode();
     when(requestProcessor.executeAsync(any(), any()))
         .thenReturn(FlagsmithTestHelper.futurableReturn(flagsAndTraits));
 
@@ -170,11 +170,11 @@ public class FlagsmithApiWrapperCachingTest {
     String identifier = "test-user";
     final ArrayList<TraitModel> traits = new ArrayList<>();
 
-    final ObjectNode flagsAndTraits = MapperFactory.getMappper().createObjectNode();
+    final ObjectNode flagsAndTraits = MapperFactory.getMapper().createObjectNode();
     when(requestProcessor.executeAsync(any(), any()))
         .thenReturn(FlagsmithTestHelper.futurableReturn(flagsAndTraits));
 
-    final ObjectNode requestObject = MapperFactory.getMappper().createObjectNode();
+    final ObjectNode requestObject = MapperFactory.getMapper().createObjectNode();
     requestObject.put("identifier", identifier);
     requestObject.putPOJO("traits", traits);
 

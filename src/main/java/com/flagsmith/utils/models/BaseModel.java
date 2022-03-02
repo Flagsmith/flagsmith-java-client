@@ -2,8 +2,8 @@ package com.flagsmith.utils.models;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.flagsmith.flagengine.utils.encode.JsonEncoder;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flagsmith.MapperFactory;
 import java.lang.Class;
 
 public abstract class BaseModel {
@@ -14,7 +14,7 @@ public abstract class BaseModel {
    * @return
    */
   public static <T extends BaseModel> T load(JsonNode json, Class<T> clazz) {
-    JsonMapper mapper = JsonEncoder.getMapper();
+    ObjectMapper mapper = MapperFactory.getMapper();
     try {
       return mapper.treeToValue(json, clazz);
     } catch (JsonProcessingException e) {
