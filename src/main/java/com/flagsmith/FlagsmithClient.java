@@ -60,14 +60,10 @@ public class FlagsmithClient {
    * @return
    */
   public Flags getEnvironmentFlags() throws FlagsmithApiError {
-    System.out.println("Getting environment flags.");
-
     if (environment != null) {
-      System.out.println("Getting environment flags from environment document.");
       return getEnvironmentFlagsFromDocument();
     }
 
-    System.out.println("Getting environment flags from API.");
     return getEnvironmentFlagsFromApi();
   }
 
@@ -95,14 +91,10 @@ public class FlagsmithClient {
    */
   public Flags getIdentityFlags(String identifier, Map<String, String> traits)
       throws FlagsmithClientError {
-    System.out.println("Getting identity flags.");
-      
     if (environment != null) {
-      System.out.println("Getting identity flags from document.");
       return getIdentityFlagsFromDocument(identifier, traits);
     }
 
-    System.out.println("Getting identity flags from API.");
     return getIdentityFlagsFromApi(identifier, traits);
   }
 
@@ -132,8 +124,6 @@ public class FlagsmithClient {
     try {
       return flagsmithSdk.getFeatureFlags(Boolean.TRUE);
     } catch (Exception e) {
-      System.out.println("Exception getting flags: " + String.valueOf(e));
-
       if (flagsmithSdk.getConfig().getFlagsmithFlagDefaults() != null) {
         Flags flags = new Flags();
         flags.setDefaultFlagHandler(flagsmithSdk.getConfig().getFlagsmithFlagDefaults());

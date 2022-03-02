@@ -51,16 +51,8 @@ public class HelloController {
       flags = flagsmith.getEnvironmentFlags();
     }
 
-    System.out.println("Flags: " + String.valueOf(flags.getAllFlags()));
-
     Boolean showButton = flags.isFeatureEnabled(featureName);
-
-    System.out.println("showButton: " + String.valueOf(showButton));
-
     Object value = flags.getFeatureValue(featureName);
-
-    System.out.println("value: " + String.valueOf(value));
-
     String buttonValue = value instanceof String ? (String) value : ((TextNode) value).textValue();
 
     FontColour fontColor = parse(buttonValue, FontColour.class);
