@@ -38,30 +38,36 @@ public class HelloController {
       @RequestParam(name = "trait_key", defaultValue = "") String traitKey,
       @RequestParam(name = "trait_value", defaultValue = "") String traitValue
   ) throws FlagsmithApiError, FlagsmithClientError {
-    Map<String, String> traits = new HashMap<String, String>();
-    if (!StringUtils.isBlank(traitKey) && !StringUtils.isBlank(traitValue)) {
-      traits.put(traitKey, traitValue);
+    String featureName = "secret_button";
+    Flags flags;
+
+    if (!StringUtils.isBlank(identifier)) {
+      Map<String, String> traits = new HashMap<String, String>();
+      if (!StringUtils.isBlank(traitKey) && !StringUtils.isBlank(traitValue)) {
+        traits.put(traitKey, traitValue);
+      }
+      flags = flagsmith.getIdentityFlags(identifier, traits);
+    } else {
+      flags = flagsmith.getEnvironmentFlags();
     }
 
-    Flags flags = flagsmith.getIdentityFlags(identifier, traits);
+    System.out.println("Flags: " + String.valueOf(flags.getAllFlags()));
 
-    String featureName = "secret_button";
-    Boolean isFontColourEnabled = flags.isFeatureEnabled(featureName);
+    Boolean showButton = flags.isFeatureEnabled(featureName);
+
+    System.out.println("showButton: " + String.valueOf(showButton));
 
     Object value = flags.getFeatureValue(featureName);
-    String buttonValue = null;
 
-    if (value instanceof String) {
-      buttonValue = (String) value;
-    } else {
-      buttonValue = ((TextNode) flags.getFeatureValue(featureName)).textValue();
-    }
+    System.out.println("value: " + String.valueOf(value));
+
+    String buttonValue = value instanceof String ? (String) value : ((TextNode) value).textValue();
 
     FontColour fontColor = parse(buttonValue, FontColour.class);
 
     ModelAndView view = new ModelAndView();
     view.setViewName("index");
-    view.addObject("show_button", isFontColourEnabled);
+    view.addObject("show_button", showButton);
     view.addObject("font_colour", fontColor.getColour());
     return view;
   }
