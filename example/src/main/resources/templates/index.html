@@ -9,20 +9,20 @@
 </head>
 <body>
     <p>
-        Hello <span id="identifier-name" th:text="${identifier} ? identifier : 'World!'">World!</span>,
-        <button
+        Hello <span id="identifier-name" th:text="${identifier} ? identifier : 'World'">World!</span>,
+    </p>
+    <button
             id="secret-button"
             th:if="${show_button}"
             th:style="'color: ' + @{${font_colour}} + ';'"
         >Secret Button</button>
-    </p>
     <p>
         <form id="form" method="get">
-            Identify as a user:
+            <h3>Identify as a user</h3>
             <label for="identifier">Identifier: </label>
             <input name="identifier" id="identifier"/>
             <br />
-            With optional traits:
+            <p>... with an optional user trait</p>
             <label for="trait-key">Trait Key: </label>
             <input name="trait-key" id="trait-key"/><br />
 

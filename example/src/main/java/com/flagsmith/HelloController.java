@@ -35,33 +35,31 @@ public class HelloController {
   @ResponseBody
   public ModelAndView index(
       @RequestParam(name = "identifier", defaultValue = "") String identifier,
-      @RequestParam(name = "trait_key", defaultValue = "") String traitKey,
-      @RequestParam(name = "trait_value", defaultValue = "") String traitValue
+      @RequestParam(name = "trait-key", defaultValue = "") String traitKey,
+      @RequestParam(name = "trait-value", defaultValue = "") String traitValue
   ) throws FlagsmithApiError, FlagsmithClientError {
-    Map<String, String> traits = new HashMap<String, String>();
-    if (!StringUtils.isBlank(traitKey) && !StringUtils.isBlank(traitValue)) {
-      traits.put(traitKey, traitValue);
-    }
-
-    Flags flags = flagsmith.getIdentityFlags(identifier, traits);
-
     String featureName = "secret_button";
-    Boolean isFontColourEnabled = flags.isFeatureEnabled(featureName);
+    Flags flags;
 
-    Object value = flags.getFeatureValue(featureName);
-    String buttonValue = null;
-
-    if (value instanceof String) {
-      buttonValue = (String) value;
+    if (!StringUtils.isBlank(identifier)) {
+      Map<String, String> traits = new HashMap<String, String>();
+      if (!StringUtils.isBlank(traitKey) && !StringUtils.isBlank(traitValue)) {
+        traits.put(traitKey, traitValue);
+      }
+      flags = flagsmith.getIdentityFlags(identifier, traits);
     } else {
-      buttonValue = ((TextNode) flags.getFeatureValue(featureName)).textValue();
+      flags = flagsmith.getEnvironmentFlags();
     }
+
+    Boolean showButton = flags.isFeatureEnabled(featureName);
+    Object value = flags.getFeatureValue(featureName);
+    String buttonValue = value instanceof String ? (String) value : ((TextNode) value).textValue();
 
     FontColour fontColor = parse(buttonValue, FontColour.class);
 
     ModelAndView view = new ModelAndView();
     view.setViewName("index");
-    view.addObject("show_button", isFontColourEnabled);
+    view.addObject("show_button", showButton);
     view.addObject("font_colour", fontColor.getColour());
     return view;
   }
