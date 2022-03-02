@@ -35,8 +35,8 @@ public class HelloController {
   @ResponseBody
   public ModelAndView index(
       @RequestParam(name = "identifier", defaultValue = "") String identifier,
-      @RequestParam(name = "trait_key", defaultValue = "") String traitKey,
-      @RequestParam(name = "trait_value", defaultValue = "") String traitValue
+      @RequestParam(name = "trait-key", defaultValue = "") String traitKey,
+      @RequestParam(name = "trait-value", defaultValue = "") String traitValue
   ) throws FlagsmithApiError, FlagsmithClientError {
     String featureName = "secret_button";
     Flags flags;
