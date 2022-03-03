@@ -58,7 +58,7 @@ public class TypeCasting {
    */
   public static Float toFloat(Object number) {
     try {
-      return Float.parseFloat((String) number);
+      return number instanceof Float ? ((Float) number) : Float.parseFloat((String) number);
     } catch (NumberFormatException nfe) {
       return null;
     }
@@ -70,7 +70,7 @@ public class TypeCasting {
    * @return
    */
   public static Boolean isFloat(Object number) {
-    return toFloat(number) != null;
+    return number instanceof Float || toFloat(number) != null;
   }
 
   /**
@@ -80,7 +80,7 @@ public class TypeCasting {
    */
   public static Integer toInteger(Object number) {
     try {
-      return Integer.parseInt((String) number);
+      return number instanceof Integer ? ((Integer) number) : Integer.valueOf((String) number);
     } catch (NumberFormatException nfe) {
       return null;
     }
@@ -92,7 +92,7 @@ public class TypeCasting {
    * @return
    */
   public static Boolean isInteger(Object number) {
-    return toInteger(number) != null;
+    return number instanceof Integer || toInteger(number) != null;
   }
 
   /**
