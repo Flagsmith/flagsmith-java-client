@@ -253,7 +253,7 @@ public class FlagsmithClientTest {
       throws FlagsmithClientError, IOException {
     String baseUrl = "http://bad-url";
     String identifier = "identifier";
-    Map<String, String> traits = new HashMap<String, String>() {{
+    Map<String, Object> traits = new HashMap<String, Object>() {{
       put("some_trait", "some_value");
     }};
     MockInterceptor interceptor = new MockInterceptor();
@@ -298,7 +298,7 @@ public class FlagsmithClientTest {
   public void testClient_identityFlagsApiWithTraitsWithLocalEnvironment() {
     String baseUrl = "http://bad-url";
     String identifier = "identifier";
-    Map<String, String> traits = new HashMap<String, String>() {{
+    Map<String, Object> traits = new HashMap<String, Object>() {{
       put("some_trait", "some_value");
     }};
     MockInterceptor interceptor = new MockInterceptor();
@@ -324,7 +324,7 @@ public class FlagsmithClientTest {
   public void testClient_defaultFlagWithNoEnvironment() throws FlagsmithClientError {
     String baseUrl = "http://bad-url";
     String identifier = "identifier";
-    Map<String, String> traits = new HashMap<String, String>() {{
+    Map<String, Object> traits = new HashMap<String, Object>() {{
       put("some_trait", "some_value");
     }};
     MockInterceptor interceptor = new MockInterceptor();

@@ -42,7 +42,7 @@ public class HelloController {
     Flags flags;
 
     if (!StringUtils.isBlank(identifier)) {
-      Map<String, String> traits = new HashMap<String, String>();
+      Map<String, Object> traits = new HashMap<String, Object>();
       if (!StringUtils.isBlank(traitKey) && !StringUtils.isBlank(traitValue)) {
         traits.put(traitKey, traitValue);
       }

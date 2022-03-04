@@ -89,7 +89,7 @@ public class FlagsmithClient {
    * @param traits list of key value traits
    * @return
    */
-  public Flags getIdentityFlags(String identifier, Map<String, String> traits)
+  public Flags getIdentityFlags(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
     if (environment != null) {
       return getIdentityFlagsFromDocument(identifier, traits);
@@ -107,7 +107,7 @@ public class FlagsmithClient {
       );
   }
 
-  private Flags getIdentityFlagsFromDocument(String identifier, Map<String, String> traits)
+  private Flags getIdentityFlagsFromDocument(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
     IdentityModel identity = buildIdentityModel(identifier, traits);
     List<FeatureStateModel> featureStates = Engine.getIdentityFeatureStates(environment, identity);
@@ -135,7 +135,7 @@ public class FlagsmithClient {
     }
   }
 
-  private Flags getIdentityFlagsFromApi(String identifier, Map<String, String> traits)
+  private Flags getIdentityFlagsFromApi(String identifier, Map<String, Object> traits)
       throws FlagsmithApiError {
     try {
       List<TraitModel> traitsList = traits.entrySet().stream().map((row) -> {
@@ -163,7 +163,7 @@ public class FlagsmithClient {
     }
   }
 
-  private IdentityModel buildIdentityModel(String identifier, Map<String, String> traits)
+  private IdentityModel buildIdentityModel(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
     if (environment == null) {
       throw new

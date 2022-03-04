@@ -12,5 +12,5 @@ public class TraitModel {
   @JsonProperty("trait_key")
   private String traitKey;
   @JsonProperty("trait_value")
-  private String traitValue;
+  private Object traitValue;
 }
