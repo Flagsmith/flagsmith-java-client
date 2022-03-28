@@ -1,18 +1,24 @@
-package com.flagsmith;
+package com.flagsmith.config;
 
+import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.interfaces.FlagsmithCache;
+import com.flagsmith.models.Flags;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import lombok.Data;
 import lombok.NonNull;
 import org.apache.commons.lang3.StringUtils;
 
+@Data
 public final class FlagsmithCacheConfig {
 
   private static final int DEFAULT_MAX_SIZE = 10;
   private static final int DEFAULT_EXPIRE_AFTER_WRITE = 5;
   private static final TimeUnit DEFAULT_EXPIRE_AFTER_WRITE_TIMEUNIT = TimeUnit.MINUTES;
-  final FlagsmithInternalCache cache;
+  final FlagsmithCacheImpl cache;
 
   private FlagsmithCacheConfig(Builder builder) {
     Caffeine<Object, Object> caffeineBuilder = Caffeine.newBuilder();
@@ -36,7 +42,7 @@ public final class FlagsmithCacheConfig {
       caffeineBuilder = caffeineBuilder.recordStats();
     }
 
-    this.cache = new FlagsmithInternalCache(caffeineBuilder.build(), builder.envFlagsCacheKey);
+    this.cache = new FlagsmithCacheImpl(caffeineBuilder.build(), builder.envFlagsCacheKey);
   }
 
   public static FlagsmithCacheConfig.Builder newBuilder() {
@@ -151,18 +157,18 @@ public final class FlagsmithCacheConfig {
     }
   }
 
-  class FlagsmithInternalCache implements FlagsmithCache {
+  public class FlagsmithCacheImpl implements FlagsmithCache {
 
-    private final Cache<String, FlagsAndTraits> cache;
+    private final Cache<String, Flags> cache;
     private final String envFlagsCacheKey;
 
-    public FlagsmithInternalCache(final Cache<String, FlagsAndTraits> cache,
-        final String envFlagsCacheKey) {
+    public FlagsmithCacheImpl(final Cache<String, Flags> cache,
+                              final String envFlagsCacheKey) {
       this.cache = cache;
       this.envFlagsCacheKey = envFlagsCacheKey;
     }
 
-    public FlagsmithInternalCache(final Cache<String, FlagsAndTraits> cache) {
+    public FlagsmithCacheImpl(final Cache<String, Flags> cache) {
       this.cache = cache;
       this.envFlagsCacheKey = null;
     }
@@ -193,7 +199,7 @@ public final class FlagsmithCacheConfig {
     }
 
     @Override
-    public FlagsAndTraits getIfPresent(String key) {
+    public Flags getIfPresent(String key) {
       return cache.getIfPresent(key);
     }
 
@@ -202,8 +208,8 @@ public final class FlagsmithCacheConfig {
       return this.envFlagsCacheKey;
     }
 
-    // do not expose this method on the interface
-    public Cache<String, FlagsAndTraits> getCache() {
+    @Override
+    public Cache<String, Flags> getCache() {
       return cache;
     }
   }

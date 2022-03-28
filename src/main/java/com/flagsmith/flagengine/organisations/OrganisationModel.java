@@ -1,7 +1,7 @@
 package com.flagsmith.flagengine.organisations;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.flagsmith.flagengine.utils.models.BaseModel;
+import com.flagsmith.utils.models.BaseModel;
 import lombok.Data;
 
 @Data

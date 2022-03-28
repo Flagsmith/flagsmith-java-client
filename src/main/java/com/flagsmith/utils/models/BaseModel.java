@@ -1,4 +1,4 @@
-package com.flagsmith.flagengine.utils.models;
+package com.flagsmith.utils.models;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;

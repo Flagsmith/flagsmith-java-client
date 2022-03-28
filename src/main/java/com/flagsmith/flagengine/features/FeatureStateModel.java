@@ -2,7 +2,7 @@ package com.flagsmith.flagengine.features;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.flagsmith.flagengine.utils.Hashing;
-import com.flagsmith.flagengine.utils.models.BaseModel;
+import com.flagsmith.utils.models.BaseModel;
 
 import java.util.Arrays;
 import java.util.List;
