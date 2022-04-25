@@ -52,8 +52,9 @@ class FlagsmithApiWrapper implements FlagsmithSdk {
     try (Response response = call.execute()) {
       if (response.isSuccessful()) {
         ObjectMapper mapper = MapperFactory.getMappper();
-        List<Flag> featureFlags = Arrays.asList(mapper.readValue(response.body().string(),
-            Flag[].class));
+        List<Flag> featureFlags = new ArrayList<>(Arrays.asList(
+            mapper.readValue(response.body().string(),
+                Flag[].class)));
         flagsAndTraits.setFlags(featureFlags);
       } else {
         logger.httpError(request, response, doThrow);
