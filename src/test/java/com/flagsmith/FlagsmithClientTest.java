@@ -58,10 +58,21 @@ public class FlagsmithClientTest {
         .withConfiguration(
             FlagsmithConfig.newBuilder().withLocalEvaluation(Boolean.TRUE).build()
         )
+        .setApiKey("ser.abcdefg")
         .build();
 
     Thread.sleep(10);
     verify(manager, times(1)).startPolling();
+  }
+
+  @Test(groups = "unit")
+  public void testLocalEvaluationRequiresServerKey() throws InterruptedException {
+    Assert.assertThrows(Exception.class, () -> FlagsmithClient.newBuilder()
+        .withConfiguration(
+            FlagsmithConfig.newBuilder().withLocalEvaluation(Boolean.TRUE).build()
+        )
+        .setApiKey("not-a-server-key")
+        .build());
   }
 
   @Test(groups = "unit")
