@@ -287,7 +287,29 @@ public class FlagsmithTestHelper {
         "    },\n" +
         "    \"id\": 1,\n" +
         "    \"hide_disabled_flags\": false,\n" +
-        "    \"segments\": []\n" +
+        "    \"segments\": [" +
+        "      {\n" +
+        "        \"id\": 1,\n" +
+        "        \"name\": \"Test segment\",\n" +
+        "        \"rules\": [\n" +
+        "          {\n" +
+        "            \"type\": \"ALL\",\n" +
+        "            \"rules\": [\n" +
+        "              {\n" +
+        "                \"type\": \"ALL\",\n" +
+        "                \"rules\": [],\n" +
+        "                \"conditions\": [\n" +
+        "                  {\n" +
+        "                    \"operator\": \"EQUAL\",\n" +
+        "                    \"property_\": \"foo\",\n" +
+        "                    \"value\": \"bar\"\n" +
+        "                  }\n" +
+        "                ]\n" +
+        "              }\n" +
+        "            ]\n" +
+        "          }\n" +
+        "        ]\n" +
+        "      }]\n" +
         "  },\n" +
         "  \"segment_overrides\": [],\n" +
         "  \"id\": 1,\n" +

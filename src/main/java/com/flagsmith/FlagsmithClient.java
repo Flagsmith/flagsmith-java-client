@@ -10,10 +10,13 @@ import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.IdentityModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
+import com.flagsmith.flagengine.segments.SegmentEvaluator;
+import com.flagsmith.flagengine.segments.SegmentModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.Flags;
+import com.flagsmith.models.Segment;
 import com.flagsmith.threads.AnalyticsProcessor;
 import com.flagsmith.threads.PollingManager;
 import java.util.ArrayList;
@@ -96,6 +99,48 @@ public class FlagsmithClient {
     }
 
     return getIdentityFlagsFromApi(identifier, traits);
+  }
+
+  /**
+   * Get a list of segments that the given identity is in.
+   *
+   * @param identifier a unique identifier for the identity in the current
+   *             environment, e.g. email address, username, uuid
+   * @return
+   */
+  public List<Segment> getIdentitySegments(String identifier)
+      throws FlagsmithClientError {
+    return getIdentitySegments(identifier, null);
+  }
+
+  /**
+   * Get a list of segments that the given identity is in.
+   *
+   * @param identifier a unique identifier for the identity in the current
+   *             environment, e.g. email address, username, uuid
+   * @param traits a dictionary of traits to add / update on the identity in
+   *             Flagsmith, e.g. {"num_orders": 10}
+   * @return
+   */
+  public List<Segment> getIdentitySegments(String identifier, Map<String, Object> traits)
+      throws FlagsmithClientError {
+    if (environment == null) {
+      throw new FlagsmithClientError("Local evaluation required to obtain identity segments.");
+    }
+    IdentityModel identityModel = buildIdentityModel(
+        identifier, (traits != null ? traits : new HashMap<>())
+    );
+    List<SegmentModel> segmentModels = SegmentEvaluator.getIdentitySegments(
+        environment, identityModel
+    );
+
+    return segmentModels.stream().map((segmentModel) -> {
+      Segment segment = new Segment();
+      segment.setId(segmentModel.getId());
+      segment.setName(segmentModel.getName());
+
+      return segment;
+    }).collect(Collectors.toList());
   }
 
   private Flags getEnvironmentFlagsFromDocument() {
