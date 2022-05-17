@@ -67,7 +67,7 @@ public class FlagsmithClientTest {
 
   @Test(groups = "unit")
   public void testLocalEvaluationRequiresServerKey() throws InterruptedException {
-    Assert.assertThrows(Exception.class, () -> FlagsmithClient.newBuilder()
+    Assert.assertThrows(RuntimeException.class, () -> FlagsmithClient.newBuilder()
         .withConfiguration(
             FlagsmithConfig.newBuilder().withLocalEvaluation(Boolean.TRUE).build()
         )
