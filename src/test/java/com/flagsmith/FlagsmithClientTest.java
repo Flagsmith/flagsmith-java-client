@@ -17,6 +17,7 @@ import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.DefaultFlag;
 import com.flagsmith.models.Flags;
+import com.flagsmith.models.Segment;
 import com.flagsmith.threads.PollingManager;
 import com.flagsmith.threads.RequestProcessor;
 import java.io.IOException;
@@ -375,5 +376,79 @@ public class FlagsmithClientTest {
     FlagsmithCache cache = client.getCache();
 
     Assert.assertNotNull(cache);
+  }
+
+  @Test(groups = "unit")
+  public void testGetIdentitySegmentsNoTraits() throws JsonProcessingException,
+      FlagsmithClientError {
+    String baseUrl = "http://bad-url";
+
+    EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
+
+    MockInterceptor interceptor = new MockInterceptor();
+    interceptor.addRule()
+        .get(baseUrl + "/environment-document/")
+        .anyTimes()
+        .respond(
+            MapperFactory.getMapper().writeValueAsString(environmentModel),
+            MEDIATYPE_JSON
+        );
+
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+        .withConfiguration(
+            FlagsmithConfig.newBuilder()
+                .baseUri(baseUrl)
+                .addHttpInterceptor(interceptor)
+                .withLocalEvaluation(true)
+                .build()
+        ).setApiKey("ser.abcdefg")
+        .build();
+
+    client.updateEnvironment();
+
+    String identifier = "identifier";
+    List<Segment> segments = client.getIdentitySegments(identifier);
+
+    Assert.assertTrue(segments.isEmpty());
+  }
+
+
+  @Test(groups = "unit")
+  public void testGetIdentitySegmentsWithValidTrait() throws JsonProcessingException,
+      FlagsmithClientError {
+    String baseUrl = "http://bad-url";
+
+    EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
+
+    MockInterceptor interceptor = new MockInterceptor();
+    interceptor.addRule()
+        .get(baseUrl + "/environment-document/")
+        .anyTimes()
+        .respond(
+            MapperFactory.getMapper().writeValueAsString(environmentModel),
+            MEDIATYPE_JSON
+        );
+
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+        .withConfiguration(
+            FlagsmithConfig.newBuilder()
+                .baseUri(baseUrl)
+                .addHttpInterceptor(interceptor)
+                .withLocalEvaluation(true)
+                .build()
+        ).setApiKey("ser.abcdefg")
+        .build();
+
+    client.updateEnvironment();
+
+    String identifier = "identifier";
+    Map<String, Object> traits = new HashMap<String, Object>(){{
+      put("foo", "bar");
+    }};
+
+    List<Segment> segments = client.getIdentitySegments(identifier, traits);
+
+    Assert.assertEquals(segments.size(), 1);
+    Assert.assertEquals(segments.get(0).getName(), "Test segment");
   }
 }
