@@ -407,6 +407,13 @@ public class FlagsmithClient {
       }
 
       if (configuration.getEnableLocalEvaluation()) {
+        if (!apiKey.startsWith("ser.")) {
+          throw new RuntimeException(
+              "In order to use local evaluation, please generate a server key "
+              + "in the environment settings page."
+          );
+        }
+
         if (this.pollingManager != null) {
           client.pollingManager = pollingManager;
         } else {
