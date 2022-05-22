@@ -2,6 +2,7 @@ package com.flagsmith.models;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.flagengine.features.FlagsmithValue;
 import lombok.Data;
 
 @Data
@@ -37,7 +38,7 @@ public class Flag extends BaseFlag {
     Flag flag = new Flag();
 
     flag.setFeatureId(node.get("feature").get("id").intValue());
-    flag.setValue(node.get("feature_state_value"));
+    flag.setValue(FlagsmithValue.fromUntypedValue(node.get("feature_state_value").asText()));
     flag.setFeatureName(node.get("feature").get("name").asText());
     flag.setEnabled(node.get("enabled").booleanValue());
 

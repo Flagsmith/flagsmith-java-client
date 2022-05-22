@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.flagengine.features.FlagsmithValue;
 import com.flagsmith.flagengine.helpers.FeatureStateHelper;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -72,12 +73,19 @@ public class EnvironmentTest {
     Assert.assertNull(environmentModel.getHeapConfig());
     Assert.assertNull(environmentModel.getSegmentConfig());
 
+    String featureNameWithStringValue = "feature_with_string_value";
+    String stringValue = "foo";
+
     FeatureStateModel featureState = FeatureStateHelper.getFeatureStateForFeatureByName(
         environmentModel.getFeatureStates(),
-        "feature_with_string_value"
+        featureNameWithStringValue
     );
 
     Assert.assertNotNull(featureState);
+    Assert.assertEquals(
+        featureState.getValue(),
+        FlagsmithValue.fromUntypedValue(stringValue)
+    );
   }
 
   @Test

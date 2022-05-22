@@ -12,6 +12,7 @@ import com.flagsmith.exceptions.FlagsmithApiError;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.flagengine.features.FlagsmithValue;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.models.BaseFlag;
@@ -203,7 +204,7 @@ public class FlagsmithClientTest {
 
     List<BaseFlag> flags = client.getEnvironmentFlags().getAllFlags();
     Assert.assertEquals(flags.get(0).getEnabled(), Boolean.TRUE);
-    Assert.assertEquals(flags.get(0).getValue(), "some-value");
+    Assert.assertEquals(flags.get(0).getValue(), FlagsmithValue.fromUntypedValue("some-value"));
     Assert.assertEquals(flags.get(0).getFeatureName(), "some_feature");
   }
 
@@ -256,7 +257,7 @@ public class FlagsmithClientTest {
 
     List<BaseFlag> flags = client.getIdentityFlags(identifier).getAllFlags();
     Assert.assertEquals(flags.get(0).getEnabled(), Boolean.TRUE);
-    Assert.assertEquals(((JsonNode) flags.get(0).getValue()).asText(), "some-value");
+    Assert.assertEquals((flags.get(0).getValue()), FlagsmithValue.fromUntypedValue("some-value"));
     Assert.assertEquals(flags.get(0).getFeatureName(), "some_feature");
   }
 
@@ -302,7 +303,7 @@ public class FlagsmithClientTest {
 
     Assert.assertEquals(expectedRequest.toString(), buffer.readUtf8());
     Assert.assertEquals(flags.get(0).getEnabled(), Boolean.TRUE);
-    Assert.assertEquals(((JsonNode) flags.get(0).getValue()).asText(), "some-value");
+    Assert.assertEquals(flags.get(0).getValue(), FlagsmithValue.fromUntypedValue("some-value"));
     Assert.assertEquals(flags.get(0).getFeatureName(), "some_feature");
   }
 
@@ -351,7 +352,7 @@ public class FlagsmithClientTest {
         .setApiKey("api-key")
         .setDefaultFlagValueFunction((name) -> {
           DefaultFlag flag = new DefaultFlag();
-          flag.setValue("some-value");
+          flag.setValue(FlagsmithValue.fromUntypedValue("some-value"));
           flag.setEnabled(true);
 
           return flag;
@@ -370,7 +371,7 @@ public class FlagsmithClientTest {
     DefaultFlag flag = (DefaultFlag) flags.getFlag("some_feature");
     Assert.assertEquals(flag.getIsDefault(), Boolean.TRUE);
     Assert.assertEquals(flag.getEnabled(), Boolean.TRUE);
-    Assert.assertEquals(flag.getValue(), "some-value");
+    Assert.assertEquals(flag.getValue(), FlagsmithValue.fromUntypedValue("some-value"));
   }
 
   @Test(groups = "unit")

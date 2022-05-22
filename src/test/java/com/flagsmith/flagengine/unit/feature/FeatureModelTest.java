@@ -3,8 +3,11 @@ package com.flagsmith.flagengine.unit.feature;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.flagengine.features.FeatureModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.flagengine.features.FlagsmithValue;
 import com.flagsmith.flagengine.features.MultivariateFeatureOptionModel;
 import com.flagsmith.flagengine.features.MultivariateFeatureStateValueModel;
+import com.flagsmith.flagengine.utils.Hashing;
+import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -51,8 +54,13 @@ public class FeatureModelTest {
     featureState.setEnabled(true);
     featureState.setValue("foo");
 
-    Assert.assertTrue(featureState.getValue().equals("foo"));
-    Assert.assertTrue(featureState.getValue(1).equals("foo"));
+    Assert.assertTrue(
+        featureState.getValue().equals(
+            FlagsmithValue.fromUntypedValue("foo")
+        ));
+    Assert.assertTrue(featureState.getValue(1).equals(
+        FlagsmithValue.fromUntypedValue("foo")
+    ));
   }
 
   @DataProvider(name = "featureStateValues")
@@ -97,8 +105,16 @@ public class FeatureModelTest {
     featureState.setDjangoId(1);
     featureState.setValue(mvFeatureControlValue);
 
-    Object value = featureState.getValue(1);
-    // TODO mock hash method
+    Hashing hashingObject = Mockito.mock(Hashing.class, "getHashedPercentageForObjectIds");
+    Hashing.setInstance(hashingObject);
+
+    Mockito.when(
+        hashingObject.getHashedPercentageForObjectIds(Mockito.any())
+    ).thenReturn(percentageValue);
+
+    FlagsmithValue value = featureState.getValue(1);
+
+    Assert.assertEquals(value, FlagsmithValue.fromUntypedValue(expectedValue));
   }
 
   public void loadMultiVariateFeatureOptionWithoutId() throws Exception {

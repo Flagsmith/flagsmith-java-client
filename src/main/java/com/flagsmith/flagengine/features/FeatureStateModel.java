@@ -21,16 +21,26 @@ public class FeatureStateModel extends BaseModel {
   @JsonProperty("multivariate_feature_state_values")
   private List<MultivariateFeatureStateValueModel> multivariateFeatureStateValues;
   @JsonProperty("feature_state_value")
-  private Object value;
+  private FlagsmithValue value;
   @JsonProperty("feature_segment")
   private FeatureSegmentModel featureSegment;
 
   /**
+   * Set the value.
+   * 
+   * @param value untype object value.
+   */
+  public void setValue(Object value) {
+    this.value = FlagsmithValue.fromUntypedValue(value);
+  }
+
+  /**
    * Returns the value object.
+   * 
    * @param identityId Identity ID
    * @return
    */
-  public Object getValue(Object identityId) {
+  public FlagsmithValue getValue(Object identityId) {
 
     if (identityId != null && multivariateFeatureStateValues != null
         && multivariateFeatureStateValues.size() > 0) {
@@ -42,24 +52,23 @@ public class FeatureStateModel extends BaseModel {
 
   /**
    * Determines the multi variate value.
+   * 
    * @param identityId Identity ID
    * @return
    */
-  private Object getMultiVariateValue(Object identityId) {
+  private FlagsmithValue getMultiVariateValue(Object identityId) {
 
     List<String> objectIds = Arrays.asList(
         (djangoId != null && djangoId != 0 ? djangoId.toString() : featurestateUuid),
-        identityId.toString()
-    );
+        identityId.toString());
 
     Float percentageValue = Hashing.getInstance().getHashedPercentageForObjectIds(objectIds);
     Float startPercentage = 0f;
 
-    List<MultivariateFeatureStateValueModel> sortedMultiVariateFeatureStates =
-        multivariateFeatureStateValues
-            .stream()
-            .sorted((smvfs1, smvfs2) -> smvfs1.getSortValue().compareTo(smvfs2.getSortValue()))
-            .collect(Collectors.toList());
+    List<MultivariateFeatureStateValueModel> sortedMultiVariateFeatureStates = multivariateFeatureStateValues
+        .stream()
+        .sorted((smvfs1, smvfs2) -> smvfs1.getSortValue().compareTo(smvfs2.getSortValue()))
+        .collect(Collectors.toList());
 
     for (MultivariateFeatureStateValueModel multiVariate : sortedMultiVariateFeatureStates) {
       Float limit = multiVariate.getPercentageAllocation() + startPercentage;
@@ -84,12 +93,12 @@ public class FeatureStateModel extends BaseModel {
   }
 
   /**
-   * Another FeatureStateModel is deemed to be higher priority if and only if 
-   * it has a FeatureSegment and either this.FeatureSegment is null or the 
-   * value of other.FeatureSegment.priority is lower than that of 
+   * Another FeatureStateModel is deemed to be higher priority if and only if
+   * it has a FeatureSegment and either this.FeatureSegment is null or the
+   * value of other.FeatureSegment.priority is lower than that of
    * this.FeatureSegment.priority.
    * 
-   * @param other the other FeatureStateModel to compare priority wiht 
+   * @param other the other FeatureStateModel to compare priority wiht
    * @return true if `this` is higher priority than `other`
    */
   public boolean isHigherPriority(FeatureStateModel other) {

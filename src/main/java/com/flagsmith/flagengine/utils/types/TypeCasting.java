@@ -58,7 +58,7 @@ public class TypeCasting {
    */
   public static Float toFloat(Object number) {
     try {
-      return number instanceof Float ? ((Float) number) : Float.parseFloat((String) number);
+      return number instanceof Float ? ((Float) number) : Float.parseFloat(number.toString());
     } catch (NumberFormatException nfe) {
       return null;
     }
@@ -80,7 +80,7 @@ public class TypeCasting {
    */
   public static Integer toInteger(Object number) {
     try {
-      return number instanceof Integer ? ((Integer) number) : Integer.valueOf((String) number);
+      return number instanceof Integer ? ((Integer) number) : Integer.valueOf(number.toString());
     } catch (NumberFormatException nfe) {
       return null;
     }
@@ -102,7 +102,7 @@ public class TypeCasting {
    */
   public static Boolean toBoolean(Object str) {
     try {
-      String value = ((String) str).toLowerCase();
+      String value = str.toString().toLowerCase();
       return Boolean.parseBoolean(value);
     } catch (NumberFormatException nfe) {
       return null;
@@ -115,7 +115,7 @@ public class TypeCasting {
    * @return
    */
   public static Boolean isBoolean(Object str) {
-    String value = ((String) str).toLowerCase();
+    String value = str.toString().toLowerCase();
     return Boolean.TRUE.toString().toLowerCase().equals(value)
         || Boolean.FALSE.toString().toLowerCase().equals(value);
   }

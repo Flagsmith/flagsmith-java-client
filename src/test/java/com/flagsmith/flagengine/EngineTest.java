@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.flagengine.features.FlagsmithValue;
 import com.flagsmith.flagengine.identities.IdentityModel;
-import com.flagsmith.flagengine.models.ResponseJSON;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Comparator;
+import java.util.stream.StreamSupport;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -50,8 +52,8 @@ public class EngineTest {
         for (JsonNode identityAndResponse : identitiesAndResponses) {
           IdentityModel identityModel =
               IdentityModel.load(identityAndResponse.get("identity"), IdentityModel.class);
-          ResponseJSON expectedResponse =
-              objectMapper.treeToValue(identityAndResponse.get("response"), ResponseJSON.class);
+
+          JsonNode expectedResponse = identityAndResponse.get("response");
 
           Object[] parameterValues = new Object[] {
               identityModel,
@@ -73,33 +75,35 @@ public class EngineTest {
   }
 
   @Test(dataProvider = "environmentdata")
-  public void testEngine(IdentityModel identity, ResponseJSON expectedResponse) {
+  public void testEngine(IdentityModel identity, JsonNode expectedResponse) {
     List<FeatureStateModel> featureStates =
-        engine.getIdentityFeatureStates(environmentModel, identity);
+        Engine.getIdentityFeatureStates(environmentModel, identity);
 
     List<FeatureStateModel> sortedFeatureStates = featureStates
         .stream()
-        .sorted((featureState1, t1)
-            -> featureState1.getFeature().getName()
-            .compareTo(t1.getFeature().getName()))
+        .sorted(Comparator.comparing(featureState -> featureState.getFeature().getName()))
         .collect(Collectors.toList());
 
-    List<FeatureStateModel> sortedResponse = expectedResponse.getFlags()
-        .stream()
-        .sorted((featureState1, t1)
-            -> featureState1.getFeature().getName()
-            .compareTo(t1.getFeature().getName()))
+    JsonNode unsortedResponse = expectedResponse.get("flags");
+    List<JsonNode> sortedResponse = StreamSupport.stream(
+          unsortedResponse.spliterator(), false
+        )
+        .sorted(Comparator.comparing(
+            featureState -> featureState.get("feature").get("name").asText()
+        ))
         .collect(Collectors.toList());
 
-    assert (sortedResponse.size() == sortedFeatureStates.size());
+    assert (sortedResponse.size() == sortedResponse.size());
 
     int index = 0;
     for (FeatureStateModel featureState : sortedFeatureStates) {
-      Object featureStateValue = featureState.getValue(identity.getDjangoId());
-      Object expectedResponseValue = sortedResponse.get(index).getValue(identity.getDjangoId());
+      FlagsmithValue featureStateValue = featureState.getValue(identity.getDjangoId());
+      Object expectedResponseValue = sortedResponse.get(index).get("feature_state_value").asText();
+      FlagsmithValue expectedResponseFlagsmithValue
+          = FlagsmithValue.fromUntypedValue(expectedResponseValue);
 
-      Assert.assertEquals(featureStateValue, expectedResponseValue);
-      Assert.assertEquals(featureState.getEnabled(), sortedResponse.get(index).getEnabled());
+      Assert.assertEquals(featureStateValue, expectedResponseFlagsmithValue);
+      Assert.assertEquals(featureState.getEnabled().booleanValue(), sortedResponse.get(index).get("enabled").booleanValue());
       index++;
     }
   }
