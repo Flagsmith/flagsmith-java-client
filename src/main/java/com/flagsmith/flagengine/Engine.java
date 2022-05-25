@@ -138,6 +138,12 @@ public class Engine {
 
     for (SegmentModel segmentModel : identitySegments) {
       for (FeatureStateModel featureState : segmentModel.getFeatureStates()) {
+        FeatureModel feature = featureState.getFeature();
+        FeatureStateModel existing = featureStates.get(feature);
+        if (existing != null && existing.isHigherPriority(featureState)) {
+          continue;
+        }
+        
         featureStates.put(featureState.getFeature(), featureState);
       }
     }

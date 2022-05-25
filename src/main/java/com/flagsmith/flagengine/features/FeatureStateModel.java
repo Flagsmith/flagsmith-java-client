@@ -22,6 +22,8 @@ public class FeatureStateModel extends BaseModel {
   private List<MultivariateFeatureStateValueModel> multivariateFeatureStateValues;
   @JsonProperty("feature_state_value")
   private Object value;
+  @JsonProperty("feature_segment")
+  private FeatureSegmentModel featureSegment;
 
   /**
    * Returns the value object.
@@ -79,5 +81,15 @@ public class FeatureStateModel extends BaseModel {
     }
 
     return this.getFeature().getId() == ((FeatureStateModel) o).getFeature().getId();
+  }
+
+  public boolean isHigherPriority(FeatureStateModel other) {
+    if (this.featureSegment == null) {
+      return false;
+    } else if (other.featureSegment == null) {
+      return this.featureSegment != null;
+    }
+
+    return this.featureSegment.getPriority() < other.featureSegment.getPriority();
   }
 }
