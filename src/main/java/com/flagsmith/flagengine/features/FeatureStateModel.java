@@ -65,10 +65,11 @@ public class FeatureStateModel extends BaseModel {
     Float percentageValue = Hashing.getInstance().getHashedPercentageForObjectIds(objectIds);
     Float startPercentage = 0f;
 
-    List<MultivariateFeatureStateValueModel> sortedMultiVariateFeatureStates = multivariateFeatureStateValues
-        .stream()
-        .sorted((smvfs1, smvfs2) -> smvfs1.getSortValue().compareTo(smvfs2.getSortValue()))
-        .collect(Collectors.toList());
+    List<MultivariateFeatureStateValueModel> sortedMultiVariateFeatureStates
+        = multivariateFeatureStateValues
+          .stream()
+          .sorted((smvfs1, smvfs2) -> smvfs1.getSortValue().compareTo(smvfs2.getSortValue()))
+          .collect(Collectors.toList());
 
     for (MultivariateFeatureStateValueModel multiVariate : sortedMultiVariateFeatureStates) {
       Float limit = multiVariate.getPercentageAllocation() + startPercentage;

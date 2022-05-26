@@ -88,9 +88,6 @@ public class EngineTest {
     List<JsonNode> sortedResponse = StreamSupport.stream(
           unsortedResponse.spliterator(), false
         )
-        .sorted(Comparator.comparing(
-            featureState -> featureState.get("feature").get("name").asText()
-        ))
         .collect(Collectors.toList());
 
     assert (sortedResponse.size() == sortedResponse.size());
