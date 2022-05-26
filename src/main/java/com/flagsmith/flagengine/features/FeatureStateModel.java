@@ -83,15 +83,18 @@ public class FeatureStateModel extends BaseModel {
     return this.getFeature().getId() == ((FeatureStateModel) o).getFeature().getId();
   }
 
-  /*
+  /**
    * Another FeatureStateModel is deemed to be higher priority if and only if 
    * it has a FeatureSegment and either this.FeatureSegment is null or the 
    * value of other.FeatureSegment.priority is lower than that of 
-   * this.FeatureSegment.priority. 
+   * this.FeatureSegment.priority.
+   * 
+   * @param other the other FeatureStateModel to compare priority wiht 
+   * @return true if `this` is higher priority than `other`
    */
   public boolean isHigherPriority(FeatureStateModel other) {
     if (this.featureSegment == null || other.featureSegment == null) {
-        return this.featureSegment != null && other.featureSegment == null;
+      return this.featureSegment != null && other.featureSegment == null;
     }
 
     return this.featureSegment.getPriority() < other.featureSegment.getPriority();
