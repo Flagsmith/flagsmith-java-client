@@ -115,6 +115,7 @@ public class FeatureModelTest {
     FlagsmithValue value = featureState.getValue(1);
 
     Assert.assertEquals(value, FlagsmithValue.fromUntypedValue(expectedValue));
+    Hashing.setInstance(null);
   }
 
   public void loadMultiVariateFeatureOptionWithoutId() throws Exception {
