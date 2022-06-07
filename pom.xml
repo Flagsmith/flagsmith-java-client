@@ -256,6 +256,11 @@
                 </goals>
               </execution>
             </executions>
+            <configuration>
+              <additionalparam>-Xdoclint:none</additionalparam>
+              <additionalOptions>-Xdoclint:none</additionalOptions>
+              <additionalJOption>-Xdoclint:none</additionalJOption>
+            </configuration>
           </plugin>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
