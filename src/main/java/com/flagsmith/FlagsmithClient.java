@@ -59,8 +59,8 @@ public class FlagsmithClient {
 
   /**
    * Get all the default for flags for the current environment.
-   * @throws FlagsmithApiError if error communicating with Flagsmith API
    * @return Flags object containing environment flags
+   * @throws FlagsmithApiError if error communicating with Flagsmith API
    */
   public Flags getEnvironmentFlags() throws FlagsmithApiError {
     if (environment != null) {
@@ -76,8 +76,8 @@ public class FlagsmithClient {
    * trait with a value of None will remove the trait from the identity if it exists.
    *
    * @param identifier identifier string
-   * @throws FlagsmithClientError if error when retrieving flags for identity
    * @return Flags object containing flags for identity
+   * @throws FlagsmithClientError if error when retrieving flags for identity
    */
   public Flags getIdentityFlags(String identifier)
       throws FlagsmithClientError {
@@ -91,8 +91,8 @@ public class FlagsmithClient {
    *
    * @param identifier identifier string
    * @param traits list of key value traits
-   * @throws FlagsmithClientError if error when retrieving flags for identity
    * @return Flags object containing flags for identity
+   * @throws FlagsmithClientError if error when retrieving flags for identity
    */
   public Flags getIdentityFlags(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
@@ -108,8 +108,8 @@ public class FlagsmithClient {
    *
    * @param identifier a unique identifier for the identity in the current
    *             environment, e.g. email address, username, uuid
-   * @throws FlagsmithClientError if error when retrieving segments for identity
    * @return List of segments that the identity belongs to
+   * @throws FlagsmithClientError if error when retrieving segments for identity
    */
   public List<Segment> getIdentitySegments(String identifier)
       throws FlagsmithClientError {
@@ -123,8 +123,8 @@ public class FlagsmithClient {
    *             environment, e.g. email address, username, uuid
    * @param traits a dictionary of traits to add / update on the identity in
    *             Flagsmith, e.g. {"num_orders": 10}
-   * @throws FlagsmithClientError if error when retrieving segments for identity
    * @return List of segments that the identity belongs to
+   * @throws FlagsmithClientError if error when retrieving segments for identity
    */
   public List<Segment> getIdentitySegments(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
