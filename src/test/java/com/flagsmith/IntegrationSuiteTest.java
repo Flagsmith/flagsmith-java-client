@@ -25,7 +25,7 @@ public class IntegrationSuiteTest {
 
   @BeforeGroups(groups = "integration")
   public static void beforeClass() {
-    postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:10.6-alpine"))
+      postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:10.6-alpine"))
         .withNetwork(network)
         .withNetworkAliases("flagsmith-db")
         .withDatabaseName("flagsmith")
