@@ -87,7 +87,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
    * Get Feature Flags from API.
    *
    * @param doThrow - whether throw exception or not
-   * @return
+   * @return Flags object containing the flags returned from the API
    */
   public Flags getFeatureFlags(boolean doThrow) {
     Flags featureFlags = new Flags();
@@ -264,7 +264,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   /**
    * Returns a build request with GET.
    * @param url - URL to invoke
-   * @return
+   * @return Request object ready to send to the API
    */
   @Override
   public Request newGetRequest(HttpUrl url) {
@@ -275,10 +275,10 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   }
 
   /**
-   * Returns a build request with GET.
+   * Returns a build request with POST.
    * @param url - URL to invoke
    * @param body - body to post
-   * @return
+   * @return Request object ready to send to the API
    */
   @Override
   public Request newPostRequest(HttpUrl url, RequestBody body) {
