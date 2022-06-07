@@ -154,9 +154,11 @@ public class SegmentEvaluator {
    * @param value Trait value to compare with.
    * @return
    */
-  private static Boolean traitsMatchValue(SegmentConditionModel condition, Object value) {
+  public static Boolean traitsMatchValue(SegmentConditionModel condition, Object value) {
     SegmentConditions operator = condition.getOperator();
     if (operator.equals(SegmentConditions.NOT_CONTAINS)) {
+      return ((String) value).indexOf(condition.getValue()) == -1;
+    } else if (operator.equals(SegmentConditions.CONTAINS)) {
       return ((String) value).indexOf(condition.getValue()) > -1;
     } else if (operator.equals(SegmentConditions.REGEX)) {
       Pattern pattern = Pattern.compile(condition.getValue());

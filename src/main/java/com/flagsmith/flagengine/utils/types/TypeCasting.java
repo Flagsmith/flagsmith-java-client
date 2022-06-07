@@ -1,6 +1,9 @@
 package com.flagsmith.flagengine.utils.types;
 
 import com.flagsmith.flagengine.segments.constants.SegmentConditions;
+import com.flagsmith.flagengine.utils.SemanticVersioning;
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.maven.artifact.versioning.ComparableVersion;
 
 public class TypeCasting {
 
@@ -13,15 +16,19 @@ public class TypeCasting {
    */
   public static Boolean compare(SegmentConditions condition, Object value1, Object value2) {
 
-    if (TypeCasting.isInteger(value1) && TypeCasting.isInteger(value2)) {
-      return compare(condition, TypeCasting.toInteger(value1), TypeCasting.toInteger(value2));
-    } else if (TypeCasting.isFloat(value1) && TypeCasting.isFloat(value2)) {
-      return compare(condition, TypeCasting.toFloat(value1), TypeCasting.toFloat(value2));
-    } else if (TypeCasting.isBoolean(value1) && TypeCasting.isBoolean(value2)) {
-      return compare(condition, TypeCasting.toBoolean(value1), TypeCasting.toBoolean(value2));
+    if (isInteger(value1) && isInteger(value2)) {
+      return compare(condition, toInteger(value1), toInteger(value2));
+    } else if (isFloat(value1) && isFloat(value2)) {
+      return compare(condition, toFloat(value1), toFloat(value2));
+    } else if (isDouble(value1) && isDouble(value2)) {
+      return compare(condition, toDouble(value1), toDouble(value2));
+    } else if (isBoolean(value1) && isBoolean(value2)) {
+      return compare(condition, toBoolean(value1), toBoolean(value2));
+    } else if (isSemver(value2)) {
+      return compare(condition, toSemver(value1), toSemver(value2));
     }
 
-    return value1.equals(value2);
+    return compare(condition, (String) value1, (String) value2);
   }
 
   /**
@@ -52,6 +59,28 @@ public class TypeCasting {
   }
 
   /**
+   * Convert the object to Double.
+   * @param number Object to convert to Double.
+   * @return
+   */
+  public static Double toDouble(Object number) {
+    try {
+      return number instanceof Double ? ((Double) number) : Double.parseDouble((String) number);
+    } catch (Exception nfe) {
+      return null;
+    }
+  }
+
+  /**
+   * Is the object of type Double?.
+   * @param number Object to type check.
+   * @return
+   */
+  public static Boolean isDouble(Object number) {
+    return number instanceof Float || toDouble(number) != null;
+  }
+
+  /**
    * Convert the object to float.
    * @param number Object to convert to Float.
    * @return
@@ -59,7 +88,7 @@ public class TypeCasting {
   public static Float toFloat(Object number) {
     try {
       return number instanceof Float ? ((Float) number) : Float.parseFloat((String) number);
-    } catch (NumberFormatException nfe) {
+    } catch (Exception nfe) {
       return null;
     }
   }
@@ -81,7 +110,7 @@ public class TypeCasting {
   public static Integer toInteger(Object number) {
     try {
       return number instanceof Integer ? ((Integer) number) : Integer.valueOf((String) number);
-    } catch (NumberFormatException nfe) {
+    } catch (Exception nfe) {
       return null;
     }
   }
@@ -102,9 +131,9 @@ public class TypeCasting {
    */
   public static Boolean toBoolean(Object str) {
     try {
-      String value = ((String) str).toLowerCase();
-      return Boolean.parseBoolean(value);
-    } catch (NumberFormatException nfe) {
+      return str instanceof Boolean ? ((Boolean) str)
+          : BooleanUtils.toBoolean((String) str);
+    } catch (Exception nfe) {
       return null;
     }
   }
@@ -115,8 +144,32 @@ public class TypeCasting {
    * @return
    */
   public static Boolean isBoolean(Object str) {
-    String value = ((String) str).toLowerCase();
-    return Boolean.TRUE.toString().toLowerCase().equals(value)
-        || Boolean.FALSE.toString().toLowerCase().equals(value);
+    return str instanceof Boolean
+        || Boolean.TRUE.toString().equalsIgnoreCase(((String) str))
+        || Boolean.FALSE.toString().equalsIgnoreCase(((String) str));
+  }
+
+  /**
+   * Convert the object to Semver.
+   * @param str Object to convert to Semver.
+   * @return
+   */
+  public static ComparableVersion toSemver(Object str) {
+    try {
+      String value = SemanticVersioning.isSemver((String) str)
+          ? SemanticVersioning.removeSemver((String) str) : ((String) str);
+      return new ComparableVersion(value);
+    } catch (Exception nfe) {
+      return null;
+    }
+  }
+
+  /**
+   * Is the object of type Semver?.
+   * @param str Object to type check.
+   * @return
+   */
+  public static Boolean isSemver(Object str) {
+    return SemanticVersioning.isSemver((String) str);
   }
 }
