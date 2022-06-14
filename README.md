@@ -12,7 +12,7 @@ The SDK for Android and Java applications for [https://www.flagsmith.com/](https
 
 ## Adding to your project
 
-For full documentation visit [https://docs.flagsmith.com/clients/java/](https://docs.flagsmith.com/clients/java/)
+For full documentation visit [https://docs.flagsmith.com/clients/server-side](https://docs.flagsmith.com/clients/server-side).
 
 ## Contributing
 
