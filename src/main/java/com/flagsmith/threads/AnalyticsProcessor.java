@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.Data;
+import lombok.ToString;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -21,7 +22,7 @@ public class AnalyticsProcessor {
   private final String analyticsEndpoint = "analytics/flags/";
   private Integer analyticsTimer = 10;
   private Map<Integer, Integer> analyticsData;
-  private FlagsmithSdk api;
+  @ToString.Exclude private FlagsmithSdk api;
   private Long nextFlush;
   private RequestProcessor requestProcessor;
   private HttpUrl analyticsUrl;
