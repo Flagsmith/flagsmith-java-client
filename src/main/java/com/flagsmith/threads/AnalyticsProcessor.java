@@ -134,7 +134,7 @@ public class AnalyticsProcessor {
 
   /**
    * Track the feature usage for analytics.
-   * @param featureId feature id
+   * @param featureName name of the feature to track evaluation for
    */
   public void trackFeature(String featureName) {
     analyticsData.put(featureName, analyticsData.getOrDefault(featureName, 0) + 1);
