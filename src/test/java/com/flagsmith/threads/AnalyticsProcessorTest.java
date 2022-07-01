@@ -20,7 +20,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-@Test(groups="unit")
+
 public class AnalyticsProcessorTest {
 
   private FlagsmithApiWrapper api;
@@ -48,31 +48,39 @@ public class AnalyticsProcessorTest {
     analytics = new AnalyticsProcessor(api, flagsmithLogger, requestProcessor);
   }
 
+  @Test(groups = "unit")
   public void AnalyticsProcessor_checkAnalyticsData() {
-    analytics.trackFeature(1);
-    Assert.assertTrue(analytics.getAnalyticsData().containsKey(1));
+    String featureName = "foo";
+
+    analytics.trackFeature(featureName);
+    Assert.assertTrue(analytics.getAnalyticsData().containsKey(featureName));
     Assert.assertEquals(analytics.getAnalyticsData().size(), 1);
 
-    analytics.trackFeature(1);
+    analytics.trackFeature(featureName);
     Assert.assertEquals(analytics.getAnalyticsData().size(), 1);
-    Assert.assertEquals(analytics.getAnalyticsData().get(1).intValue(), 2);
+    Assert.assertEquals(analytics.getAnalyticsData().get(featureName).intValue(), 2);
   }
 
+  @Test(groups = "unit")
   public void AnalyticsProcessor_checkAnalyticsDataCheckFlushRuns() throws InterruptedException {
+    String featureName = "foo";
     Long nextFlush = analytics.getNextFlush();
-    analytics.trackFeature(1);
+    analytics.trackFeature(featureName);
     Assert.assertEquals(nextFlush, analytics.getNextFlush());
     Thread.sleep(11000);
-    analytics.trackFeature(1);
+    analytics.trackFeature(featureName);
     Assert.assertEquals(analytics.getAnalyticsData().size(), 0);
     Assert.assertNotEquals(nextFlush, analytics.getNextFlush());
     verify(api, times(1)).newPostRequest(any(), any());
     verify(requestProcessor, times(1)).executeAsync(any(), any());
   }
 
+  @Test(groups = "unit")
   public void AnalyticsProcessor_checkAnalyticsRequestCheckFlushRuns() {
+    String featureName = "foo";
+
     Long nextFlush = analytics.getNextFlush();
-    analytics.trackFeature(1);
+    analytics.trackFeature(featureName);
     Assert.assertEquals(nextFlush, analytics.getNextFlush());
 
     analytics.flush();

@@ -21,7 +21,7 @@ public class AnalyticsProcessor {
 
   private final String analyticsEndpoint = "analytics/flags/";
   private Integer analyticsTimer = 10;
-  private Map<Integer, Integer> analyticsData;
+  private Map<String, Integer> analyticsData;
   @ToString.Exclude private FlagsmithSdk api;
   private Long nextFlush;
   private RequestProcessor requestProcessor;
@@ -63,7 +63,7 @@ public class AnalyticsProcessor {
    */
   public AnalyticsProcessor(
       FlagsmithSdk api, FlagsmithLogger logger, RequestProcessor requestProcessor) {
-    this.analyticsData = new HashMap<Integer, Integer>();
+    this.analyticsData = new HashMap<String, Integer>();
     this.requestProcessor = requestProcessor;
     this.logger = logger;
     this.nextFlush = Instant.now().getEpochSecond() + analyticsTimer;
@@ -136,8 +136,8 @@ public class AnalyticsProcessor {
    * Track the feature usage for analytics.
    * @param featureId feature id
    */
-  public void trackFeature(Integer featureId) {
-    analyticsData.put(featureId, analyticsData.getOrDefault(featureId, 0) + 1);
+  public void trackFeature(String featureName) {
+    analyticsData.put(featureName, analyticsData.getOrDefault(featureName, 0) + 1);
     if (nextFlush.compareTo(Instant.now().getEpochSecond()) < 0) {
       this.flush();
     }

@@ -183,7 +183,7 @@ public class Flags {
     if (analyticsProcessor != null && flag instanceof Flag) {
       Flag flagObj = (Flag) flag;
       if (flagObj.getFeatureId() != null) {
-        analyticsProcessor.trackFeature(flagObj.getFeatureId());
+        analyticsProcessor.trackFeature(flagObj.getFeatureName());
       }
     }
 
