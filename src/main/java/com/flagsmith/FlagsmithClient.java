@@ -43,7 +43,8 @@ public class FlagsmithClient {
   private FlagsmithSdk flagsmithSdk;
   private EnvironmentModel environment;
   private PollingManager pollingManager;
-  private final String UNABLE_TO_UPDATE_ENVIRONMENT_MESSAGE = "Unable to update environment from API. Continuing to use previous copy.";
+  private static final String UNABLE_TO_UPDATE_ENVIRONMENT_MESSAGE =
+          "Unable to update environment from API. Continuing to use previous copy.";
 
   private FlagsmithClient() { }
 
@@ -58,20 +59,23 @@ public class FlagsmithClient {
     try {
       EnvironmentModel updatedEnvironment = flagsmithSdk.getEnvironment();
 
-      // if we didn't get an environment from the API, then don't overwrite the copy we already have.
+      // if we didn't get an environment from the API,
+      // then don't overwrite the copy we already have.
       if (updatedEnvironment != null) {
         this.environment = updatedEnvironment;
       } else {
         logger.error(UNABLE_TO_UPDATE_ENVIRONMENT_MESSAGE);
       }
     } catch (RuntimeException e) {
-      // if we already have a copy of the environment, don't throw an error, just continue using that one and log
-      // an error as it's likely just a temporary network issue.
+      // if we already have a copy of the environment, don't throw an error,
+      // just continue using that one and log an error as it's likely just a
+      // temporary network issue.
       if (this.environment != null) {
         logger.error(UNABLE_TO_UPDATE_ENVIRONMENT_MESSAGE);
       } else {
-        // if we don't already have an environment, then we should still throw the error since it's likely on
-        // client start up and there might be something more sinister going on.
+        // if we don't already have an environment, then we should still throw
+        // the error since it's likely on client start up and there might be
+        // something more sinister going on.
         throw e;
       }
     }
