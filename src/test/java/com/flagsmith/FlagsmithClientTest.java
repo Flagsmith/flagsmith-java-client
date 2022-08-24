@@ -462,4 +462,57 @@ public class FlagsmithClientTest {
     Assert.assertEquals(segments.size(), 1);
     Assert.assertEquals(segments.get(0).getName(), "Test segment");
   }
+
+  @Test(groups = "unit")
+  public void testUpdateEnvironment_DoesNothing_WhenGetEnvironmentThrowsException() {
+    // Given
+    EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
+
+    FlagsmithApiWrapper mockApiWrapper = mock(FlagsmithApiWrapper.class);
+    when(mockApiWrapper.getEnvironment())
+            .thenReturn(environmentModel)
+            .thenThrow(RuntimeException.class);
+
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+            .withFlagsmithApiWrapper(mockApiWrapper)
+            .withConfiguration(FlagsmithConfig.newBuilder().withLocalEvaluation(true).build())
+            .setApiKey("ser.dummy-key")
+            .build();
+
+    // When
+    // we call the update environment method twice (1st should be successful, 2nd will do nothing because of error)
+    client.updateEnvironment();
+    client.updateEnvironment();
+
+    // Then
+    // No exception is thrown and the client environment remains what was first retrieved from the ApiWrapper
+    Assert.assertEquals(client.getEnvironment(), environmentModel);
+  }
+
+  @Test(groups = "unit")
+  public void testUpdateEnvironment_DoesNothing_WhenGetEnvironmentReturnsNull() {
+    // Given
+    EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
+
+    FlagsmithApiWrapper mockApiWrapper = mock(FlagsmithApiWrapper.class);
+    when(mockApiWrapper.getEnvironment())
+            .thenReturn(environmentModel)
+            .thenReturn(null);
+
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+            .withFlagsmithApiWrapper(mockApiWrapper)
+            .withConfiguration(FlagsmithConfig.newBuilder().withLocalEvaluation(true).build())
+            .setApiKey("ser.dummy-key")
+            .build();
+
+    // When
+    // we call the update environment method twice
+    // (1st should be successful, 2nd will do nothing because of null return)
+    client.updateEnvironment();
+    client.updateEnvironment();
+
+    // Then
+    // The client environment is not overwritten with null
+    Assert.assertEquals(client.getEnvironment(), environmentModel);
+  }
 }
