@@ -311,6 +311,10 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     return builder.build();
   }
 
+  /**
+   * Close the FlagsmithAPIWrapper instance, cleaning up any dependent threads or services
+   * which need cleaning up before the instance can be fully destroyed.
+   */
   public void close() {
     this.requestor.close();
 
