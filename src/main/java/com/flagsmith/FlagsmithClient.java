@@ -167,6 +167,15 @@ public class FlagsmithClient {
     }).collect(Collectors.toList());
   }
 
+  /**
+   * Should be called when terminating the client to clean up any resources that need cleaning up.
+  **/
+  public void close() {
+    if (this.pollingManager != null) {
+      this.pollingManager.stopPolling();
+    }
+  }
+
   private Flags getEnvironmentFlagsFromDocument() {
     return Flags.fromFeatureStateModels(
         Engine.getEnvironmentFeatureStates(environment),
@@ -395,7 +404,7 @@ public class FlagsmithClient {
      * @return
      */
     public Builder withPollingManager(PollingManager manager) {
-      pollingManager = manager;
+      this.pollingManager = manager;
       return this;
     }
 
