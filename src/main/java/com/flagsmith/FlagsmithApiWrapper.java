@@ -90,6 +90,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
    * @param customHeaders custom headers list
    * @param logger logger instance
    * @param apiKey api key
+   * @param requestProcessor request processor
    */
   public FlagsmithApiWrapper(
           final FlagsmithConfig defaultConfig,
