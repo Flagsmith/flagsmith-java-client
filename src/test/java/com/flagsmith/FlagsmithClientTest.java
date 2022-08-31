@@ -515,4 +515,21 @@ public class FlagsmithClientTest {
     // The client environment is not overwritten with null
     Assert.assertEquals(client.getEnvironment(), environmentModel);
   }
+
+  @Test(groups = "unit")
+  public void testClose_StopsPolling() {
+    // Given
+    PollingManager mockedPollingManager = mock(PollingManager.class);
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+            .withPollingManager(mockedPollingManager)
+            .withConfiguration(FlagsmithConfig.newBuilder().withLocalEvaluation(true).build())
+            .setApiKey("ser.dummy-key")
+            .build();
+
+    // When
+    client.close();
+
+    // Then
+    verify(mockedPollingManager, times(1)).stopPolling();
+  }
 }
