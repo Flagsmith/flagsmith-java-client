@@ -87,4 +87,13 @@ public class AnalyticsProcessorTest {
     verify(api, times(1)).newPostRequest(any(), any());
     verify(requestProcessor, times(1)).executeAsync(any(), any());
   }
+
+  @Test(groups = "unit")
+  public void testClose_ShutsDownExecutor() {
+    // When
+    analytics.close();
+
+    // Then
+    verify(requestProcessor, times(1)).close();
+  }
 }

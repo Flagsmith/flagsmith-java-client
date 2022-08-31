@@ -10,6 +10,7 @@ import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.models.Flags;
+import com.flagsmith.threads.AnalyticsProcessor;
 import com.flagsmith.threads.RequestProcessor;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -81,6 +82,27 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
         logger,
         defaultConfig.getRetries()
     );
+  }
+
+  /**
+   * Instantiate with config, custom headers, logger, apikey and request processor.
+   * @param defaultConfig config object
+   * @param customHeaders custom headers list
+   * @param logger logger instance
+   * @param apiKey api key
+   */
+  public FlagsmithApiWrapper(
+          final FlagsmithConfig defaultConfig,
+          final HashMap<String, String> customHeaders,
+          final FlagsmithLogger logger,
+          final String apiKey,
+          final RequestProcessor requestProcessor
+  ) {
+    this.defaultConfig = defaultConfig;
+    this.customHeaders = customHeaders;
+    this.logger = logger;
+    this.apiKey = apiKey;
+    this.requestor = requestProcessor;
   }
 
   /**
@@ -286,5 +308,14 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     builder.url(url).post(body);
 
     return builder.build();
+  }
+
+  public void close() {
+    this.requestor.close();
+
+    AnalyticsProcessor analyticsProcessor = this.getConfig().getAnalyticsProcessor();
+    if (analyticsProcessor != null) {
+      analyticsProcessor.close();
+    }
   }
 }

@@ -171,9 +171,10 @@ public class FlagsmithClient {
    * Should be called when terminating the client to clean up any resources that need cleaning up.
   **/
   public void close() {
-    if (this.pollingManager != null) {
-      this.pollingManager.stopPolling();
+    if (pollingManager != null) {
+      pollingManager.stopPolling();
     }
+    flagsmithSdk.close();
   }
 
   private Flags getEnvironmentFlagsFromDocument() {
