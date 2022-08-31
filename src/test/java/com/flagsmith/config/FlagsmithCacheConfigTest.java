@@ -29,7 +29,7 @@ public class FlagsmithCacheConfigTest {
     assertFalse(cachePolicy.expireAfterAccess().isPresent());
     assertFalse(cachePolicy.refreshAfterWrite().isPresent());
     assertFalse(cachePolicy.expireVariably().isPresent());
-    assertNull(flagsmithCacheConfig.cache.getEnvFlagsCacheKey());
+    assertNotNull(flagsmithCacheConfig.cache.getEnvFlagsCacheKey());
 
     verifyDefaultAfterWrite(cachePolicy);
     verifyDefaultMaxSize(cachePolicy);
@@ -55,7 +55,7 @@ public class FlagsmithCacheConfigTest {
     assertFalse(cachePolicy.expireAfterAccess().isPresent());
     assertFalse(cachePolicy.refreshAfterWrite().isPresent());
     assertFalse(cachePolicy.expireVariably().isPresent());
-    assertNull(flagsmithCacheConfig.cache.getEnvFlagsCacheKey());
+    assertNotNull(flagsmithCacheConfig.cache.getEnvFlagsCacheKey());
 
     assertTrue(cachePolicy.expireAfterWrite().isPresent());
     assertEquals(Duration.ofSeconds(30), cachePolicy.expireAfterWrite().get().getExpiresAfter());
@@ -75,7 +75,7 @@ public class FlagsmithCacheConfigTest {
     assertFalse(cachePolicy.isRecordingStats());
     assertFalse(cachePolicy.refreshAfterWrite().isPresent());
     assertFalse(cachePolicy.expireVariably().isPresent());
-    assertNull(flagsmithCacheConfig.cache.getEnvFlagsCacheKey());
+    assertNotNull(flagsmithCacheConfig.cache.getEnvFlagsCacheKey());
 
     assertTrue(cachePolicy.expireAfterAccess().isPresent());
     assertEquals(Duration.ofHours(20), cachePolicy.expireAfterAccess().get().getExpiresAfter());
@@ -97,7 +97,7 @@ public class FlagsmithCacheConfigTest {
     assertFalse(cachePolicy.refreshAfterWrite().isPresent());
     assertFalse(cachePolicy.expireVariably().isPresent());
     assertFalse(cachePolicy.expireAfterAccess().isPresent());
-    assertNull(flagsmithCacheConfig.cache.getEnvFlagsCacheKey());
+    assertNotNull(flagsmithCacheConfig.cache.getEnvFlagsCacheKey());
 
     assertTrue(cachePolicy.eviction().isPresent());
     assertEquals(210, cachePolicy.eviction().get().getMaximum());
@@ -118,7 +118,7 @@ public class FlagsmithCacheConfigTest {
     assertFalse(cachePolicy.refreshAfterWrite().isPresent());
     assertFalse(cachePolicy.expireVariably().isPresent());
     assertFalse(cachePolicy.expireAfterAccess().isPresent());
-    assertNull(flagsmithCacheConfig.cache.getEnvFlagsCacheKey());
+    assertNotNull(flagsmithCacheConfig.cache.getEnvFlagsCacheKey());
 
     assertTrue(cachePolicy.isRecordingStats());
 

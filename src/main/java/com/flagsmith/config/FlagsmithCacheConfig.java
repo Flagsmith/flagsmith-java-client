@@ -1,5 +1,6 @@
 package com.flagsmith.config;
 
+import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.models.Flags;
@@ -7,10 +8,14 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
+
 import lombok.Data;
 import lombok.NonNull;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.LoggerFactory;
 
 @Data
 public final class FlagsmithCacheConfig {
@@ -58,6 +63,7 @@ public final class FlagsmithCacheConfig {
     private int maxSize = DEFAULT_MAX_SIZE;
     private boolean recordStats = false;
     private String envFlagsCacheKey = null;
+    private final FlagsmithLogger logger = new FlagsmithLogger();
 
     private Builder() {
     }
@@ -152,7 +158,16 @@ public final class FlagsmithCacheConfig {
       return this;
     }
 
+    /**
+     * Build the FlagsmithCacheConfig instance.
+     *
+     * @return FlagsmithCacheConfig instance.
+     */
     public FlagsmithCacheConfig build() {
+      if (this.envFlagsCacheKey == null) {
+        logger.info("Building cache config without cache key. Generating random key.");
+        this.envFlagsCacheKey = UUID.randomUUID().toString();
+      }
       return new FlagsmithCacheConfig(this);
     }
   }
