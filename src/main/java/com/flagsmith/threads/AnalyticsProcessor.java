@@ -147,5 +147,7 @@ public class AnalyticsProcessor {
     nextFlush = Instant.now().getEpochSecond() + analyticsTimer;
   }
 
-
+  public void close() {
+    this.requestProcessor.close();
+  }
 }

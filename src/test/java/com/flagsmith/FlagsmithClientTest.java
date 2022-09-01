@@ -517,7 +517,7 @@ public class FlagsmithClientTest {
   }
 
   @Test(groups = "unit")
-  public void testClose_StopsPolling() {
+  public void testClose_StopsPollingManager() {
     // Given
     PollingManager mockedPollingManager = mock(PollingManager.class);
     FlagsmithClient client = FlagsmithClient.newBuilder()
@@ -531,5 +531,22 @@ public class FlagsmithClientTest {
 
     // Then
     verify(mockedPollingManager, times(1)).stopPolling();
+  }
+
+  @Test(groups = "unit")
+  public void testClose_ClosesFlagsmithSdk() {
+    // Given
+    FlagsmithApiWrapper mockedApiWrapper = mock(FlagsmithApiWrapper.class);
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+            .withFlagsmithApiWrapper(mockedApiWrapper)
+            .withConfiguration(FlagsmithConfig.newBuilder().withLocalEvaluation(true).build())
+            .setApiKey("ser.dummy-key")
+            .build();
+
+    // When
+    client.close();
+
+    // Then
+    verify(mockedApiWrapper, times(1)).close();
   }
 }

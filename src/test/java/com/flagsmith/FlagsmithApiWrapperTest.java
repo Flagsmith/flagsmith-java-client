@@ -21,15 +21,21 @@ import com.flagsmith.flagengine.features.FeatureModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.models.BaseFlag;
+import com.flagsmith.models.Flag;
 import com.flagsmith.models.Flags;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+
+import com.flagsmith.threads.AnalyticsProcessor;
+import com.flagsmith.threads.RequestProcessor;
+import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.mock.MockInterceptor;
+import org.bouncycastle.ocsp.Req;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -137,6 +143,35 @@ public class FlagsmithApiWrapperTest {
     verify(flagsmithLogger, times(1)).info(anyString(), any(), any());
     verify(flagsmithLogger, times(1)).httpError(any(), any(Response.class), eq(false));
     verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
+  }
+
+  @Test(groups = "unit")
+  public void testClose_ClosesRequestProcessor() {
+    // Given
+    RequestProcessor mockedRequestProcessor = mock(RequestProcessor.class);
+    FlagsmithApiWrapper apiWrapper = new FlagsmithApiWrapper(
+            defaultConfig, null, flagsmithLogger, API_KEY, mockedRequestProcessor);
+
+    // When
+    apiWrapper.close();
+
+    // Then
+    verify(mockedRequestProcessor, times(1)).close();
+  }
+
+  @Test(groups = "unit")
+  public void testClose_ClosesAnalyticsProcessor() {
+    // Given
+    AnalyticsProcessor mockedAnalyticsProcessor = mock(AnalyticsProcessor.class);
+    FlagsmithConfig config = FlagsmithConfig.newBuilder().withAnalyticsProcessor(mockedAnalyticsProcessor).build();
+
+    FlagsmithApiWrapper apiWrapper = new FlagsmithApiWrapper(config, null, flagsmithLogger, API_KEY);
+
+    // When
+    apiWrapper.close();
+
+    // Then
+    verify(mockedAnalyticsProcessor, times(1)).close();
   }
 
   private FeatureStateModel getNewFlag() {
