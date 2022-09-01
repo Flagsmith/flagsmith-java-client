@@ -92,7 +92,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   public Flags getFeatureFlags(boolean doThrow) {
     Flags featureFlags = new Flags();
 
-    if (getCache() != null) {
+    if (getCache() != null && getCache().getEnvFlagsCacheKey() != null) {
       featureFlags = getCache().getIfPresent(getCache().getEnvFlagsCacheKey());
 
       if (featureFlags != null) {
@@ -124,7 +124,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
           getConfig().getFlagsmithFlagDefaults()
       );
 
-      if (getCache() != null) {
+      if (getCache() != null && getCache().getEnvFlagsCacheKey() != null) {
         getCache().getCache().put(getCache().getEnvFlagsCacheKey(), featureFlags);
         logger.info("Got feature flags for flags = {} and cached.", featureFlags);
       }
