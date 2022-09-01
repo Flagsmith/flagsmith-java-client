@@ -10,6 +10,7 @@ import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.models.Flags;
+import com.flagsmith.threads.AnalyticsProcessor;
 import com.flagsmith.threads.RequestProcessor;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -84,6 +85,28 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   }
 
   /**
+   * Instantiate with config, custom headers, logger, apikey and request processor.
+   * @param defaultConfig config object
+   * @param customHeaders custom headers list
+   * @param logger logger instance
+   * @param apiKey api key
+   * @param requestProcessor request processor
+   */
+  public FlagsmithApiWrapper(
+          final FlagsmithConfig defaultConfig,
+          final HashMap<String, String> customHeaders,
+          final FlagsmithLogger logger,
+          final String apiKey,
+          final RequestProcessor requestProcessor
+  ) {
+    this.defaultConfig = defaultConfig;
+    this.customHeaders = customHeaders;
+    this.logger = logger;
+    this.apiKey = apiKey;
+    this.requestor = requestProcessor;
+  }
+
+  /**
    * Get Feature Flags from API.
    *
    * @param doThrow - whether throw exception or not
@@ -92,7 +115,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   public Flags getFeatureFlags(boolean doThrow) {
     Flags featureFlags = new Flags();
 
-    if (getCache() != null) {
+    if (getCache() != null && getCache().getEnvFlagsCacheKey() != null) {
       featureFlags = getCache().getIfPresent(getCache().getEnvFlagsCacheKey());
 
       if (featureFlags != null) {
@@ -124,7 +147,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
           getConfig().getFlagsmithFlagDefaults()
       );
 
-      if (getCache() != null) {
+      if (getCache() != null && getCache().getEnvFlagsCacheKey() != null) {
         getCache().getCache().put(getCache().getEnvFlagsCacheKey(), featureFlags);
         logger.info("Got feature flags for flags = {} and cached.", featureFlags);
       }
@@ -286,5 +309,18 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     builder.url(url).post(body);
 
     return builder.build();
+  }
+
+  /**
+   * Close the FlagsmithAPIWrapper instance, cleaning up any dependent threads or services
+   * which need cleaning up before the instance can be fully destroyed.
+   */
+  public void close() {
+    this.requestor.close();
+
+    AnalyticsProcessor analyticsProcessor = this.getConfig().getAnalyticsProcessor();
+    if (analyticsProcessor != null) {
+      analyticsProcessor.close();
+    }
   }
 }

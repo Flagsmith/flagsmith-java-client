@@ -32,6 +32,8 @@ public interface FlagsmithSdk {
 
   Request newPostRequest(HttpUrl url, RequestBody body);
 
+  void close();
+
   // Cache
   default FlagsmithCache getCache() {
     return null;

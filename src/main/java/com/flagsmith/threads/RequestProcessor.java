@@ -120,4 +120,8 @@ public class RequestProcessor {
     return completableFuture;
   }
 
+  public void close() {
+    this.executor.shutdown();
+  }
+
 }
