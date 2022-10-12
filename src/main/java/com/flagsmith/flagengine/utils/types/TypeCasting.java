@@ -177,6 +177,15 @@ public class TypeCasting {
     return SemanticVersioning.isSemver((String) str);
   }
 
+  /**
+   * Modulo is a special case as the condition value holds both the divisor and remainder.
+   * This method compares the conditionValue and the traitValue by dividing the traitValue by the divisor
+   * and verifying that it correctly equals the remainder.
+   *
+   * @param conditionValue conditionValue in the format 'divisor|remainder'
+   * @param traitValue the value of the matched trait
+   * @return true if expression evaluates to true, false if unable to evaluate expression or it evaluates to false
+   */
   public static Boolean compareModulo(String conditionValue, Object traitValue) {
     try {
       String[] divisorAndRemainder = conditionValue.split("\\|");
