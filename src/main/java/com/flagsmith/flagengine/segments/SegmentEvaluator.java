@@ -136,9 +136,9 @@ public class SegmentEvaluator {
 
     if (identityTraits != null) {
       Optional<TraitModel> matchingTrait = identityTraits
-        .stream()
-        .filter((trait) -> trait.getTraitKey().equals(condition.getProperty_()))
-        .findFirst();
+          .stream()
+          .filter((trait) -> trait.getTraitKey().equals(condition.getProperty_()))
+          .findFirst();
 
       return traitMatchesSegmentCondition(matchingTrait, condition);
     }
@@ -152,7 +152,8 @@ public class SegmentEvaluator {
    * @param condition Condition to evaluate with.
    * @return
    */
-  private static Boolean traitMatchesSegmentCondition(Optional<TraitModel> trait, SegmentConditionModel condition) {
+  private static Boolean traitMatchesSegmentCondition(Optional<TraitModel> trait,
+                                                      SegmentConditionModel condition) {
     if (condition.getOperator().equals(SegmentConditions.IS_NOT_SET)) {
       return !trait.isPresent();
     } else if (condition.getOperator().equals(SegmentConditions.IS_SET)) {

@@ -63,13 +63,16 @@ public class SegmentEvaluatorTest {
     return new Object[][] {
       new Object[] {SegmentConditions.IS_SET, "foo", new ArrayList<>(), false},
       new Object[] {SegmentConditions.IS_NOT_SET, "foo", new ArrayList<>(), true},
-      new Object[] {SegmentConditions.IS_SET, "foo", new ArrayList<>(Arrays.asList(new TraitModel("foo", "bar"))), true},
-      new Object[] {SegmentConditions.IS_NOT_SET, "foo", new ArrayList<>(Arrays.asList(new TraitModel("foo", "bar"))), false},
+      new Object[] {SegmentConditions.IS_SET, "foo", new ArrayList<>(Arrays.asList(
+        new TraitModel("foo", "bar"))), true},
+      new Object[] {SegmentConditions.IS_NOT_SET, "foo", new ArrayList<>(Arrays.asList(
+        new TraitModel("foo", "bar"))), false},
     };
   }
 
   @Test(dataProvider = "traitExistenceChecks")
-  public void testTraitExistenceConditions(SegmentConditions conditionOperator, String conditionProperty, List<TraitModel> traitModels, Boolean expectedResult) {
+  public void testTraitExistenceConditions(SegmentConditions conditionOperator, String conditionProperty,
+                                           List<TraitModel> traitModels, Boolean expectedResult) {
     // Given
     // An identity to test with which has the traits as defined in the DataProvider
     IdentityModel identityModel  = new IdentityModel();
