@@ -159,7 +159,7 @@ public class SegmentEvaluator {
       return trait.isPresent();
     }
 
-    return traitsMatchValue(condition, trait.get().getTraitValue());
+    return conditionMatchesTraitValue(condition, trait.get().getTraitValue());
   }
 
   /**
@@ -168,7 +168,7 @@ public class SegmentEvaluator {
    * @param value Trait value to compare with.
    * @return
    */
-  public static Boolean traitsMatchValue(SegmentConditionModel condition, Object value) {
+  public static Boolean conditionMatchesTraitValue(SegmentConditionModel condition, Object value) {
     SegmentConditions operator = condition.getOperator();
     if (operator.equals(SegmentConditions.NOT_CONTAINS)) {
       return ((String) value).indexOf(condition.getValue()) == -1;
