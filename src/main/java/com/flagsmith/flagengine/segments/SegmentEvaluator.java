@@ -120,7 +120,7 @@ public class SegmentEvaluator {
    * @param identityId Identity ID (for hashing)
    * @return
    */
-  protected static Boolean traitsMatchSegmentCondition(List<TraitModel> identityTraits,
+  private static Boolean traitsMatchSegmentCondition(List<TraitModel> identityTraits,
                                                      SegmentConditionModel condition,
                                                      Integer segmentId, String identityId) {
     if (condition.getOperator().equals(SegmentConditions.PERCENTAGE_SPLIT)) {
@@ -134,26 +134,32 @@ public class SegmentEvaluator {
       }
     }
 
-    if (identityTraits == null || identityTraits.size() == 0) {
-      return condition.getOperator().equals(SegmentConditions.IS_NOT_SET);
-    }
-
-    Optional<TraitModel> matchingTrait = identityTraits
+    if (identityTraits != null) {
+      Optional<TraitModel> matchingTrait = identityTraits
         .stream()
         .filter((trait) -> trait.getTraitKey().equals(condition.getProperty_()))
         .findFirst();
 
-    if (matchingTrait.isPresent()) {
-      if (condition.getOperator().equals(SegmentConditions.IS_SET)) {
-        return Boolean.TRUE;
-      } else if (condition.getOperator().equals(SegmentConditions.IS_NOT_SET)) {
-        return Boolean.FALSE;
-      } else {
-        return traitsMatchValue(condition, matchingTrait.get().getTraitValue());
-      }
+      return traitMatchesSegmentCondition(matchingTrait, condition);
     }
 
     return condition.getOperator().equals(SegmentConditions.IS_NOT_SET);
+  }
+
+  /**
+   * Evaluate a single trait and compare it with condition.
+   * @param trait Trait to match against.
+   * @param condition Condition to evaluate with.
+   * @return
+   */
+  private static Boolean traitMatchesSegmentCondition(Optional<TraitModel> trait, SegmentConditionModel condition) {
+    if (condition.getOperator().equals(SegmentConditions.IS_NOT_SET)) {
+      return !trait.isPresent();
+    } else if (condition.getOperator().equals(SegmentConditions.IS_SET)) {
+      return trait.isPresent();
+    }
+
+    return traitsMatchValue(condition, trait.get().getTraitValue());
   }
 
   /**
