@@ -77,7 +77,7 @@ public class SegmentModelTest {
     conditionModel.setOperator(condition);
     conditionModel.setProperty_("foo");
 
-    Boolean actualResult = SegmentEvaluator.traitsMatchValue(conditionModel, traitValue);
+    Boolean actualResult = SegmentEvaluator.conditionMatchesTraitValue(conditionModel, traitValue);
 
     Assert.assertTrue(actualResult.equals(expectedResponse));
   }
@@ -119,7 +119,7 @@ public class SegmentModelTest {
     conditionModel.setOperator(condition);
     conditionModel.setProperty_("foo");
 
-    Boolean actualResult = SegmentEvaluator.traitsMatchValue(conditionModel, traitValue);
+    Boolean actualResult = SegmentEvaluator.conditionMatchesTraitValue(conditionModel, traitValue);
 
     Assert.assertTrue(actualResult.equals(expectedResponse));
   }
