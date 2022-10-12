@@ -69,7 +69,8 @@ public class TypeCasting {
    */
   public static Double toDouble(Object number) {
     try {
-      return number instanceof Double ? ((Double) number) : Double.parseDouble(String.valueOf(number));
+      String asString = String.valueOf(number);
+      return number instanceof Double ? ((Double) number) : Double.parseDouble(asString);
     } catch (Exception nfe) {
       return null;
     }
@@ -113,7 +114,8 @@ public class TypeCasting {
    */
   public static Integer toInteger(Object number) {
     try {
-      return number instanceof Integer ? ((Integer) number) : Integer.valueOf(String.valueOf(number));
+      String asString = String.valueOf(number);
+      return number instanceof Integer ? ((Integer) number) : Integer.valueOf(asString);
     } catch (Exception nfe) {
       return null;
     }
@@ -179,12 +181,13 @@ public class TypeCasting {
 
   /**
    * Modulo is a special case as the condition value holds both the divisor and remainder.
-   * This method compares the conditionValue and the traitValue by dividing the traitValue by the divisor
-   * and verifying that it correctly equals the remainder.
+   * This method compares the conditionValue and the traitValue by dividing the traitValue
+   * by the divisor and verifying that it correctly equals the remainder.
    *
    * @param conditionValue conditionValue in the format 'divisor|remainder'
    * @param traitValue the value of the matched trait
-   * @return true if expression evaluates to true, false if unable to evaluate expression or it evaluates to false
+   * @return true if expression evaluates to true, false if unable to evaluate expression or
+   *     it evaluates to false
    */
   public static Boolean compareModulo(String conditionValue, Object traitValue) {
     try {
