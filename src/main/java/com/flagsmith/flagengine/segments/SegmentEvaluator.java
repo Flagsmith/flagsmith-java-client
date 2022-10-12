@@ -140,12 +140,27 @@ public class SegmentEvaluator {
           .filter((trait) -> trait.getTraitKey().equals(condition.getProperty_()))
           .findFirst();
 
-      if (matchingTrait.isPresent()) {
-        return traitsMatchValue(condition, matchingTrait.get().getTraitValue());
-      }
+      return traitMatchesSegmentCondition(matchingTrait, condition);
     }
 
-    return false;
+    return condition.getOperator().equals(SegmentConditions.IS_NOT_SET);
+  }
+
+  /**
+   * Evaluate a single trait and compare it with condition.
+   * @param trait Trait to match against.
+   * @param condition Condition to evaluate with.
+   * @return
+   */
+  private static Boolean traitMatchesSegmentCondition(Optional<TraitModel> trait,
+                                                      SegmentConditionModel condition) {
+    if (condition.getOperator().equals(SegmentConditions.IS_NOT_SET)) {
+      return !trait.isPresent();
+    } else if (condition.getOperator().equals(SegmentConditions.IS_SET)) {
+      return trait.isPresent();
+    }
+
+    return trait.isPresent() && conditionMatchesTraitValue(condition, trait.get().getTraitValue());
   }
 
   /**
@@ -154,7 +169,7 @@ public class SegmentEvaluator {
    * @param value Trait value to compare with.
    * @return
    */
-  public static Boolean traitsMatchValue(SegmentConditionModel condition, Object value) {
+  public static Boolean conditionMatchesTraitValue(SegmentConditionModel condition, Object value) {
     SegmentConditions operator = condition.getOperator();
     if (operator.equals(SegmentConditions.NOT_CONTAINS)) {
       return ((String) value).indexOf(condition.getValue()) == -1;
