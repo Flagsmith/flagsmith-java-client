@@ -160,7 +160,7 @@ public class SegmentEvaluator {
       return trait.isPresent();
     }
 
-    return conditionMatchesTraitValue(condition, trait.get().getTraitValue());
+    return trait.isPresent() && conditionMatchesTraitValue(condition, trait.get().getTraitValue());
   }
 
   /**
