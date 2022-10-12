@@ -70,11 +70,14 @@ public class SegmentEvaluatorTest {
 
   @Test(dataProvider = "traitExistenceChecks")
   public void testTraitExistenceConditions(SegmentConditions conditionOperator, String conditionProperty, List<TraitModel> traitModels, Boolean expectedResult) {
+    // Given
+    // An identity to test with which has the traits as defined in the DataProvider
     IdentityModel identityModel  = new IdentityModel();
     identityModel.setIdentifier("foo");
     identityModel.setIdentityTraits(traitModels);
     identityModel.setEnvironmentApiKey("api-key");
 
+    // And a segment which has the operator and property value as defined in the DataProvider
     SegmentConditionModel segmentCondition = new SegmentConditionModel();
     segmentCondition.setOperator(conditionOperator);
     segmentCondition.setProperty_(conditionProperty);
@@ -88,8 +91,12 @@ public class SegmentEvaluatorTest {
     segment.setName("testSegment");
     segment.setRules(new ArrayList<>(Arrays.asList(segmentRule)));
 
+    // When
+    // We evaluate whether the identity is in the segment
     Boolean inSegment = SegmentEvaluator.evaluateIdentityInSegment(identityModel, segment, null);
 
+    // Then
+    // The result is as we expect from the DataProvider definition
     Assert.assertEquals(inSegment, expectedResult);
   }
 }
