@@ -4,6 +4,8 @@ import com.flagsmith.FlagsmithClient;
 import com.flagsmith.FlagsmithFlagDefaults;
 import com.flagsmith.interfaces.DefaultFlagHandler;
 import com.flagsmith.threads.AnalyticsProcessor;
+
+import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -57,6 +59,9 @@ public final class FlagsmithConfig {
     for (final Interceptor interceptor : builder.interceptors) {
       httpBuilder = httpBuilder.addInterceptor(interceptor);
     }
+    if (builder.proxy != null) {
+      httpBuilder = httpBuilder.proxy(builder.proxy);
+    }
     this.httpClient = httpBuilder.build();
 
     this.retries = builder.retries;
@@ -79,6 +84,7 @@ public final class FlagsmithConfig {
   public static class Builder {
 
     private final List<Interceptor> interceptors = new ArrayList<>();
+    private Proxy proxy;
     private HttpUrl baseUri = DEFAULT_BASE_URI;
     private int connectTimeoutMillis = DEFAULT_CONNECT_TIMEOUT_MILLIS;
     private int writeTimeoutMillis = DEFAULT_WRITE_TIMEOUT_MILLIS;
@@ -164,6 +170,17 @@ public final class FlagsmithConfig {
      */
     public Builder addHttpInterceptor(Interceptor interceptor) {
       this.interceptors.add(interceptor);
+      return this;
+    }
+
+    /**
+     * Add a Proxy to the HttpClient.
+     *
+     * @param proxy the proxy
+     * @return the Builder
+     */
+    public Builder withProxy(Proxy proxy) {
+      this.proxy = proxy;
       return this;
     }
 
