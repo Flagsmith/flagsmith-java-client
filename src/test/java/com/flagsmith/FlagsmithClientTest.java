@@ -549,4 +549,44 @@ public class FlagsmithClientTest {
     // Then
     verify(mockedApiWrapper, times(1)).close();
   }
+
+  @Test(groups = "unit")
+  public void testLocalEvaluation_ReturnsConsistentResults() throws FlagsmithClientError {
+    // Specific test to ensure that results are consistent when making multiple calls to
+    // evaluate flags soon after the client is instantiated.
+
+    // Given
+    EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
+
+    FlagsmithConfig config = FlagsmithConfig.newBuilder().withLocalEvaluation(true).build();
+
+    FlagsmithApiWrapper mockedApiWrapper = mock(FlagsmithApiWrapper.class);
+    when(mockedApiWrapper.getEnvironment())
+            .thenReturn(environmentModel)
+            .thenReturn(null);
+    when(mockedApiWrapper.getConfig()).thenReturn(config);
+
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+            .withFlagsmithApiWrapper(mockedApiWrapper)
+            .withConfiguration(config)
+            .setApiKey("ser.dummy-key")
+            .build();
+
+    // When
+    // make 3 calls to get identity flags
+    List<Flags> results = new ArrayList<>();
+    for (int i = 0; i < 3; ++i) {
+        results.add(client.getIdentityFlags("some-identity"));
+    }
+
+    // Then
+    // iterate over the results list and verify that the results are all the same
+    Boolean expectedState = true;
+    String expectedValue = "some-value";
+
+    for (Flags flags : results) {
+        Assert.assertEquals(flags.isFeatureEnabled("some_feature"), expectedState);
+        Assert.assertEquals(flags.getFeatureValue("some_feature"), expectedValue);
+    }
+  }
 }
