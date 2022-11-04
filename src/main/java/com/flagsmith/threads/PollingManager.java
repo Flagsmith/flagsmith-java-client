@@ -24,6 +24,7 @@ public class PollingManager {
     this.client = client;
     this.interval = interval * 1000; // converting to ms
     this.internalThread = initializeThread();
+    client.updateEnvironment();
   }
 
   /**
