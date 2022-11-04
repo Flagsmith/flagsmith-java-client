@@ -174,7 +174,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     assertValidUser(identifier);
     Flags flagsAndTraits = null;
 
-    if (getCache() != null) {
+    if (getCache() != null && getCache().getEnvFlagsCacheKey() != null) {
       flagsAndTraits = getCache().getIfPresent(getCache().getEnvFlagsCacheKey());
 
       if (flagsAndTraits != null) {
