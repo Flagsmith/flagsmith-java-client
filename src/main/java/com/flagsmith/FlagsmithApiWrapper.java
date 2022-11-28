@@ -197,16 +197,17 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
 
     final Request request = this.newPostRequest(url, body);
 
-    Future<JsonNode> featureFlagsFuture = requestor.executeAsync(
+    Future<FlagsAndTraitsResponse> featureFlagsFuture = requestor.executeAsync(
         request,
+        new TypeReference<FlagsAndTraitsResponse>() {},
         doThrow
     );
 
     try {
-      JsonNode flagsAndTraitsResponse = featureFlagsFuture.get(TIMEOUT, TimeUnit.MILLISECONDS);
-      JsonNode flagsArray = flagsAndTraitsResponse != null
-          && flagsAndTraitsResponse.has("flags")
-          ? flagsAndTraitsResponse.get("flags") : MapperFactory.getMapper().createArrayNode();
+      FlagsAndTraitsResponse flagsAndTraitsResponse = featureFlagsFuture.get(TIMEOUT, TimeUnit.MILLISECONDS);
+      List<FeatureStateModel> flagsArray = flagsAndTraitsResponse != null
+          && flagsAndTraitsResponse.flags != null
+          ? flagsAndTraitsResponse.getFlags() : new ArrayList<>();
 
       flagsAndTraits = Flags.fromApiFlags(
           flagsArray,
@@ -321,6 +322,23 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     AnalyticsProcessor analyticsProcessor = this.getConfig().getAnalyticsProcessor();
     if (analyticsProcessor != null) {
       analyticsProcessor.close();
+    }
+  }
+
+  /*
+   * A DTO class to manage the response from the identities endpoint.
+   */
+  static class FlagsAndTraitsResponse {
+    List<FeatureStateModel> flags;
+    JsonNode traits;
+
+    FlagsAndTraitsResponse(List<FeatureStateModel> flags, JsonNode traits) {
+      this.flags = flags;
+      this.traits = traits;
+    }
+
+    List<FeatureStateModel> getFlags() {
+      return this.flags;
     }
   }
 }
