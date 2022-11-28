@@ -204,7 +204,9 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     );
 
     try {
-      FlagsAndTraitsResponse flagsAndTraitsResponse = featureFlagsFuture.get(TIMEOUT, TimeUnit.MILLISECONDS);
+      FlagsAndTraitsResponse flagsAndTraitsResponse = featureFlagsFuture.get(
+          TIMEOUT, TimeUnit.MILLISECONDS
+      );
       List<FeatureStateModel> flagsArray = flagsAndTraitsResponse != null
           && flagsAndTraitsResponse.flags != null
           ? flagsAndTraitsResponse.getFlags() : new ArrayList<>();
