@@ -172,13 +172,13 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
       String identifier, List<TraitModel> traits, boolean doThrow
   ) {
     assertValidUser(identifier);
-    Flags flagsAndTraits = null;
+    Flags flags = null;
 
     if (getCache() != null && getCache().getEnvFlagsCacheKey() != null) {
-      flagsAndTraits = getCache().getIfPresent(getCache().getEnvFlagsCacheKey());
+      flags = getCache().getIfPresent(getCache().getEnvFlagsCacheKey());
 
-      if (flagsAndTraits != null) {
-        return flagsAndTraits;
+      if (flags != null) {
+        return flags;
       }
     }
 
@@ -209,15 +209,15 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
           && flagsAndTraitsResponse.flags != null
           ? flagsAndTraitsResponse.getFlags() : new ArrayList<>();
 
-      flagsAndTraits = Flags.fromApiFlags(
+      flags = Flags.fromApiFlags(
           flagsArray,
           getConfig().getAnalyticsProcessor(),
           getConfig().getFlagsmithFlagDefaults()
       );
 
       if (getCache() != null) {
-        getCache().getCache().put("identifier" + identifier, flagsAndTraits);
-        logger.info("Got feature flags for flags = {} and cached.", flagsAndTraits);
+        getCache().getCache().put("identifier" + identifier, flags);
+        logger.info("Got feature flags for flags = {} and cached.", flags);
       }
 
     } catch (TimeoutException ie) {
@@ -232,9 +232,9 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     }
 
     logger.info("Got flags based on identify for identifier = {}, flags = {}",
-        identifier, flagsAndTraits);
+        identifier, flags);
 
-    return flagsAndTraits;
+    return flags;
   }
 
   @Override
