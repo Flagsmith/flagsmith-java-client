@@ -185,13 +185,14 @@ public class FlagsmithApiWrapperCachingTest {
     assertEquals(flags, Flags.fromFeatureStateModels(featureStateModels, null));
   }
 
+  @Test(groups = "unit")
   public void verifyRequestBody() {
     String identifier = "test-user";
     final ArrayList<TraitModel> traits = new ArrayList<>();
 
-    final ObjectNode flagsAndTraits = MapperFactory.getMapper().createObjectNode();
+    final FlagsAndTraitsResponse flagsAndTraitsResponse = new FlagsAndTraitsResponse();
     when(requestProcessor.executeAsync(any(), any(), any()))
-        .thenReturn(FlagsmithTestHelper.futurableReturn(flagsAndTraits));
+        .thenReturn(FlagsmithTestHelper.futurableReturn(flagsAndTraitsResponse));
 
     final ObjectNode requestObject = MapperFactory.getMapper().createObjectNode();
     requestObject.put("identifier", identifier);
@@ -200,7 +201,6 @@ public class FlagsmithApiWrapperCachingTest {
     MediaType json = MediaType.parse("application/json; charset=utf-8");
     RequestBody body = RequestBody.create(requestObject.toString(), json);
     HttpUrl url = flagsmithAPIWrapper.getConfig().getIdentitiesUri();
-    Request request = flagsmithAPIWrapper.newPostRequest(url, body);
 
     // Act
     final Flags actualUserFlagsAndTraits = flagsmithAPIWrapper.identifyUserWithTraits(
