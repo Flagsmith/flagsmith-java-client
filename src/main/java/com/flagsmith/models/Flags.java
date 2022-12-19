@@ -153,9 +153,6 @@ public class Flags {
    */
   public boolean isFeatureEnabled(String featureName)
       throws FlagsmithClientError {
-    if(!this.flags.containsKey(featureName)) {
-      throw new FeatureNotFoundError("Feature does not exist: " + featureName);
-    }
     return this.getFlag(featureName).getEnabled();
   }
 
