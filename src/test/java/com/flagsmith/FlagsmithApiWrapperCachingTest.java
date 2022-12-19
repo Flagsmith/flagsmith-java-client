@@ -17,6 +17,7 @@ import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.models.Flags;
+import com.flagsmith.responses.FlagsAndTraitsResponse;
 import com.flagsmith.threads.RequestProcessor;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -154,9 +155,9 @@ public class FlagsmithApiWrapperCachingTest {
     String identifier = "test-user";
     final ArrayList<TraitModel> traits = new ArrayList<>();
 
-    final ObjectNode flagsAndTraits = MapperFactory.getMapper().createObjectNode();
-    when(requestProcessor.executeAsync(any(), any()))
-        .thenReturn(FlagsmithTestHelper.futurableReturn(flagsAndTraits));
+    final FlagsAndTraitsResponse flagsAndTraitsResponse = new FlagsAndTraitsResponse();
+    when(requestProcessor.executeAsync(any(), any(), any()))
+        .thenReturn(FlagsmithTestHelper.futurableReturn(flagsAndTraitsResponse));
 
     // Act
     final Flags actualUserFlagsAndTraits = flagsmithAPIWrapper.identifyUserWithTraits(
@@ -164,7 +165,7 @@ public class FlagsmithApiWrapperCachingTest {
     );
 
     // Assert
-    verify(requestProcessor, times(1)).executeAsync(any(), any());
+    verify(requestProcessor, times(1)).executeAsync(any(), any(), any());
     assertEquals(newFlagsList(new ArrayList<>()), actualUserFlagsAndTraits);
   }
 
@@ -189,7 +190,7 @@ public class FlagsmithApiWrapperCachingTest {
     final ArrayList<TraitModel> traits = new ArrayList<>();
 
     final ObjectNode flagsAndTraits = MapperFactory.getMapper().createObjectNode();
-    when(requestProcessor.executeAsync(any(), any()))
+    when(requestProcessor.executeAsync(any(), any(), any()))
         .thenReturn(FlagsmithTestHelper.futurableReturn(flagsAndTraits));
 
     final ObjectNode requestObject = MapperFactory.getMapper().createObjectNode();
@@ -209,7 +210,7 @@ public class FlagsmithApiWrapperCachingTest {
     // Assert
     ArgumentCaptor<Request> argument = ArgumentCaptor.forClass(Request.class);
 
-    verify(requestProcessor, times(1)).executeAsync(argument.capture(), anyBoolean());
+    verify(requestProcessor, times(1)).executeAsync(argument.capture(), any(), anyBoolean());
     assertEquals(url, argument.getValue().url());
     assertEquals(newFlagsList(new ArrayList<>()), actualUserFlagsAndTraits);
   }

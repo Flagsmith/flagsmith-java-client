@@ -13,6 +13,7 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flagsmith.config.FlagsmithConfig;
@@ -102,14 +103,10 @@ public class FlagsmithApiWrapperTest {
   public void identifyUserWithTraits_success() throws JsonProcessingException {
     // Arrange
     final List<TraitModel> traits = new ArrayList<TraitModel>(Arrays.asList(new TraitModel()));
+    String responseBody = mapper.writeValueAsString(getFlagsAndTraitsResponse(Arrays.asList(getNewFlag()), Arrays.asList(new TraitModel())));
     interceptor.addRule()
         .post(BASE_URL + "/identities/")
-        .respond(
-            mapper.writeValueAsString(
-                getFlagsAndTraitsResponse(
-                    Arrays.asList(getNewFlag()),
-                    Arrays.asList(new TraitModel()))
-            ), MEDIATYPE_JSON);
+        .respond(responseBody, MEDIATYPE_JSON);
 
     // Act
     final Flags actualFeatureFlags = sut.identifyUserWithTraits(

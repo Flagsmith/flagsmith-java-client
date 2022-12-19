@@ -238,7 +238,7 @@ public class FlagsmithClient {
         return flags;
       }
 
-      throw new FlagsmithApiError("Failed to get feature flags.");
+      throw e;
     }
   }
 

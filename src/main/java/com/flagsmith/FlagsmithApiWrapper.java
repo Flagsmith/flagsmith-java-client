@@ -10,6 +10,7 @@ import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.models.Flags;
+import com.flagsmith.responses.FlagsAndTraitsResponse;
 import com.flagsmith.threads.AnalyticsProcessor;
 import com.flagsmith.threads.RequestProcessor;
 import java.util.ArrayList;
@@ -19,7 +20,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -208,7 +212,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
           TIMEOUT, TimeUnit.MILLISECONDS
       );
       List<FeatureStateModel> flagsArray = flagsAndTraitsResponse != null
-          && flagsAndTraitsResponse.flags != null
+          && flagsAndTraitsResponse.getFlags() != null
           ? flagsAndTraitsResponse.getFlags() : new ArrayList<>();
 
       flags = Flags.fromApiFlags(
@@ -324,23 +328,6 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     AnalyticsProcessor analyticsProcessor = this.getConfig().getAnalyticsProcessor();
     if (analyticsProcessor != null) {
       analyticsProcessor.close();
-    }
-  }
-
-  /*
-   * A DTO class to manage the response from the identities endpoint.
-   */
-  static class FlagsAndTraitsResponse {
-    List<FeatureStateModel> flags;
-    JsonNode traits;
-
-    FlagsAndTraitsResponse(List<FeatureStateModel> flags, JsonNode traits) {
-      this.flags = flags;
-      this.traits = traits;
-    }
-
-    List<FeatureStateModel> getFlags() {
-      return this.flags;
     }
   }
 }
