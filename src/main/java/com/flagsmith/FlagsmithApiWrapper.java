@@ -1,7 +1,6 @@
 package com.flagsmith;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
@@ -21,9 +20,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.Request;
