@@ -23,8 +23,6 @@ import com.flagsmith.models.Segment;
 import com.flagsmith.threads.PollingManager;
 import com.flagsmith.threads.RequestProcessor;
 
-import io.restassured.common.mapper.TypeRef;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
