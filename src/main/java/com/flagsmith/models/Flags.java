@@ -150,8 +150,8 @@ public class Flags {
    * @param featureName Feature name
    * @return
    */
-  public Boolean isFeatureEnabled(String featureName) throws FlagsmithClientError {
-    return flags.containsKey(featureName) ? getFlag(featureName).getEnabled() : null;
+  public boolean isFeatureEnabled(String featureName) throws FlagsmithClientError {
+    return getFlag(featureName).getEnabled();
   }
 
   /**
