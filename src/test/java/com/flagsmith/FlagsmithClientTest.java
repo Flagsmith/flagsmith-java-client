@@ -581,7 +581,7 @@ public class FlagsmithClientTest {
 
     // Then
     // iterate over the results list and verify that the results are all the same
-    Boolean expectedState = true;
+    boolean expectedState = true;
     String expectedValue = "some-value";
 
     for (Flags flags : results) {
