@@ -99,7 +99,6 @@ public class RequestProcessor {
               getLogger().httpError(request, response, throwOrNot);
             }
           } catch (IOException e) {
-            System.out.println(e.getMessage());
             getLogger().httpError(request, e, throwOrNot);
           }
 
