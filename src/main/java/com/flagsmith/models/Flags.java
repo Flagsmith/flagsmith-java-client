@@ -2,6 +2,7 @@ package com.flagsmith.models;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.FlagsmithFlagDefaults;
+import com.flagsmith.exceptions.FeatureNotFoundError;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.interfaces.DefaultFlagHandler;
@@ -150,8 +151,9 @@ public class Flags {
    * @param featureName Feature name
    * @return
    */
-  public Boolean isFeatureEnabled(String featureName) throws FlagsmithClientError {
-    return flags.containsKey(featureName) ? getFlag(featureName).getEnabled() : null;
+  public boolean isFeatureEnabled(String featureName)
+      throws FlagsmithClientError {
+    return this.getFlag(featureName).getEnabled();
   }
 
   /**
@@ -175,7 +177,7 @@ public class Flags {
       if (defaultFlagHandler != null) {
         return defaultFlagHandler.evaluateDefaultFlag(featureName);
       }
-      throw new FlagsmithClientError("Feature does not exist: " + featureName);
+      throw new FeatureNotFoundError("Feature does not exist: " + featureName);
     }
 
     BaseFlag flag = flags.get(featureName);
