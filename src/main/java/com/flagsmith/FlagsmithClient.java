@@ -1,6 +1,5 @@
 package com.flagsmith;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithApiError;
@@ -17,16 +16,11 @@ import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.Segment;
-import com.flagsmith.threads.AnalyticsProcessor;
 import com.flagsmith.threads.PollingManager;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import lombok.Data;
