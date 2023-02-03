@@ -161,8 +161,11 @@ public class FlagsmithClient {
     flagsmithSdk.close();
   }
 
-  private Flags getEnvironmentFlagsFromDocument() {
+  private Flags getEnvironmentFlagsFromDocument() throws FlagsmithClientError {
     if (environment == null) {
+      if (flagsmithSdk.getConfig().getFlagsmithFlagDefaults() == null) {
+        throw new FlagsmithClientError("Unable to get flags. No environment present.");
+      }
       return getDefaultFlags();
     }
 
@@ -176,9 +179,12 @@ public class FlagsmithClient {
 
   private Flags getIdentityFlagsFromDocument(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
-    if (environment == null) {
-      return getDefaultFlags();
-    }
+      if (environment == null) {
+        if (flagsmithSdk.getConfig().getFlagsmithFlagDefaults() == null) {
+          throw new FlagsmithClientError("Unable to get flags. No environment present.");
+        }
+        return getDefaultFlags();
+      }
 
     IdentityModel identity = buildIdentityModel(identifier, traits);
     List<FeatureStateModel> featureStates = Engine.getIdentityFeatureStates(environment, identity);
