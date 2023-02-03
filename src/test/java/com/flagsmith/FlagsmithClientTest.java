@@ -43,6 +43,17 @@ import org.testng.annotations.Test;
 @Test(groups = "unit")
 public class FlagsmithClientTest {
 
+  private static String DEFAULT_FLAG_VALUE = "foobar";
+  private static boolean DEFAULT_FLAG_STATE = true;
+
+  private static BaseFlag defaultHandler(String featureName) {
+    DefaultFlag defaultFlag = new DefaultFlag();
+    defaultFlag.setEnabled(DEFAULT_FLAG_STATE);
+    defaultFlag.setValue(DEFAULT_FLAG_VALUE);
+    defaultFlag.setFeatureName(featureName);
+    return defaultFlag;
+  }
+
   @Test(groups = "unit")
   public void testClient_When_Cache_Disabled_Return_Null() {
     FlagsmithClient client = FlagsmithClient.newBuilder()
@@ -466,7 +477,7 @@ public class FlagsmithClientTest {
   }
 
   @Test(groups = "unit")
-  public void testUpdateEnvironment_DoesNothing_WhenGetEnvironmentThrowsException() {
+  public void testUpdateEnvironment_DoesNothing_WhenGetEnvironmentThrowsExceptionAndEnvironmentExists() {
     // Given
     EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
 
@@ -492,7 +503,7 @@ public class FlagsmithClientTest {
   }
 
   @Test(groups = "unit")
-  public void testUpdateEnvironment_DoesNothing_WhenGetEnvironmentReturnsNull() {
+  public void testUpdateEnvironment_DoesNothing_WhenGetEnvironmentReturnsNullAndEnvironmentExists() {
     // Given
     EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
 
@@ -516,6 +527,26 @@ public class FlagsmithClientTest {
     // Then
     // The client environment is not overwritten with null
     Assert.assertEquals(client.getEnvironment(), environmentModel);
+  }
+
+  @Test(groups = "unit")
+  public void testUpdateEnvironment_DoesNothing_WhenGetEnvironmentReturnsNullAndEnvironmentNotExists() {
+    // Given
+    FlagsmithApiWrapper mockApiWrapper = mock(FlagsmithApiWrapper.class);
+    when(mockApiWrapper.getEnvironment()).thenThrow(RuntimeException.class);
+
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+            .withFlagsmithApiWrapper(mockApiWrapper)
+            .withConfiguration(FlagsmithConfig.newBuilder().withLocalEvaluation(true).build())
+            .setApiKey("ser.dummy-key")
+            .build();
+
+    // When
+    client.updateEnvironment();
+
+    // Then
+    // The environment remains null
+    Assert.assertEquals(client.getEnvironment(), null);
   }
 
   @Test(groups = "unit")
@@ -590,5 +621,51 @@ public class FlagsmithClientTest {
         Assert.assertEquals(flags.isFeatureEnabled("some_feature"), expectedState);
         Assert.assertEquals(flags.getFeatureValue("some_feature"), expectedValue);
     }
+  }
+
+  @Test(groups = "unit")
+  public void testGetEnvironmentFlags_UsesDefaultFlags_IfLocalEvaluationEnvironmentNull() throws FlagsmithClientError {
+    // Given
+    FlagsmithConfig config = FlagsmithConfig.newBuilder().withLocalEvaluation(true).build();
+    FlagsmithApiWrapper mockedApiWrapper = mock(FlagsmithApiWrapper.class);
+    when(mockedApiWrapper.getEnvironment()).thenThrow(RuntimeException.class);
+    when(mockedApiWrapper.getConfig()).thenReturn(config);
+
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+        .withFlagsmithApiWrapper(mockedApiWrapper)
+        .withConfiguration(config)
+        .setApiKey("ser.dummy-key")
+        .setDefaultFlagValueFunction(FlagsmithClientTest::defaultHandler)
+        .build();
+
+    // When
+    Flags environmentFlags = client.getEnvironmentFlags();
+
+    // Then
+    Assert.assertEquals(environmentFlags.getFeatureValue("foo"), DEFAULT_FLAG_VALUE);
+    Assert.assertEquals(environmentFlags.isFeatureEnabled("foo"), DEFAULT_FLAG_STATE);
+  }
+
+  @Test(groups = "unit")
+  public void testGetIdentityFlags_UsesDefaultFlags_IfLocalEvaluationEnvironmentNull() throws FlagsmithClientError {
+    // Given
+    FlagsmithConfig config = FlagsmithConfig.newBuilder().withLocalEvaluation(true).build();
+    FlagsmithApiWrapper mockedApiWrapper = mock(FlagsmithApiWrapper.class);
+    when(mockedApiWrapper.getEnvironment()).thenThrow(RuntimeException.class);
+    when(mockedApiWrapper.getConfig()).thenReturn(config);
+
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+        .withFlagsmithApiWrapper(mockedApiWrapper)
+        .withConfiguration(config)
+        .setApiKey("ser.dummy-key")
+        .setDefaultFlagValueFunction(FlagsmithClientTest::defaultHandler)
+        .build();
+
+    // When
+    Flags identityFlags = client.getIdentityFlags("some-identity");
+
+    // Then
+    Assert.assertEquals(identityFlags.getFeatureValue("foo"), DEFAULT_FLAG_VALUE);
+    Assert.assertEquals(identityFlags.isFeatureEnabled("foo"), DEFAULT_FLAG_STATE);
   }
 }
