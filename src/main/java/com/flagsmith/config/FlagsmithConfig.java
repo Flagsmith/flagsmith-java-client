@@ -42,6 +42,7 @@ public final class FlagsmithConfig {
   private Integer environmentRefreshIntervalSeconds;
   private AnalyticsProcessor analyticsProcessor;
   private FlagsmithFlagDefaults flagsmithFlagDefaults = null;
+  private Boolean raiseUpdateEnvironmentErrorsOnStartup = true;
 
   protected FlagsmithConfig(Builder builder) {
     this.baseUri = builder.baseUri;

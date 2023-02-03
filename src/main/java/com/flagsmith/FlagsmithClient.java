@@ -61,17 +61,7 @@ public class FlagsmithClient {
         logger.error(UNABLE_TO_UPDATE_ENVIRONMENT_MESSAGE);
       }
     } catch (RuntimeException e) {
-      // if we already have a copy of the environment, don't throw an error,
-      // just continue using that one and log an error as it's likely just a
-      // temporary network issue.
-      if (this.environment != null) {
-        logger.error(UNABLE_TO_UPDATE_ENVIRONMENT_MESSAGE);
-      } else {
-        // if we don't already have an environment, then we should still throw
-        // the error since it's likely on client start up and there might be
-        // something more sinister going on.
-        throw e;
-      }
+      logger.error(UNABLE_TO_UPDATE_ENVIRONMENT_MESSAGE);
     }
   }
 
@@ -81,7 +71,7 @@ public class FlagsmithClient {
    * @return
    */
   public Flags getEnvironmentFlags() throws FlagsmithApiError {
-    if (environment != null) {
+    if (flagsmithSdk.getConfig().getEnableLocalEvaluation()) {
       return getEnvironmentFlagsFromDocument();
     }
 
@@ -112,7 +102,7 @@ public class FlagsmithClient {
    */
   public Flags getIdentityFlags(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
-    if (environment != null) {
+    if (flagsmithSdk.getConfig().getEnableLocalEvaluation()) {
       return getIdentityFlagsFromDocument(identifier, traits);
     }
 
@@ -172,6 +162,10 @@ public class FlagsmithClient {
   }
 
   private Flags getEnvironmentFlagsFromDocument() {
+    if (environment == null) {
+      return getDefaultFlags();
+    }
+
     return Flags.fromFeatureStateModels(
         Engine.getEnvironmentFeatureStates(environment),
         flagsmithSdk.getConfig().getAnalyticsProcessor(),
@@ -182,6 +176,10 @@ public class FlagsmithClient {
 
   private Flags getIdentityFlagsFromDocument(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
+    if (environment == null) {
+      return getDefaultFlags();
+    }
+
     IdentityModel identity = buildIdentityModel(identifier, traits);
     List<FeatureStateModel> featureStates = Engine.getIdentityFeatureStates(environment, identity);
 
@@ -198,10 +196,7 @@ public class FlagsmithClient {
       return flagsmithSdk.getFeatureFlags(Boolean.TRUE);
     } catch (Exception e) {
       if (flagsmithSdk.getConfig().getFlagsmithFlagDefaults() != null) {
-        Flags flags = new Flags();
-        flags.setDefaultFlagHandler(flagsmithSdk.getConfig().getFlagsmithFlagDefaults());
-
-        return flags;
+        return getDefaultFlags();
       }
 
       throw new FlagsmithApiError("Failed to get feature flags.");
@@ -226,10 +221,7 @@ public class FlagsmithClient {
       );
     } catch (Exception e) {
       if (flagsmithSdk.getConfig().getFlagsmithFlagDefaults() != null) {
-        Flags flags = new Flags();
-        flags.setDefaultFlagHandler(flagsmithSdk.getConfig().getFlagsmithFlagDefaults());
-
-        return flags;
+        return getDefaultFlags();
       }
 
       throw new FlagsmithApiError("Failed to get feature flags.");
@@ -257,6 +249,12 @@ public class FlagsmithClient {
     identity.setIdentifier(identifier);
 
     return identity;
+  }
+
+  private Flags getDefaultFlags() {
+    Flags flags = new Flags();
+    flags.setDefaultFlagHandler(flagsmithSdk.getConfig().getFlagsmithFlagDefaults());
+    return flags;
   }
 
   /**
