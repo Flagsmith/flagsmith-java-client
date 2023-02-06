@@ -23,7 +23,7 @@ public interface FlagsmithSdk {
   );
 
   FlagsmithConfig getConfig();
-  
+
   EnvironmentModel getEnvironment();
 
   RequestProcessor getRequestor();
@@ -43,8 +43,8 @@ public interface FlagsmithSdk {
    * validate user has a valid identifier.
    * @param identifier user identifier
    */
-  default void assertValidUser(@NonNull String identifier) {
-    if (StringUtils.isBlank(identifier)) {
+  default void assertValidUser(String identifier) {
+    if (identifier == null || StringUtils.isBlank(identifier)) {
       throw new IllegalArgumentException("Missing user identifier");
     }
   }
