@@ -37,7 +37,8 @@ public class FlagsmithClient {
   private FlagsmithSdk flagsmithSdk;
   private EnvironmentModel environment;
   private PollingManager pollingManager;
-  private static final String UNABLE_TO_UPDATE_ENVIRONMENT_MESSAGE = "Unable to update environment from API. Continuing to use previous copy.";
+  private static final String UNABLE_TO_UPDATE_ENVIRONMENT_MESSAGE =
+          "Unable to update environment from API. Continuing to use previous copy.";
 
   private FlagsmithClient() {
   }
@@ -70,7 +71,7 @@ public class FlagsmithClient {
    *
    * @return
    */
-  public Flags getEnvironmentFlags() throws FlagsmithApiError {
+  public Flags getEnvironmentFlags() throws FlagsmithClientError {
     if (flagsmithSdk.getConfig().getEnableLocalEvaluation()) {
       return getEnvironmentFlagsFromDocument();
     }
@@ -235,7 +236,8 @@ public class FlagsmithClient {
   private IdentityModel buildIdentityModel(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
     if (environment == null) {
-      throw new FlagsmithClientError("Unable to build identity model when no local environment present.");
+      throw new FlagsmithClientError(
+        "Unable to build identity model when no local environment present.");
     }
 
     List<TraitModel> traitsList = traits.entrySet().stream().map((entry) -> {
@@ -304,8 +306,7 @@ public class FlagsmithClient {
      * return null by
      * default.
      *
-     * <p>
-     * If you would like to override this default behaviour, you can use this
+     * <p>If you would like to override this default behaviour, you can use this
      * method. By default
      * it will return null for any flags that it does not recognise.
      *
@@ -390,8 +391,7 @@ public class FlagsmithClient {
     /**
      * Enable in-memory caching for the Flagsmith API.
      *
-     * <p>
-     * If no other cache configuration is set, the Caffeine defaults will be used,
+     * <p>If no other cache configuration is set, the Caffeine defaults will be used,
      * i.e. no limit
      *
      * @param cacheConfig an FlagsmithCacheConfig.

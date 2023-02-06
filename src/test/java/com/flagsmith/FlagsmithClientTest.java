@@ -164,7 +164,7 @@ public class FlagsmithClientTest {
 
     @Test(groups = "unit")
     public void testClient_flagsApiEmpty()
-            throws FlagsmithApiError {
+            throws FlagsmithClientError {
         String baseUrl = "http://bad-url";
         MockInterceptor interceptor = new MockInterceptor();
         FlagsmithClient client = FlagsmithClient.newBuilder()
@@ -189,7 +189,7 @@ public class FlagsmithClientTest {
 
     @Test(groups = "unit")
     public void testClient_flagsApi()
-            throws JsonProcessingException, FlagsmithApiError {
+            throws JsonProcessingException, FlagsmithClientError {
         String baseUrl = "http://bad-url";
         MockInterceptor interceptor = new MockInterceptor();
         FlagsmithClient client = FlagsmithClient.newBuilder()
