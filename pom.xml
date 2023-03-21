@@ -6,7 +6,7 @@
 
   <groupId>com.flagsmith</groupId>
   <artifactId>flagsmith-java-client</artifactId>
-  <version>5.1.2</version>
+  <version>6.0.0</version>
   <packaging>jar</packaging>
 
   <name>Flagsmith Java Client</name>
@@ -97,6 +97,12 @@
     </dependency>
 
     <!-- Test Dependencies-->
+    <dependency>
+      <groupId>org.testng</groupId>
+      <artifactId>testng</artifactId>
+      <version>7.6.1</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
