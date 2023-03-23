@@ -144,8 +144,8 @@ public final class FlagsmithCacheConfig {
      * @param envFlagsCacheKey key to use in the cache for environment level flags
      * @return the Builder
      */
-    public Builder enableEnvLevelCaching(@NonNull String envFlagsCacheKey) {
-      if (StringUtils.isBlank(envFlagsCacheKey)) {
+    public Builder enableEnvLevelCaching(String envFlagsCacheKey) {
+      if (envFlagsCacheKey == null || StringUtils.isBlank(envFlagsCacheKey)) {
         throw new IllegalArgumentException("Missing environment level cache key");
       }
       this.envFlagsCacheKey = envFlagsCacheKey;
