@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 env:
-  java: 8
+  java: 11
   distribution: "adopt"
 
 jobs:

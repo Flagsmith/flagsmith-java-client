@@ -40,7 +40,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <java.version>1.8</java.version>
+    <java.version>1.11</java.version>
     <jacksonVersion>2.13.5</jacksonVersion>
     <lombok.version>1.18.22</lombok.version>
     <slf4j.version>1.7.30</slf4j.version>

@@ -34,7 +34,7 @@ jobs:
         # Supported options are ['csharp', 'cpp', 'go', 'java', 'javascript', 'python']
         language: ['java']
         distribution: [ 'zulu', 'adopt' ]
-        java: [ '8' ]
+        java: [ '11' ]
 
     steps:
       - name: Checkout repository
