@@ -62,6 +62,12 @@ public class SegmentModelTest {
         new Object[] {SegmentConditions.NOT_CONTAINS, "bar", "baz", true},
         new Object[] {SegmentConditions.REGEX, "foo", "[a-z]+", true},
         new Object[] {SegmentConditions.REGEX, "FOO", "[a-z]+", false},
+        new Object[] {SegmentConditions.MODULO, 2, "2|0", true},
+        new Object[] {SegmentConditions.MODULO, 3, "2|0", false},
+        new Object[] {SegmentConditions.MODULO, 2.0, "2|0", true},
+        new Object[] {SegmentConditions.MODULO, 2.0, "2.0|0.0", true},
+        new Object[] {SegmentConditions.MODULO, "foo", "2|0", false},
+        new Object[] {SegmentConditions.MODULO, "foo", "foo|bar", false},
     };
   }
 
@@ -77,7 +83,7 @@ public class SegmentModelTest {
     conditionModel.setOperator(condition);
     conditionModel.setProperty_("foo");
 
-    Boolean actualResult = SegmentEvaluator.traitsMatchValue(conditionModel, traitValue);
+    Boolean actualResult = SegmentEvaluator.conditionMatchesTraitValue(conditionModel, traitValue);
 
     Assert.assertTrue(actualResult.equals(expectedResponse));
   }
@@ -119,7 +125,7 @@ public class SegmentModelTest {
     conditionModel.setOperator(condition);
     conditionModel.setProperty_("foo");
 
-    Boolean actualResult = SegmentEvaluator.traitsMatchValue(conditionModel, traitValue);
+    Boolean actualResult = SegmentEvaluator.conditionMatchesTraitValue(conditionModel, traitValue);
 
     Assert.assertTrue(actualResult.equals(expectedResponse));
   }

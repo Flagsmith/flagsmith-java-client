@@ -1,7 +1,6 @@
 package com.flagsmith;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
@@ -10,6 +9,7 @@ import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.models.Flags;
+import com.flagsmith.responses.FlagsAndTraitsResponse;
 import com.flagsmith.threads.AnalyticsProcessor;
 import com.flagsmith.threads.RequestProcessor;
 import java.util.ArrayList;
@@ -172,13 +172,13 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
       String identifier, List<TraitModel> traits, boolean doThrow
   ) {
     assertValidUser(identifier);
-    Flags flagsAndTraits = null;
+    Flags flags = null;
 
-    if (getCache() != null) {
-      flagsAndTraits = getCache().getIfPresent(getCache().getEnvFlagsCacheKey());
+    if (getCache() != null && getCache().getEnvFlagsCacheKey() != null) {
+      flags = getCache().getIfPresent(getCache().getEnvFlagsCacheKey());
 
-      if (flagsAndTraits != null) {
-        return flagsAndTraits;
+      if (flags != null) {
+        return flags;
       }
     }
 
@@ -197,26 +197,29 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
 
     final Request request = this.newPostRequest(url, body);
 
-    Future<JsonNode> featureFlagsFuture = requestor.executeAsync(
+    Future<FlagsAndTraitsResponse> featureFlagsFuture = requestor.executeAsync(
         request,
+        new TypeReference<FlagsAndTraitsResponse>() {},
         doThrow
     );
 
     try {
-      JsonNode flagsAndTraitsResponse = featureFlagsFuture.get(TIMEOUT, TimeUnit.MILLISECONDS);
-      JsonNode flagsArray = flagsAndTraitsResponse != null
-          && flagsAndTraitsResponse.has("flags")
-          ? flagsAndTraitsResponse.get("flags") : MapperFactory.getMapper().createArrayNode();
+      FlagsAndTraitsResponse flagsAndTraitsResponse = featureFlagsFuture.get(
+          TIMEOUT, TimeUnit.MILLISECONDS
+      );
+      List<FeatureStateModel> flagsArray = flagsAndTraitsResponse != null
+          && flagsAndTraitsResponse.getFlags() != null
+          ? flagsAndTraitsResponse.getFlags() : new ArrayList<>();
 
-      flagsAndTraits = Flags.fromApiFlags(
+      flags = Flags.fromApiFlags(
           flagsArray,
           getConfig().getAnalyticsProcessor(),
           getConfig().getFlagsmithFlagDefaults()
       );
 
       if (getCache() != null) {
-        getCache().getCache().put("identifier" + identifier, flagsAndTraits);
-        logger.info("Got feature flags for flags = {} and cached.", flagsAndTraits);
+        getCache().getCache().put("identifier" + identifier, flags);
+        logger.info("Got feature flags for flags = {} and cached.", flags);
       }
 
     } catch (TimeoutException ie) {
@@ -231,9 +234,9 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     }
 
     logger.info("Got flags based on identify for identifier = {}, flags = {}",
-        identifier, flagsAndTraits);
+        identifier, flags);
 
-    return flagsAndTraits;
+    return flags;
   }
 
   @Override

@@ -5,7 +5,9 @@ import static org.mockito.Mockito.*;
 import static org.testng.Assert.assertThrows;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.flagsmith.responses.FlagsAndTraitsResponse;
 import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithApiError;
@@ -20,6 +22,7 @@ import com.flagsmith.models.Flags;
 import com.flagsmith.models.Segment;
 import com.flagsmith.threads.PollingManager;
 import com.flagsmith.threads.RequestProcessor;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -256,7 +259,7 @@ public class FlagsmithClientTest {
 
     List<BaseFlag> flags = client.getIdentityFlags(identifier).getAllFlags();
     Assert.assertEquals(flags.get(0).getEnabled(), Boolean.TRUE);
-    Assert.assertEquals(((JsonNode) flags.get(0).getValue()).asText(), "some-value");
+    Assert.assertEquals(flags.get(0).getValue(), "some-value");
     Assert.assertEquals(flags.get(0).getFeatureName(), "some_feature");
   }
 
@@ -281,17 +284,16 @@ public class FlagsmithClientTest {
     // mocking the requestor
     ((FlagsmithApiWrapper) client.getFlagsmithSdk()).setRequestor(requestProcessor);
     String json = FlagsmithTestHelper.getIdentitiesFlags();
+    TypeReference<FlagsAndTraitsResponse> tr = new TypeReference<FlagsAndTraitsResponse>() {};
 
-    when(requestProcessor.executeAsync(any(), any()))
+    when(requestProcessor.executeAsync(any(), any(), any()))
         .thenReturn(
-            FlagsmithTestHelper.futurableReturn(
-                MapperFactory.getMapper().readTree(json)
-            ));
+            FlagsmithTestHelper.futurableReturn(MapperFactory.getMapper().readValue(json, tr)));
 
     List<BaseFlag> flags = client.getIdentityFlags(identifier, traits).getAllFlags();
 
     ArgumentCaptor<Request> argument = ArgumentCaptor.forClass(Request.class);
-    verify(requestProcessor, times(1)).executeAsync(argument.capture(), any());
+    verify(requestProcessor, times(1)).executeAsync(argument.capture(), any(), any());
 
     Buffer buffer = new Buffer();
     argument.getValue().body().writeTo(buffer);
@@ -302,7 +304,7 @@ public class FlagsmithClientTest {
 
     Assert.assertEquals(expectedRequest.toString(), buffer.readUtf8());
     Assert.assertEquals(flags.get(0).getEnabled(), Boolean.TRUE);
-    Assert.assertEquals(((JsonNode) flags.get(0).getValue()).asText(), "some-value");
+    Assert.assertEquals(flags.get(0).getValue(), "some-value");
     Assert.assertEquals(flags.get(0).getFeatureName(), "some_feature");
   }
 
@@ -548,5 +550,45 @@ public class FlagsmithClientTest {
 
     // Then
     verify(mockedApiWrapper, times(1)).close();
+  }
+
+  @Test(groups = "unit")
+  public void testLocalEvaluation_ReturnsConsistentResults() throws FlagsmithClientError {
+    // Specific test to ensure that results are consistent when making multiple calls to
+    // evaluate flags soon after the client is instantiated.
+
+    // Given
+    EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
+
+    FlagsmithConfig config = FlagsmithConfig.newBuilder().withLocalEvaluation(true).build();
+
+    FlagsmithApiWrapper mockedApiWrapper = mock(FlagsmithApiWrapper.class);
+    when(mockedApiWrapper.getEnvironment())
+            .thenReturn(environmentModel)
+            .thenReturn(null);
+    when(mockedApiWrapper.getConfig()).thenReturn(config);
+
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+            .withFlagsmithApiWrapper(mockedApiWrapper)
+            .withConfiguration(config)
+            .setApiKey("ser.dummy-key")
+            .build();
+
+    // When
+    // make 3 calls to get identity flags
+    List<Flags> results = new ArrayList<>();
+    for (int i = 0; i < 3; ++i) {
+        results.add(client.getIdentityFlags("some-identity"));
+    }
+
+    // Then
+    // iterate over the results list and verify that the results are all the same
+    boolean expectedState = true;
+    String expectedValue = "some-value";
+
+    for (Flags flags : results) {
+        Assert.assertEquals(flags.isFeatureEnabled("some_feature"), expectedState);
+        Assert.assertEquals(flags.getFeatureValue("some_feature"), expectedValue);
+    }
   }
 }

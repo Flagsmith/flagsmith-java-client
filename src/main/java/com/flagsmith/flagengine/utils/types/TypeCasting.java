@@ -16,6 +16,10 @@ public class TypeCasting {
    */
   public static Boolean compare(SegmentConditions condition, Object value1, Object value2) {
 
+    if (condition.equals(SegmentConditions.MODULO)) {
+      return compareModulo(String.valueOf(value2), value1);
+    }
+
     if (isInteger(value1) && isInteger(value2)) {
       return compare(condition, toInteger(value1), toInteger(value2));
     } else if (isFloat(value1) && isFloat(value2)) {
@@ -65,7 +69,8 @@ public class TypeCasting {
    */
   public static Double toDouble(Object number) {
     try {
-      return number instanceof Double ? ((Double) number) : Double.parseDouble((String) number);
+      String asString = String.valueOf(number);
+      return number instanceof Double ? ((Double) number) : Double.parseDouble(asString);
     } catch (Exception nfe) {
       return null;
     }
@@ -87,7 +92,7 @@ public class TypeCasting {
    */
   public static Float toFloat(Object number) {
     try {
-      return number instanceof Float ? ((Float) number) : Float.parseFloat((String) number);
+      return number instanceof Float ? ((Float) number) : Float.parseFloat(String.valueOf(number));
     } catch (Exception nfe) {
       return null;
     }
@@ -109,7 +114,8 @@ public class TypeCasting {
    */
   public static Integer toInteger(Object number) {
     try {
-      return number instanceof Integer ? ((Integer) number) : Integer.valueOf((String) number);
+      String asString = String.valueOf(number);
+      return number instanceof Integer ? ((Integer) number) : Integer.valueOf(asString);
     } catch (Exception nfe) {
       return null;
     }
@@ -171,5 +177,27 @@ public class TypeCasting {
    */
   public static Boolean isSemver(Object str) {
     return SemanticVersioning.isSemver((String) str);
+  }
+
+  /**
+   * Modulo is a special case as the condition value holds both the divisor and remainder.
+   * This method compares the conditionValue and the traitValue by dividing the traitValue
+   * by the divisor and verifying that it correctly equals the remainder.
+   *
+   * @param conditionValue conditionValue in the format 'divisor|remainder'
+   * @param traitValue the value of the matched trait
+   * @return true if expression evaluates to true, false if unable to evaluate expression or
+   *     it evaluates to false
+   */
+  public static Boolean compareModulo(String conditionValue, Object traitValue) {
+    try {
+      String[] divisorAndRemainder = conditionValue.split("\\|");
+      Float divisor = toFloat(divisorAndRemainder[0]);
+      Float remainder = toFloat(divisorAndRemainder[1]);
+
+      return toFloat(traitValue) % divisor == remainder;
+    } catch (NumberFormatException | NullPointerException e) {
+      return false; // indicates that one of the values could not be case to Float.
+    }
   }
 }

@@ -21,18 +21,20 @@ public class PollingManagerTest {
     manager.startPolling();
   }
 
-  public void PollingManagerTest_checkPollingMethodInvoked() throws InterruptedException {
-    Thread.sleep(50);
+  public void testPollingManager_checkPollingMethodInvoked() throws InterruptedException {
     verify(client, times(1)).updateEnvironment();
-    Thread.sleep(1500);
+    Thread.sleep(50);
     verify(client, times(2)).updateEnvironment();
+    Thread.sleep(1500);
+    verify(client, times(3)).updateEnvironment();
   }
 
-  public void PollingManagerTest_checkPollingMethodInvokedAndStopped() throws InterruptedException {
-    Thread.sleep(50);
+  public void testPollingManager_checkPollingMethodInvokedAndStopped() throws InterruptedException {
     verify(client, times(1)).updateEnvironment();
+    Thread.sleep(50);
+    verify(client, times(2)).updateEnvironment();
     manager.stopPolling();
     Thread.sleep(1500);
-    verify(client, times(1)).updateEnvironment();
+    verify(client, times(2)).updateEnvironment();
   }
 }
