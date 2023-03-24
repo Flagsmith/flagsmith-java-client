@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import lombok.Data;
 import lombok.NonNull;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -37,8 +38,6 @@ public class FlagsmithClient {
   private FlagsmithSdk flagsmithSdk;
   private EnvironmentModel environment;
   private PollingManager pollingManager;
-  private static final String UNABLE_TO_UPDATE_ENVIRONMENT_MESSAGE =
-          "Unable to update environment from API. Continuing to use previous copy.";
 
   private FlagsmithClient() {
   }
@@ -59,10 +58,10 @@ public class FlagsmithClient {
       if (updatedEnvironment != null) {
         this.environment = updatedEnvironment;
       } else {
-        logger.error(UNABLE_TO_UPDATE_ENVIRONMENT_MESSAGE);
+        logger.error(getEnvironmentUpdateErrorMessage());
       }
     } catch (RuntimeException e) {
-      logger.error(UNABLE_TO_UPDATE_ENVIRONMENT_MESSAGE);
+      logger.error(getEnvironmentUpdateErrorMessage());
     }
   }
 
@@ -262,6 +261,14 @@ public class FlagsmithClient {
     return flags;
   }
 
+  private String getEnvironmentUpdateErrorMessage() {
+    if (this.environment == null) {
+      return "Unable to update environment from API. No environment configured - using defaultHandler if configured.";
+    } else {
+      return "Unable to update environment from API. Continuing to use previous copy.";
+    }
+  }
+
   /**
    * Returns a FlagsmithCache cache object that encapsulates methods to manipulate
    * the cache.
@@ -346,6 +353,18 @@ public class FlagsmithClient {
      */
     public Builder enableLogging() {
       this.client.logger.setLogger(LoggerFactory.getLogger(FlagsmithClient.class));
+      return this;
+    }
+
+    /**
+     * Enables logging, the project importing this module must include an
+     * implementation slf4j in
+     * their pom.
+     *
+     * @return the Builder
+     */
+    public Builder enableLogging(Logger logger) {
+      this.client.logger.setLogger(logger);
       return this;
     }
 

@@ -28,11 +28,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
 import okhttp3.Request;
 import okhttp3.ResponseBody;
 import okhttp3.mock.MockInterceptor;
 import okio.Buffer;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+import org.mockito.invocation.Invocation;
+import org.slf4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -91,6 +96,8 @@ public class FlagsmithClientTest {
 
     @Test(groups = "unit")
     public void testClient_errorEnvironmentApi() {
+        Logger logger = mock(Logger.class);
+
         String baseUrl = "http://bad-url";
         MockInterceptor interceptor = new MockInterceptor();
         FlagsmithClient client = FlagsmithClient.newBuilder()
@@ -99,6 +106,7 @@ public class FlagsmithClientTest {
                                 .baseUri(baseUrl)
                                 .addHttpInterceptor(interceptor)
                                 .build())
+                .enableLogging(logger)
                 .setApiKey("api-key")
                 .build();
 
@@ -108,7 +116,19 @@ public class FlagsmithClientTest {
                         500,
                         ResponseBody.create("error", MEDIATYPE_JSON));
 
-        Assert.assertThrows(Exception.class, () -> client.updateEnvironment());
+        client.updateEnvironment();
+
+        // Verify that an error was written to the log by mocking the logger and checking that a call was made
+        // with the expected log message. Note that the logger will also have other invocations so we need to
+        // iterate over them to check that the one we expect has been made.
+        boolean found = false;
+        String expectedMsg = "Unable to update environment from API. No environment configured - using defaultHandler if configured.";
+        for (Invocation invocation : Mockito.mockingDetails(logger).getInvocations().stream().collect(Collectors.toList())) {
+            if (invocation.getArgument(0).toString().contains(expectedMsg)) {
+                found = true;
+            }
+        }
+        Assert.assertTrue(found);
     }
 
     @Test(groups = "unit")
