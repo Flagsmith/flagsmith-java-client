@@ -34,7 +34,7 @@ jobs:
         # Supported options are ['csharp', 'cpp', 'go', 'java', 'javascript', 'python']
         language: ['java']
         distribution: [ 'zulu', 'adopt' ]
-        java: [ '8' ]
+        java: [ '11' ]
 
     steps:
       - name: Checkout repository
@@ -47,12 +47,12 @@ jobs:
           java-version: ${{ matrix.java }}
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v1
+        uses: github/codeql-action/init@v2
         with:
           languages: ${{ matrix.language }}
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v1
+        uses: github/codeql-action/autobuild@v2
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v1
+        uses: github/codeql-action/analyze@v2
