@@ -263,7 +263,8 @@ public class FlagsmithClient {
 
   private String getEnvironmentUpdateErrorMessage() {
     if (this.environment == null) {
-      return "Unable to update environment from API. No environment configured - using defaultHandler if configured.";
+      return "Unable to update environment from API. "
+             + "No environment configured - using defaultHandler if configured.";
     } else {
       return "Unable to update environment from API. Continuing to use previous copy.";
     }
