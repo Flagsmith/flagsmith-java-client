@@ -37,8 +37,8 @@ public class PollingManager {
       public void run() {
         try {
           while (!this.isInterrupted()) {
-            client.updateEnvironment();
             Thread.sleep(interval);
+            client.updateEnvironment();
           }
         } catch (InterruptedException e) {
           logger.info("Polling manager interrupted. Automatic environment update will stop!");
