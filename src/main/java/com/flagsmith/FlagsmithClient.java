@@ -1,6 +1,5 @@
 package com.flagsmith;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithApiError;
@@ -17,20 +16,16 @@ import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.Segment;
-import com.flagsmith.threads.AnalyticsProcessor;
 import com.flagsmith.threads.PollingManager;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import lombok.Data;
 import lombok.NonNull;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -43,10 +38,9 @@ public class FlagsmithClient {
   private FlagsmithSdk flagsmithSdk;
   private EnvironmentModel environment;
   private PollingManager pollingManager;
-  private static final String UNABLE_TO_UPDATE_ENVIRONMENT_MESSAGE =
-          "Unable to update environment from API. Continuing to use previous copy.";
 
-  private FlagsmithClient() { }
+  private FlagsmithClient() {
+  }
 
   public static FlagsmithClient.Builder newBuilder() {
     return new FlagsmithClient.Builder();
@@ -64,20 +58,10 @@ public class FlagsmithClient {
       if (updatedEnvironment != null) {
         this.environment = updatedEnvironment;
       } else {
-        logger.error(UNABLE_TO_UPDATE_ENVIRONMENT_MESSAGE);
+        logger.error(getEnvironmentUpdateErrorMessage());
       }
     } catch (RuntimeException e) {
-      // if we already have a copy of the environment, don't throw an error,
-      // just continue using that one and log an error as it's likely just a
-      // temporary network issue.
-      if (this.environment != null) {
-        logger.error(UNABLE_TO_UPDATE_ENVIRONMENT_MESSAGE);
-      } else {
-        // if we don't already have an environment, then we should still throw
-        // the error since it's likely on client start up and there might be
-        // something more sinister going on.
-        throw e;
-      }
+      logger.error(getEnvironmentUpdateErrorMessage());
     }
   }
 
@@ -86,8 +70,8 @@ public class FlagsmithClient {
    *
    * @return
    */
-  public Flags getEnvironmentFlags() throws FlagsmithApiError {
-    if (environment != null) {
+  public Flags getEnvironmentFlags() throws FlagsmithClientError {
+    if (flagsmithSdk.getConfig().getEnableLocalEvaluation()) {
       return getEnvironmentFlagsFromDocument();
     }
 
@@ -97,7 +81,8 @@ public class FlagsmithClient {
   /**
    * Get all the flags for the current environment for a given identity. Will also
    * upsert all traits to the Flagsmith API for future evaluations. Providing a
-   * trait with a value of None will remove the trait from the identity if it exists.
+   * trait with a value of None will remove the trait from the identity if it
+   * exists.
    *
    * @param identifier identifier string
    * @return
@@ -110,15 +95,16 @@ public class FlagsmithClient {
   /**
    * Get all the flags for the current environment for a given identity. Will also
    * upsert all traits to the Flagsmith API for future evaluations. Providing a
-   * trait with a value of None will remove the trait from the identity if it exists.
+   * trait with a value of None will remove the trait from the identity if it
+   * exists.
    *
    * @param identifier identifier string
-   * @param traits list of key value traits
+   * @param traits     list of key value traits
    * @return
    */
   public Flags getIdentityFlags(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
-    if (environment != null) {
+    if (flagsmithSdk.getConfig().getEnableLocalEvaluation()) {
       return getIdentityFlagsFromDocument(identifier, traits);
     }
 
@@ -129,7 +115,7 @@ public class FlagsmithClient {
    * Get a list of segments that the given identity is in.
    *
    * @param identifier a unique identifier for the identity in the current
-   *             environment, e.g. email address, username, uuid
+   *                   environment, e.g. email address, username, uuid
    * @return
    */
   public List<Segment> getIdentitySegments(String identifier)
@@ -141,9 +127,9 @@ public class FlagsmithClient {
    * Get a list of segments that the given identity is in.
    *
    * @param identifier a unique identifier for the identity in the current
-   *             environment, e.g. email address, username, uuid
-   * @param traits a dictionary of traits to add / update on the identity in
-   *             Flagsmith, e.g. {"num_orders": 10}
+   *                   environment, e.g. email address, username, uuid
+   * @param traits     a dictionary of traits to add / update on the identity in
+   *                   Flagsmith, e.g. {"num_orders": 10}
    * @return
    */
   public List<Segment> getIdentitySegments(String identifier, Map<String, Object> traits)
@@ -152,11 +138,9 @@ public class FlagsmithClient {
       throw new FlagsmithClientError("Local evaluation required to obtain identity segments.");
     }
     IdentityModel identityModel = buildIdentityModel(
-        identifier, (traits != null ? traits : new HashMap<>())
-    );
+        identifier, (traits != null ? traits : new HashMap<>()));
     List<SegmentModel> segmentModels = SegmentEvaluator.getIdentitySegments(
-        environment, identityModel
-    );
+        environment, identityModel);
 
     return segmentModels.stream().map((segmentModel) -> {
       Segment segment = new Segment();
@@ -168,8 +152,9 @@ public class FlagsmithClient {
   }
 
   /**
-   * Should be called when terminating the client to clean up any resources that need cleaning up.
-  **/
+   * Should be called when terminating the client to clean up any resources that
+   * need cleaning up.
+   **/
   public void close() {
     if (pollingManager != null) {
       pollingManager.stopPolling();
@@ -177,17 +162,30 @@ public class FlagsmithClient {
     flagsmithSdk.close();
   }
 
-  private Flags getEnvironmentFlagsFromDocument() {
+  private Flags getEnvironmentFlagsFromDocument() throws FlagsmithClientError {
+    if (environment == null) {
+      if (flagsmithSdk.getConfig().getFlagsmithFlagDefaults() == null) {
+        throw new FlagsmithClientError("Unable to get flags. No environment present.");
+      }
+      return getDefaultFlags();
+    }
+
     return Flags.fromFeatureStateModels(
         Engine.getEnvironmentFeatureStates(environment),
         flagsmithSdk.getConfig().getAnalyticsProcessor(),
         null,
-        flagsmithSdk.getConfig().getFlagsmithFlagDefaults()
-      );
+        flagsmithSdk.getConfig().getFlagsmithFlagDefaults());
   }
 
   private Flags getIdentityFlagsFromDocument(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
+    if (environment == null) {
+      if (flagsmithSdk.getConfig().getFlagsmithFlagDefaults() == null) {
+        throw new FlagsmithClientError("Unable to get flags. No environment present.");
+      }
+      return getDefaultFlags();
+    }
+
     IdentityModel identity = buildIdentityModel(identifier, traits);
     List<FeatureStateModel> featureStates = Engine.getIdentityFeatureStates(environment, identity);
 
@@ -195,8 +193,7 @@ public class FlagsmithClient {
         featureStates,
         flagsmithSdk.getConfig().getAnalyticsProcessor(),
         identity.getCompositeKey(),
-        flagsmithSdk.getConfig().getFlagsmithFlagDefaults()
-    );
+        flagsmithSdk.getConfig().getFlagsmithFlagDefaults());
   }
 
   private Flags getEnvironmentFlagsFromApi() throws FlagsmithApiError {
@@ -204,10 +201,7 @@ public class FlagsmithClient {
       return flagsmithSdk.getFeatureFlags(Boolean.TRUE);
     } catch (Exception e) {
       if (flagsmithSdk.getConfig().getFlagsmithFlagDefaults() != null) {
-        Flags flags = new Flags();
-        flags.setDefaultFlagHandler(flagsmithSdk.getConfig().getFlagsmithFlagDefaults());
-
-        return flags;
+        return getDefaultFlags();
       }
 
       throw new FlagsmithApiError("Failed to get feature flags.");
@@ -228,14 +222,10 @@ public class FlagsmithClient {
       return flagsmithSdk.identifyUserWithTraits(
           identifier,
           traitsList,
-          Boolean.TRUE
-      );
+          Boolean.TRUE);
     } catch (Exception e) {
       if (flagsmithSdk.getConfig().getFlagsmithFlagDefaults() != null) {
-        Flags flags = new Flags();
-        flags.setDefaultFlagHandler(flagsmithSdk.getConfig().getFlagsmithFlagDefaults());
-
-        return flags;
+        return getDefaultFlags();
       }
 
       throw new FlagsmithApiError("Failed to get feature flags.");
@@ -245,8 +235,8 @@ public class FlagsmithClient {
   private IdentityModel buildIdentityModel(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
     if (environment == null) {
-      throw new
-          FlagsmithClientError("Unable to build identity model when no local environment present.");
+      throw new FlagsmithClientError(
+        "Unable to build identity model when no local environment present.");
     }
 
     List<TraitModel> traitsList = traits.entrySet().stream().map((entry) -> {
@@ -265,8 +255,24 @@ public class FlagsmithClient {
     return identity;
   }
 
+  private Flags getDefaultFlags() {
+    Flags flags = new Flags();
+    flags.setDefaultFlagHandler(flagsmithSdk.getConfig().getFlagsmithFlagDefaults());
+    return flags;
+  }
+
+  private String getEnvironmentUpdateErrorMessage() {
+    if (this.environment == null) {
+      return "Unable to update environment from API. "
+             + "No environment configured - using defaultHandler if configured.";
+    } else {
+      return "Unable to update environment from API. Continuing to use previous copy.";
+    }
+  }
+
   /**
-   * Returns a FlagsmithCache cache object that encapsulates methods to manipulate the cache.
+   * Returns a FlagsmithCache cache object that encapsulates methods to manipulate
+   * the cache.
    *
    * @return a FlagsmithCache if enabled, otherwise null.
    */
@@ -304,13 +310,16 @@ public class FlagsmithClient {
     }
 
     /**
-     * When a flag does not exist in Flagsmith or there is an error, the SDK will return null by
+     * When a flag does not exist in Flagsmith or there is an error, the SDK will
+     * return null by
      * default.
      *
-     * <p>If you would like to override this default behaviour, you can use this method. By default
+     * <p>If you would like to override this default behaviour, you can use this
+     * method. By default
      * it will return null for any flags that it does not recognise.
      *
-     * @param defaultFlagValueFunction the new function to use as default flag values
+     * @param defaultFlagValueFunction the new function to use as default flag
+     *                                 values
      * @return the Builder
      */
     public Builder setDefaultFlagValueFunction(
@@ -324,7 +333,8 @@ public class FlagsmithClient {
     }
 
     /**
-     * Enables logging, the project importing this module must include an implementation slf4j in
+     * Enables logging, the project importing this module must include an
+     * implementation slf4j in
      * their pom.
      *
      * @param level log error level.
@@ -336,13 +346,26 @@ public class FlagsmithClient {
     }
 
     /**
-     * Enables logging, the project importing this module must include an implementation slf4j in
+     * Enables logging, the project importing this module must include an
+     * implementation slf4j in
      * their pom.
      *
      * @return the Builder
      */
     public Builder enableLogging() {
       this.client.logger.setLogger(LoggerFactory.getLogger(FlagsmithClient.class));
+      return this;
+    }
+
+    /**
+     * Enables logging, the project importing this module must include an
+     * implementation slf4j in
+     * their pom.
+     *
+     * @return the Builder
+     */
+    public Builder enableLogging(Logger logger) {
+      this.client.logger.setLogger(logger);
       return this;
     }
 
@@ -388,7 +411,8 @@ public class FlagsmithClient {
     /**
      * Enable in-memory caching for the Flagsmith API.
      *
-     * <p>If no other cache configuration is set, the Caffeine defaults will be used, i.e. no limit
+     * <p>If no other cache configuration is set, the Caffeine defaults will be used,
+     * i.e. no limit
      *
      * @param cacheConfig an FlagsmithCacheConfig.
      * @return the Builder
@@ -432,19 +456,17 @@ public class FlagsmithClient {
         flagsmithApiWrapper = this.flagsmithApiWrapper;
       } else if (cacheConfig != null) {
         flagsmithApiWrapper = new FlagsmithApiWrapper(
-                cacheConfig.getCache(),
-                this.configuration,
-                this.customHeaders,
-                client.logger,
-                apiKey
-        );
+            cacheConfig.getCache(),
+            this.configuration,
+            this.customHeaders,
+            client.logger,
+            apiKey);
       } else {
         flagsmithApiWrapper = new FlagsmithApiWrapper(
-                this.configuration,
-                this.customHeaders,
-                client.logger,
-                apiKey
-        );
+            this.configuration,
+            this.customHeaders,
+            client.logger,
+            apiKey);
       }
 
       client.flagsmithSdk = flagsmithApiWrapper;
@@ -458,8 +480,7 @@ public class FlagsmithClient {
         if (!apiKey.startsWith("ser.")) {
           throw new RuntimeException(
               "In order to use local evaluation, please generate a server key "
-              + "in the environment settings page."
-          );
+                  + "in the environment settings page.");
         }
 
         if (this.pollingManager != null) {
@@ -467,8 +488,7 @@ public class FlagsmithClient {
         } else {
           client.pollingManager = new PollingManager(
               client,
-              configuration.getEnvironmentRefreshIntervalSeconds()
-          );
+              configuration.getEnvironmentRefreshIntervalSeconds());
         }
 
         client.pollingManager.startPolling();
