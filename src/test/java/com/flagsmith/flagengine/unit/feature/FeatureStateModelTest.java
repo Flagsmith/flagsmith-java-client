@@ -3,10 +3,10 @@ package com.flagsmith.flagengine.unit.feature;
 import com.flagsmith.flagengine.features.FeatureSegmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-@Test(groups = "unit")
+
 public class FeatureStateModelTest {
 
   @Test()
@@ -14,10 +14,10 @@ public class FeatureStateModelTest {
     // Given
     FeatureStateModel featureState1 = new FeatureStateModel();
     FeatureStateModel featureState2 = new FeatureStateModel();
-    
+
     // Then
-    Assert.assertFalse(featureState1.isHigherPriority(featureState2));
-    Assert.assertFalse(featureState2.isHigherPriority(featureState1));
+    Assertions.assertFalse(featureState1.isHigherPriority(featureState2));
+    Assertions.assertFalse(featureState2.isHigherPriority(featureState1));
   }
 
   @Test()
@@ -28,10 +28,10 @@ public class FeatureStateModelTest {
 
     FeatureSegmentModel featureSegment = new FeatureSegmentModel(1);
     featureState1.setFeatureSegment(featureSegment);
-    
+
     // Then
-    Assert.assertTrue(featureState1.isHigherPriority(featureState2));
-    Assert.assertFalse(featureState2.isHigherPriority(featureState1));
+    Assertions.assertTrue(featureState1.isHigherPriority(featureState2));
+    Assertions.assertFalse(featureState2.isHigherPriority(featureState1));
   }
 
   @Test()
@@ -45,9 +45,9 @@ public class FeatureStateModelTest {
 
     FeatureSegmentModel featureSegment2 = new FeatureSegmentModel(2);
     featureState2.setFeatureSegment(featureSegment2);
-    
+
     // Then
-    Assert.assertTrue(featureState1.isHigherPriority(featureState2));
-    Assert.assertFalse(featureState2.isHigherPriority(featureState1));
+    Assertions.assertTrue(featureState1.isHigherPriority(featureState2));
+    Assertions.assertFalse(featureState2.isHigherPriority(featureState1));
   }
 }

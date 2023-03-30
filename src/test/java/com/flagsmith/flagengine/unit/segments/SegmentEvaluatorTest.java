@@ -11,41 +11,42 @@ import com.flagsmith.flagengine.segments.constants.SegmentRules;
 
 import static com.flagsmith.flagengine.unit.segments.IdentitySegmentFixtures.*;
 
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
-@Test(groups = "unit")
 public class SegmentEvaluatorTest {
 
-  @DataProvider(name = "identitiesInSegments")
-  public Object[][] identitiesInSegments() {
-    return new Object[][] {
-        new Object[] {emptySegment(), emptyIdentityTraits(), Boolean.FALSE},
-        new Object[] {segmentSingleCondition(), emptyIdentityTraits(), Boolean.FALSE},
-        new Object[] {segmentSingleCondition(), oneIdentityTrait(), Boolean.TRUE},
-        new Object[] {segmentMultipleConditionsAll(), emptyIdentityTraits(), Boolean.FALSE},
-        new Object[] {segmentMultipleConditionsAll(), oneIdentityTrait(), Boolean.FALSE},
-        new Object[] {segmentMultipleConditionsAll(), twoIdentityTraits(), Boolean.TRUE},
-        new Object[] {segmentMultipleConditionsAny(), emptyIdentityTraits(), Boolean.FALSE},
-        new Object[] {segmentMultipleConditionsAny(), Arrays.asList(secondIdentityTrait()),
-            Boolean.TRUE},
-        new Object[] {segmentMultipleConditionsAny(), oneIdentityTrait(), Boolean.TRUE},
-        new Object[] {segmentMultipleConditionsAny(), twoIdentityTraits(), Boolean.TRUE},
-        new Object[] {segmentNestedRules(), emptyIdentityTraits(), Boolean.FALSE},
-        new Object[] {segmentNestedRules(), oneIdentityTrait(), Boolean.FALSE},
-        new Object[] {segmentNestedRules(), threeIdentityTraits(), Boolean.TRUE},
-        new Object[] {segmentConditionsAndNestedRules(), emptyIdentityTraits(), Boolean.FALSE},
-        new Object[] {segmentConditionsAndNestedRules(), oneIdentityTrait(), Boolean.FALSE},
-        new Object[] {segmentConditionsAndNestedRules(), threeIdentityTraits(), Boolean.TRUE},
-    };
+  private static Stream<Arguments> identitiesInSegments() {
+    return Stream.of(
+        Arguments.of(emptySegment(), emptyIdentityTraits(), Boolean.FALSE),
+        Arguments.of(segmentSingleCondition(), emptyIdentityTraits(), Boolean.FALSE),
+        Arguments.of(segmentSingleCondition(), oneIdentityTrait(), Boolean.TRUE),
+        Arguments.of(segmentMultipleConditionsAll(), emptyIdentityTraits(), Boolean.FALSE),
+        Arguments.of(segmentMultipleConditionsAll(), oneIdentityTrait(), Boolean.FALSE),
+        Arguments.of(segmentMultipleConditionsAll(), twoIdentityTraits(), Boolean.TRUE),
+        Arguments.of(segmentMultipleConditionsAny(), emptyIdentityTraits(), Boolean.FALSE),
+        Arguments.of(segmentMultipleConditionsAny(), Arrays.asList(secondIdentityTrait()),
+            Boolean.TRUE),
+        Arguments.of(segmentMultipleConditionsAny(), oneIdentityTrait(), Boolean.TRUE),
+        Arguments.of(segmentMultipleConditionsAny(), twoIdentityTraits(), Boolean.TRUE),
+        Arguments.of(segmentNestedRules(), emptyIdentityTraits(), Boolean.FALSE),
+        Arguments.of(segmentNestedRules(), oneIdentityTrait(), Boolean.FALSE),
+        Arguments.of(segmentNestedRules(), threeIdentityTraits(), Boolean.TRUE),
+        Arguments.of(segmentConditionsAndNestedRules(), emptyIdentityTraits(), Boolean.FALSE),
+        Arguments.of(segmentConditionsAndNestedRules(), oneIdentityTrait(), Boolean.FALSE),
+        Arguments.of(segmentConditionsAndNestedRules(), threeIdentityTraits(), Boolean.TRUE)
+    );
   }
 
-  @Test(dataProvider = "identitiesInSegments")
+  @ParameterizedTest
+  @MethodSource("identitiesInSegments")
   public void testIdentityInSegment(SegmentModel segment, List<TraitModel> identityTraits,
                                     Boolean expectedResponse) {
     IdentityModel mockIdentity = new IdentityModel();
@@ -55,22 +56,22 @@ public class SegmentEvaluatorTest {
 
     Boolean actualResult = SegmentEvaluator.evaluateIdentityInSegment(mockIdentity, segment, null);
 
-    Assert.assertTrue(actualResult.equals(expectedResponse));
+    Assertions.assertTrue(actualResult.equals(expectedResponse));
   }
 
-  @DataProvider(name = "traitExistenceChecks")
-  public Object[][] traitExistenceChecks() {
-    return new Object[][] {
-      new Object[] {SegmentConditions.IS_SET, "foo", new ArrayList<>(), false},
-      new Object[] {SegmentConditions.IS_NOT_SET, "foo", new ArrayList<>(), true},
-      new Object[] {SegmentConditions.IS_SET, "foo", new ArrayList<>(Arrays.asList(
-        new TraitModel("foo", "bar"))), true},
-      new Object[] {SegmentConditions.IS_NOT_SET, "foo", new ArrayList<>(Arrays.asList(
-        new TraitModel("foo", "bar"))), false},
-    };
+  private static Stream<Arguments> traitExistenceChecks() {
+    return Stream.of(
+      Arguments.of(SegmentConditions.IS_SET, "foo", new ArrayList<>(), false),
+      Arguments.of(SegmentConditions.IS_NOT_SET, "foo", new ArrayList<>(), true),
+      Arguments.of(SegmentConditions.IS_SET, "foo", new ArrayList<>(Arrays.asList(
+        new TraitModel("foo", "bar"))), true),
+      Arguments.of(SegmentConditions.IS_NOT_SET, "foo", new ArrayList<>(Arrays.asList(
+        new TraitModel("foo", "bar"))), false)
+    );
   }
 
-  @Test(dataProvider = "traitExistenceChecks")
+  @ParameterizedTest
+  @MethodSource("traitExistenceChecks")
   public void testTraitExistenceConditions(SegmentConditions conditionOperator, String conditionProperty,
                                            List<TraitModel> traitModels, Boolean expectedResult) {
     // Given
@@ -100,6 +101,6 @@ public class SegmentEvaluatorTest {
 
     // Then
     // The result is as we expect from the DataProvider definition
-    Assert.assertEquals(inSegment, expectedResult);
+    Assertions.assertEquals(inSegment, expectedResult);
   }
 }

@@ -7,44 +7,37 @@ import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.IdentityModel;
 import com.flagsmith.flagengine.models.ResponseJSON;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.testng.Assert;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.BeforeClass;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-@Test(groups = "unit")
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+
 public class EngineTest {
-
-  private Engine engine;
-  private EnvironmentModel environmentModel;
-  private ObjectMapper objectMapper;
-  private final String environmentJsonFile =
+  private static final String ENVIRONMENT_JSON_FILE_LOCATION =
       "src/test/java/com/flagsmith/flagengine/enginetestdata/" +
           "data/environment_n9fbf9h3v4fFgH3U3ngWhb.json";
 
-  @BeforeClass(groups = "unit")
-  public void init() {
-    engine = new Engine();
-    objectMapper = MapperFactory.getMapper();
-  }
-
-  @DataProvider(name = "environmentdata")
-  private Object[][] load() {
+  private static Stream<Arguments> engineTestData() {
     try {
+      ObjectMapper objectMapper = MapperFactory.getMapper();
       JsonNode engineTestData = objectMapper.
-          readTree(new File(environmentJsonFile));
+          readTree(new File(ENVIRONMENT_JSON_FILE_LOCATION));
 
       JsonNode environmentNode = engineTestData.get("environment");
-      environmentModel = EnvironmentModel.load(environmentNode, EnvironmentModel.class);
+      EnvironmentModel environmentModel = EnvironmentModel.load(environmentNode, EnvironmentModel.class);
 
       JsonNode identitiesAndResponses = engineTestData.get("identities_and_responses");
 
-      List<Object[]> returnValues = new ArrayList<>();
+      List<Arguments> returnValues = new ArrayList<>();
 
       if (identitiesAndResponses.isArray()) {
         for (JsonNode identityAndResponse : identitiesAndResponses) {
@@ -53,18 +46,12 @@ public class EngineTest {
           ResponseJSON expectedResponse =
               objectMapper.treeToValue(identityAndResponse.get("response"), ResponseJSON.class);
 
-          Object[] parameterValues = new Object[] {
-              identityModel,
-              expectedResponse
-          };
-
-          returnValues.add(parameterValues);
+          returnValues.add(Arguments.of(identityModel, environmentModel, expectedResponse));
 
         }
       }
 
-      Object[][] returnValuesObj = returnValues.toArray(new Object[][] {});
-      return returnValuesObj;
+      return returnValues.stream();
 
     } catch (Exception e) {
       System.out.println(e.getMessage());
@@ -72,10 +59,11 @@ public class EngineTest {
     return null;
   }
 
-  @Test(dataProvider = "environmentdata")
-  public void testEngine(IdentityModel identity, ResponseJSON expectedResponse) {
+  @ParameterizedTest()
+  @MethodSource("engineTestData")
+  public void testEngine(IdentityModel identity, EnvironmentModel environmentModel, ResponseJSON expectedResponse) {
     List<FeatureStateModel> featureStates =
-        engine.getIdentityFeatureStates(environmentModel, identity);
+        Engine.getIdentityFeatureStates(environmentModel, identity);
 
     List<FeatureStateModel> sortedFeatureStates = featureStates
         .stream()
@@ -98,8 +86,8 @@ public class EngineTest {
       Object featureStateValue = featureState.getValue(identity.getDjangoId());
       Object expectedResponseValue = sortedResponse.get(index).getValue(identity.getDjangoId());
 
-      Assert.assertEquals(featureStateValue, expectedResponseValue);
-      Assert.assertEquals(featureState.getEnabled(), sortedResponse.get(index).getEnabled());
+      assertEquals(featureStateValue, expectedResponseValue);
+      assertEquals(featureState.getEnabled(), sortedResponse.get(index).getEnabled());
       index++;
     }
   }

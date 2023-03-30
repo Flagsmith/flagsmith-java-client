@@ -5,25 +5,27 @@ import com.flagsmith.flagengine.features.FeatureModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.features.MultivariateFeatureOptionModel;
 import com.flagsmith.flagengine.features.MultivariateFeatureStateValueModel;
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
+import java.util.stream.Stream;
 
-@Test(groups = "unit")
 public class FeatureModelTest {
 
-  private String mvFeatureControlValue = "control";
-  private String mvFeatureValue1 = "foo";
-  private String mvFeatureValue2 = "bar";
+  private static String MV_FEATURE_CONTROL_VALUE = "control";
+  private static String MV_FEATURE_VALUE_1 = "foo";
+  private static String MV_FEATURE_VALUE_2 = "bar";
 
   public void featureStateModelShouldNotHaveEmpty() {
     FeatureStateModel featureStateModel = new FeatureStateModel();
     featureStateModel.setDjangoId(1234);
     featureStateModel.setEnabled(true);
 
-    Assert.assertNotNull(featureStateModel.getFeaturestateUuid());
+    Assertions.assertNotNull(featureStateModel.getFeaturestateUuid());
   }
 
   public void testInitializingMultivariateFeatureStateValueCreatesDefaultUuid() {
@@ -36,7 +38,7 @@ public class FeatureModelTest {
     mvfsvm.setId(1);
     mvfsvm.setPercentageAllocation(10f);
 
-    Assert.assertNotNull(mvfsvm.getMvFsValueUuid());
+    Assertions.assertNotNull(mvfsvm.getMvFsValueUuid());
   }
 
   public void testFeatureStateGetValueNoMvValues() {
@@ -51,20 +53,20 @@ public class FeatureModelTest {
     featureState.setEnabled(true);
     featureState.setValue("foo");
 
-    Assert.assertTrue(featureState.getValue().equals("foo"));
-    Assert.assertTrue(featureState.getValue(1).equals("foo"));
+    Assertions.assertTrue(featureState.getValue().equals("foo"));
+    Assertions.assertTrue(featureState.getValue(1).equals("foo"));
   }
 
-  @DataProvider(name = "featureStateValues")
-  public Object[][] dataProviderForFeatureStateValueTest() {
-    return new Object[][] {
-        new Object[] {10f, mvFeatureValue1},
-        new Object[] {40f, mvFeatureValue2},
-        new Object[] {70f, mvFeatureControlValue},
-    };
+  private static Stream<Arguments> dataProviderForFeatureStateValueTest() {
+    return Stream.of(
+        Arguments.of(10f, MV_FEATURE_VALUE_1),
+        Arguments.of(40f, MV_FEATURE_VALUE_2),
+        Arguments.of(70f, MV_FEATURE_CONTROL_VALUE)
+    );
   }
 
-  @Test(dataProvider = "featureStateValues")
+  @ParameterizedTest
+  @MethodSource("dataProviderForFeatureStateValueTest")
   public void testFeatureStateGetValueMvValues(Float percentageValue, String expectedValue) {
     FeatureModel feature1 = new FeatureModel();
     feature1.setId(1);
@@ -73,11 +75,11 @@ public class FeatureModelTest {
 
     MultivariateFeatureOptionModel mv1 = new MultivariateFeatureOptionModel();
     mv1.setId(1);
-    mv1.setValue(mvFeatureValue1);
+    mv1.setValue(MV_FEATURE_VALUE_1);
 
     MultivariateFeatureOptionModel mv2 = new MultivariateFeatureOptionModel();
     mv2.setId(2);
-    mv2.setValue(mvFeatureValue2);
+    mv2.setValue(MV_FEATURE_VALUE_2);
 
     MultivariateFeatureStateValueModel mvf1 = new MultivariateFeatureStateValueModel();
     mvf1.setPercentageAllocation(30f);
@@ -95,7 +97,7 @@ public class FeatureModelTest {
     featureState.setEnabled(true);
     featureState.setMultivariateFeatureStateValues(Arrays.asList(mvf1, mvf2));
     featureState.setDjangoId(1);
-    featureState.setValue(mvFeatureControlValue);
+    featureState.setValue(MV_FEATURE_CONTROL_VALUE);
 
     Object value = featureState.getValue(1);
     // TODO mock hash method
@@ -106,7 +108,7 @@ public class FeatureModelTest {
     MultivariateFeatureOptionModel variate =
         MultivariateFeatureOptionModel.load(MapperFactory.getMapper().readTree(json),
             MultivariateFeatureOptionModel.class);
-    Assert.assertNull(variate.getId());
+    Assertions.assertNull(variate.getId());
   }
 
   public void loadMultiVariateFeatureStateWithoutId() throws Exception {
@@ -115,7 +117,7 @@ public class FeatureModelTest {
     MultivariateFeatureStateValueModel variate =
         MultivariateFeatureStateValueModel.load(MapperFactory.getMapper().readTree(json),
             MultivariateFeatureStateValueModel.class);
-    Assert.assertNull(variate.getId());
-    Assert.assertEquals(variate.getPercentageAllocation(), 10f);
+    Assertions.assertNull(variate.getId());
+    Assertions.assertEquals(variate.getPercentageAllocation(), 10f);
   }
 }

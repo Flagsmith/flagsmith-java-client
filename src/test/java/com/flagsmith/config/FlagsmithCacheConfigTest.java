@@ -1,24 +1,24 @@
 package com.flagsmith.config;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertNotNull;
-import static org.testng.Assert.assertNull;
-import static org.testng.Assert.assertTrue;
-
 import com.flagsmith.models.Flags;
 import com.github.benmanes.caffeine.cache.Policy;
+import org.junit.platform.commons.annotation.Testable;
+
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
-import org.testng.annotations.Test;
 
-@Test(groups = "unit")
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.Test;
+
+
 public class FlagsmithCacheConfigTest {
 
   private static final int DEFAULT_MAX_SIZE = 10;
   private static final Duration DEFAULT_EXPIRE_AFTER_WRITE = Duration.ofMinutes(5);
 
-  @Test(groups = "unit")
+  @Test
   public void testNewBuilder_defaults() {
     final FlagsmithCacheConfig flagsmithCacheConfig = FlagsmithCacheConfig.newBuilder().build();
     final Policy<String, Flags> cachePolicy = flagsmithCacheConfig.cache.getCache()
@@ -41,7 +41,7 @@ public class FlagsmithCacheConfigTest {
         cachePolicy.expireAfterWrite().get().getExpiresAfter());
   }
 
-  @Test(groups = "unit")
+  @Test
   public void testNewBuilder_expireAfterWrite() {
     final FlagsmithCacheConfig flagsmithCacheConfig = FlagsmithCacheConfig
         .newBuilder()
@@ -62,7 +62,7 @@ public class FlagsmithCacheConfigTest {
     verifyDefaultMaxSize(cachePolicy);
   }
 
-  @Test(groups = "unit")
+  @Test
   public void testNewBuilder_expireAfterAccess() {
     final FlagsmithCacheConfig flagsmithCacheConfig = FlagsmithCacheConfig
         .newBuilder()
@@ -83,7 +83,7 @@ public class FlagsmithCacheConfigTest {
     verifyDefaultMaxSize(cachePolicy);
   }
 
-  @Test(groups = "unit")
+  @Test
   public void testNewBuilder_maxSize() {
     final FlagsmithCacheConfig flagsmithCacheConfig = FlagsmithCacheConfig
         .newBuilder()
@@ -105,7 +105,7 @@ public class FlagsmithCacheConfigTest {
     verifyDefaultAfterWrite(cachePolicy);
   }
 
-  @Test(groups = "unit")
+  @Test
   public void testNewBuilder_recordStats() {
     final FlagsmithCacheConfig flagsmithCacheConfig = FlagsmithCacheConfig
         .newBuilder()
@@ -129,7 +129,7 @@ public class FlagsmithCacheConfigTest {
     verifyDefaultMaxSize(cachePolicy);
   }
 
-  @Test(groups = "unit")
+  @Test
   public void testNewBuilder_combined() {
     final String envFlagsCacheKey = "some-random-key";
     final FlagsmithCacheConfig flagsmithCacheConfig = FlagsmithCacheConfig
@@ -156,7 +156,7 @@ public class FlagsmithCacheConfigTest {
     verifyDefaultAfterWrite(cachePolicy);
   }
 
-  @Test(groups = "unit")
+  @Test
   public void testNewBuilder_enableEnvLevelCaching() {
     final String envFlagsCacheKey = "some-random-key";
 
@@ -167,18 +167,18 @@ public class FlagsmithCacheConfigTest {
     assertEquals(envFlagsCacheKey, flagsmithCacheConfig.cache.getEnvFlagsCacheKey());
   }
 
-  @Test(groups = "unit", expectedExceptions = IllegalArgumentException.class)
+  @Test
   public void testNewBuilder_enableEnvLevelCaching_null() {
-    FlagsmithCacheConfig.newBuilder()
+    assertThrows(IllegalArgumentException.class, () -> FlagsmithCacheConfig.newBuilder()
         .enableEnvLevelCaching(null)
-        .build();
+        .build());
   }
 
-  @Test(groups = "unit", expectedExceptions = IllegalArgumentException.class)
+  @Test
   public void testNewBuilder_enableEnvLevelCaching_emptyString() {
-    FlagsmithCacheConfig.newBuilder()
+    assertThrows(IllegalArgumentException.class, () -> FlagsmithCacheConfig.newBuilder()
         .enableEnvLevelCaching("")
-        .build();
+        .build());
   }
 
   private void verifyDefaultMaxSize(Policy<String, Flags> cachePolicy) {

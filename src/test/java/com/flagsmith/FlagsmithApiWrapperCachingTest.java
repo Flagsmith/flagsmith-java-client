@@ -1,5 +1,7 @@
 package com.flagsmith;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -7,7 +9,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.testng.Assert.*;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.flagsmith.config.FlagsmithCacheConfig;
@@ -28,11 +29,11 @@ import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.mock.MockInterceptor;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
 
-@Test(groups = "unit")
+
 public class FlagsmithApiWrapperCachingTest {
   private final String API_KEY = "OUR_API_KEY";
   private final String BASE_URL = "https://unit-test.com";
@@ -45,7 +46,7 @@ public class FlagsmithApiWrapperCachingTest {
   private MockInterceptor interceptor;
   private RequestProcessor requestProcessor;
 
-  @BeforeMethod(groups = "unit")
+  @BeforeEach
   public void init() {
     flagsmithCacheImpl = mock(FlagsmithCacheConfig.FlagsmithCacheImpl.class);
 
@@ -64,13 +65,13 @@ public class FlagsmithApiWrapperCachingTest {
     flagsmithAPIWrapper.setRequestor(requestProcessor);
   }
 
-  @Test(groups = "unit")
+  @Test
   public void getCache_returnsInternalCache() {
     final FlagsmithCache actualInternalCache = flagsmithAPIWrapper.getCache();
     assertEquals(flagsmithCacheImpl, actualInternalCache);
   }
 
-  @Test(groups = "unit")
+  @Test
   public void getFeatureFlags_envFlags_cacheEnabled_dontFetchFlagsWhenInCache() {
     // Arrange
     final String cacheKey = "cacheKey";
@@ -89,7 +90,7 @@ public class FlagsmithApiWrapperCachingTest {
     assertEquals(flagsAndTraits, actualFeatureFlags);
   }
 
-  @Test(groups = "unit")
+  @Test
   public void getFeatureFlags_fetchFlagsFromFlagsmithAndStoreThemInCache() {
     final String cacheKey = "cacheKey";
     when(flagsmithCacheImpl.getEnvFlagsCacheKey()).thenReturn(cacheKey);
@@ -110,7 +111,7 @@ public class FlagsmithApiWrapperCachingTest {
     assertEquals(1, cache.estimatedSize());
   }
 
-  @Test(groups = "unit")
+  @Test
   public void getFeatureFlags_fetchFlagsFromCacheAndNotFromFlagsmith() {
     // Arrange
     final String cacheKey = "cacheKey";
@@ -127,7 +128,7 @@ public class FlagsmithApiWrapperCachingTest {
     assertEquals(newFlagsList(flagsAndTraits), actualFeatureFlags);
   }
 
-  @Test(groups = "unit")
+  @Test
   public void identifyUserWithTraits_nullUser() {
     // Act
     assertThrows(IllegalArgumentException.class,
@@ -138,7 +139,7 @@ public class FlagsmithApiWrapperCachingTest {
     assertEquals(0, cache.estimatedSize());
   }
 
-  @Test(groups = "unit")
+  @Test
   public void identifyUserWithTraits_nullUserIdentifier() {
     // Act
     assertThrows(IllegalArgumentException.class,
@@ -149,7 +150,7 @@ public class FlagsmithApiWrapperCachingTest {
     assertEquals(0, cache.estimatedSize());
   }
 
-  @Test(groups = "unit")
+  @Test
   public void identifyUserWithTraits_fetchFlagsFromFlagsmithAndStoreThemInCache_whenCacheEmpty() {
     // Arrange
     String identifier = "test-user";
@@ -169,7 +170,7 @@ public class FlagsmithApiWrapperCachingTest {
     assertEquals(newFlagsList(new ArrayList<>()), actualUserFlagsAndTraits);
   }
 
-  @Test(groups = "unit")
+  @Test
   public void testGetFeatureFlags_ReturnsFeatureFlagsFromApi_IfCacheButNoEnvCacheKey() {
     // Given
     when(flagsmithCacheImpl.getEnvFlagsCacheKey()).thenReturn(null);
@@ -185,7 +186,7 @@ public class FlagsmithApiWrapperCachingTest {
     assertEquals(flags, Flags.fromFeatureStateModels(featureStateModels, null));
   }
 
-  @Test(groups = "unit")
+  @Test
   public void verifyRequestBody() {
     String identifier = "test-user";
     final ArrayList<TraitModel> traits = new ArrayList<>();
