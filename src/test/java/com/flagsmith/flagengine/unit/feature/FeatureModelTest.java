@@ -8,15 +8,17 @@ import com.flagsmith.flagengine.features.MultivariateFeatureStateValueModel;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
+import java.util.stream.Stream;
 
 public class FeatureModelTest {
 
-  private String mvFeatureControlValue = "control";
-  private String mvFeatureValue1 = "foo";
-  private String mvFeatureValue2 = "bar";
+  private static String MV_FEATURE_CONTROL_VALUE = "control";
+  private static String MV_FEATURE_VALUE_1 = "foo";
+  private static String MV_FEATURE_VALUE_2 = "bar";
 
   public void featureStateModelShouldNotHaveEmpty() {
     FeatureStateModel featureStateModel = new FeatureStateModel();
@@ -55,12 +57,12 @@ public class FeatureModelTest {
     Assertions.assertTrue(featureState.getValue(1).equals("foo"));
   }
 
-  public Object[][] dataProviderForFeatureStateValueTest() {
-    return new Object[][] {
-        new Object[] {10f, mvFeatureValue1},
-        new Object[] {40f, mvFeatureValue2},
-        new Object[] {70f, mvFeatureControlValue},
-    };
+  private static Stream<Arguments> dataProviderForFeatureStateValueTest() {
+    return Stream.of(
+        Arguments.of(10f, MV_FEATURE_VALUE_1),
+        Arguments.of(40f, MV_FEATURE_VALUE_2),
+        Arguments.of(70f, MV_FEATURE_CONTROL_VALUE)
+    );
   }
 
   @ParameterizedTest
@@ -73,11 +75,11 @@ public class FeatureModelTest {
 
     MultivariateFeatureOptionModel mv1 = new MultivariateFeatureOptionModel();
     mv1.setId(1);
-    mv1.setValue(mvFeatureValue1);
+    mv1.setValue(MV_FEATURE_VALUE_1);
 
     MultivariateFeatureOptionModel mv2 = new MultivariateFeatureOptionModel();
     mv2.setId(2);
-    mv2.setValue(mvFeatureValue2);
+    mv2.setValue(MV_FEATURE_VALUE_2);
 
     MultivariateFeatureStateValueModel mvf1 = new MultivariateFeatureStateValueModel();
     mvf1.setPercentageAllocation(30f);
@@ -95,7 +97,7 @@ public class FeatureModelTest {
     featureState.setEnabled(true);
     featureState.setMultivariateFeatureStateValues(Arrays.asList(mvf1, mvf2));
     featureState.setDjangoId(1);
-    featureState.setValue(mvFeatureControlValue);
+    featureState.setValue(MV_FEATURE_CONTROL_VALUE);
 
     Object value = featureState.getValue(1);
     // TODO mock hash method

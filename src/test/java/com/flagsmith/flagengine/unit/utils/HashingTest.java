@@ -8,6 +8,7 @@ import org.mockito.stubbing.Answer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
@@ -15,29 +16,33 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class HashingTest {
 
-  public Object[][] getObjectIds() {
-    return new String[][] {
-        new String[] {"12", "93"},
-        new String[] {UUID.randomUUID().toString(), "99"},
-        new String[] {"99", UUID.randomUUID().toString()},
-        new String[] {UUID.randomUUID().toString(), UUID.randomUUID().toString()}
-    };
+  private static Stream<Arguments> getObjectIds() {
+    return Stream.of(
+        Arguments.of("12", "93"),
+        Arguments.of(UUID.randomUUID().toString(), "99"),
+        Arguments.of("99", UUID.randomUUID().toString()),
+        Arguments.of(UUID.randomUUID().toString(), UUID.randomUUID().toString())
+    );
   }
 
   @ParameterizedTest
-  @MethodSource("objectIds")
-  public void testHashedValueIsBetween100And0(String[] objectIds) {
+  @MethodSource("getObjectIds")
+  public void testHashedValueIsBetween100And0(String first, String second) {
+    String[] objectIds = new String[] {first, second};
     Float hashValue = Hashing.getInstance().getHashedPercentageForObjectIds(Arrays.asList(objectIds));
     Assertions.assertTrue(hashValue < 100);
     Assertions.assertTrue(hashValue >= 0);
   }
 
   @ParameterizedTest
-  @MethodSource("objectIds")
-  public void testHashedValueIsSameEachTime(String[] objectIds) {
+  @MethodSource("getObjectIds")
+  public void testHashedValueIsSameEachTime(String first, String second) {
+    String[] objectIds = new String[] {first, second};
+
     Float hashValue = Hashing.getInstance().getHashedPercentageForObjectIds(Arrays.asList(objectIds));
     Float hashValueTheSecond = Hashing.getInstance().getHashedPercentageForObjectIds(Arrays.asList(objectIds));
 
