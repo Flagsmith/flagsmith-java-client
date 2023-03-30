@@ -5,9 +5,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
 import java.util.List;
@@ -15,10 +16,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-@Test(groups = "unit")
 public class HashingTest {
 
-  @DataProvider(name = "objectIds")
   public Object[][] getObjectIds() {
     return new String[][] {
         new String[] {"12", "93"},
@@ -28,19 +27,21 @@ public class HashingTest {
     };
   }
 
-  @Test(dataProvider = "objectIds")
+  @ParameterizedTest
+  @MethodSource("objectIds")
   public void testHashedValueIsBetween100And0(String[] objectIds) {
     Float hashValue = Hashing.getInstance().getHashedPercentageForObjectIds(Arrays.asList(objectIds));
-    Assert.assertTrue(hashValue < 100);
-    Assert.assertTrue(hashValue >= 0);
+    Assertions.assertTrue(hashValue < 100);
+    Assertions.assertTrue(hashValue >= 0);
   }
 
-  @Test(dataProvider = "objectIds")
+  @ParameterizedTest
+  @MethodSource("objectIds")
   public void testHashedValueIsSameEachTime(String[] objectIds) {
     Float hashValue = Hashing.getInstance().getHashedPercentageForObjectIds(Arrays.asList(objectIds));
     Float hashValueTheSecond = Hashing.getInstance().getHashedPercentageForObjectIds(Arrays.asList(objectIds));
 
-    Assert.assertTrue(hashValue.equals(hashValueTheSecond));
+    Assertions.assertTrue(hashValue.equals(hashValueTheSecond));
   }
 
   @Test
@@ -51,7 +52,7 @@ public class HashingTest {
     Float hashValue = Hashing.getInstance().getHashedPercentageForObjectIds(objectIds1);
     Float hashValueTheSecond = Hashing.getInstance().getHashedPercentageForObjectIds(objectIds2);
 
-    Assert.assertFalse(hashValue.equals(hashValueTheSecond));
+    Assertions.assertFalse(hashValue.equals(hashValueTheSecond));
   }
 
   @Test
@@ -95,7 +96,7 @@ public class HashingTest {
 
       for (Integer bucket : bucketRange) {
         Float value = percentageValues.get(bucket);
-        Assert.assertTrue(value <= bucketValueLimit);
+        Assertions.assertTrue(value <= bucketValueLimit);
       }
     }
   }
@@ -128,7 +129,7 @@ public class HashingTest {
     Mockito.verify(hashingObject, Mockito.atMostOnce()).getMD5("12,93");
     Mockito.verify(hashingObject, Mockito.atMostOnce()).getMD5("12,93,12,93");
 
-    Assert.assertEquals(percentageHash, 0f);
+    Assertions.assertEquals(percentageHash, 0f);
 
     Hashing.setInstance(null);
   }

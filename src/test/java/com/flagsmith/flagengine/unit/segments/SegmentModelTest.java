@@ -3,13 +3,15 @@ package com.flagsmith.flagengine.unit.segments;
 import com.flagsmith.flagengine.segments.SegmentConditionModel;
 import com.flagsmith.flagengine.segments.SegmentEvaluator;
 import com.flagsmith.flagengine.segments.constants.SegmentConditions;
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class SegmentModelTest {
 
-  @DataProvider(name = "conditionTestData")
   public Object[][] conditionTestData() {
     return new Object[][] {
         new Object[] {SegmentConditions.EQUAL, "bar", "bar", true},
@@ -71,7 +73,8 @@ public class SegmentModelTest {
     };
   }
 
-  @Test(dataProvider = "conditionTestData")
+  @ParameterizedTest
+  @MethodSource("conditionTestData")
   public void testSegmentConditionMatchesTraitValue(
       SegmentConditions condition,
       Object traitValue,
@@ -85,10 +88,9 @@ public class SegmentModelTest {
 
     Boolean actualResult = SegmentEvaluator.conditionMatchesTraitValue(conditionModel, traitValue);
 
-    Assert.assertTrue(actualResult.equals(expectedResponse));
+    assertTrue(actualResult.equals(expectedResponse));
   }
 
-  @DataProvider(name = "semverTestData")
   public Object[][] semverTestData() {
     return new Object[][] {
         new Object[] {SegmentConditions.EQUAL, "1.0.0", "1.0.0:semver", true},
@@ -113,7 +115,8 @@ public class SegmentModelTest {
     };
   }
 
-  @Test(dataProvider = "semverTestData")
+  @ParameterizedTest
+  @MethodSource("semverTestData")
   public void testSemverMatchesTraitValue(
       SegmentConditions condition,
       Object traitValue,
@@ -127,7 +130,7 @@ public class SegmentModelTest {
 
     Boolean actualResult = SegmentEvaluator.conditionMatchesTraitValue(conditionModel, traitValue);
 
-    Assert.assertTrue(actualResult.equals(expectedResponse));
+    assertTrue(actualResult.equals(expectedResponse));
   }
 
 

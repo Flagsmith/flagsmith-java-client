@@ -3,12 +3,13 @@ package com.flagsmith.flagengine.unit.organizations;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.flagengine.organisations.OrganisationModel;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
-@Test(groups = "unit")
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class OrganizationsTest {
 
+  @Test
   public void testUniqueSlugProperty() throws Exception {
     String json = "{\n" +
         "    \"id\": 1,\n" +
@@ -21,6 +22,6 @@ public class OrganizationsTest {
     JsonNode node = MapperFactory.getMapper().readTree(json);
     OrganisationModel organisationModel = OrganisationModel.load(node, OrganisationModel.class);
 
-    Assert.assertTrue(organisationModel.uniqueSlug().equals("1-test"));
+    assertTrue(organisationModel.uniqueSlug().equals("1-test"));
   }
 }

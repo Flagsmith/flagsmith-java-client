@@ -11,18 +11,17 @@ import com.flagsmith.flagengine.segments.constants.SegmentRules;
 
 import static com.flagsmith.flagengine.unit.segments.IdentitySegmentFixtures.*;
 
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-@Test(groups = "unit")
 public class SegmentEvaluatorTest {
 
-  @DataProvider(name = "identitiesInSegments")
   public Object[][] identitiesInSegments() {
     return new Object[][] {
         new Object[] {emptySegment(), emptyIdentityTraits(), Boolean.FALSE},
@@ -45,7 +44,8 @@ public class SegmentEvaluatorTest {
     };
   }
 
-  @Test(dataProvider = "identitiesInSegments")
+  @ParameterizedTest
+  @MethodSource("identitiesInSegments")
   public void testIdentityInSegment(SegmentModel segment, List<TraitModel> identityTraits,
                                     Boolean expectedResponse) {
     IdentityModel mockIdentity = new IdentityModel();
@@ -55,10 +55,9 @@ public class SegmentEvaluatorTest {
 
     Boolean actualResult = SegmentEvaluator.evaluateIdentityInSegment(mockIdentity, segment, null);
 
-    Assert.assertTrue(actualResult.equals(expectedResponse));
+    Assertions.assertTrue(actualResult.equals(expectedResponse));
   }
 
-  @DataProvider(name = "traitExistenceChecks")
   public Object[][] traitExistenceChecks() {
     return new Object[][] {
       new Object[] {SegmentConditions.IS_SET, "foo", new ArrayList<>(), false},
@@ -70,7 +69,8 @@ public class SegmentEvaluatorTest {
     };
   }
 
-  @Test(dataProvider = "traitExistenceChecks")
+  @ParameterizedTest
+  @MethodSource("identitiesInSegments")
   public void testTraitExistenceConditions(SegmentConditions conditionOperator, String conditionProperty,
                                            List<TraitModel> traitModels, Boolean expectedResult) {
     // Given
@@ -100,6 +100,6 @@ public class SegmentEvaluatorTest {
 
     // Then
     // The result is as we expect from the DataProvider definition
-    Assert.assertEquals(inSegment, expectedResult);
+    Assertions.assertEquals(inSegment, expectedResult);
   }
 }

@@ -5,12 +5,12 @@ import com.flagsmith.flagengine.fixtures.FlagEngineFixtures;
 import com.flagsmith.flagengine.identities.IdentityModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
 import java.util.Arrays;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-@Test(groups = "unit")
 public class IdentitiesModelTest {
 
+  @Test
   public void testCompositeKey() {
     String environmentApiKey = "abc123";
     String identifier = "identity";
@@ -19,9 +19,10 @@ public class IdentitiesModelTest {
     identity.setEnvironmentApiKey(environmentApiKey);
     identity.setIdentifier(identifier);
 
-    Assert.assertEquals(identity.getCompositeKey(), environmentApiKey + "_" + identifier);
+    Assertions.assertEquals(identity.getCompositeKey(), environmentApiKey + "_" + identifier);
   }
 
+  @Test
   public void testIdentityModelCreatesDefaultIdentityUuid() {
     String environmentApiKey = "abc123";
     String identifier = "identity";
@@ -30,9 +31,10 @@ public class IdentitiesModelTest {
     identity.setEnvironmentApiKey(environmentApiKey);
     identity.setIdentifier(identifier);
 
-    Assert.assertNotNull(identity.getIdentityUuid());
+    Assertions.assertNotNull(identity.getIdentityUuid());
   }
 
+  @Test
   public void testUpdateTraitsRemoveTraitsWithNoneValue() {
     IdentityModel identity = FlagEngineFixtures.identityInSegment();
 
@@ -41,10 +43,11 @@ public class IdentitiesModelTest {
 
     identity.updateTraits(Arrays.asList(traitToRemove));
 
-    Assert.assertNotNull(identity.getIdentityTraits());
-    Assert.assertEquals(identity.getIdentityTraits().size(), 0);
+    Assertions.assertNotNull(identity.getIdentityTraits());
+    Assertions.assertEquals(identity.getIdentityTraits().size(), 0);
   }
 
+  @Test
   public void testUpdateIdentityTraitsUpdatesTraitValue() {
     IdentityModel identity = FlagEngineFixtures.identityInSegment();
 
@@ -54,11 +57,12 @@ public class IdentitiesModelTest {
 
     identity.updateTraits(Arrays.asList(traitToUpdate));
 
-    Assert.assertNotNull(identity.getIdentityTraits());
-    Assert.assertEquals(identity.getIdentityTraits().size(), 1);
-    Assert.assertEquals(identity.getIdentityTraits().get(0), traitToUpdate);
+    Assertions.assertNotNull(identity.getIdentityTraits());
+    Assertions.assertEquals(identity.getIdentityTraits().size(), 1);
+    Assertions.assertEquals(identity.getIdentityTraits().get(0), traitToUpdate);
   }
 
+  @Test
   public void testUpdateTraitsAddsNewTraits() {
     IdentityModel identity = FlagEngineFixtures.identityInSegment();
 
@@ -68,15 +72,16 @@ public class IdentitiesModelTest {
 
     identity.updateTraits(Arrays.asList(traitToUpdate));
 
-    Assert.assertNotNull(identity.getIdentityTraits());
-    Assert.assertEquals(identity.getIdentityTraits().size(), 2);
+    Assertions.assertNotNull(identity.getIdentityTraits());
+    Assertions.assertEquals(identity.getIdentityTraits().size(), 2);
 
     Boolean isPresent = identity.getIdentityTraits().stream()
         .anyMatch((it) -> it.equals(traitToUpdate));
 
-    Assert.assertTrue(isPresent);
+    Assertions.assertTrue(isPresent);
   }
 
+  @Test
   public void testAppendFeatureState() {
     FeatureStateModel fs1 = FlagEngineFixtures.featureState1();
     fs1.setEnabled(false);
@@ -87,6 +92,6 @@ public class IdentitiesModelTest {
     Boolean isPresent = identity.getIdentityFeatures().stream()
         .anyMatch((fs) -> fs.equals(fs1));
 
-    Assert.assertTrue(isPresent);
+    Assertions.assertTrue(isPresent);
   }
 }

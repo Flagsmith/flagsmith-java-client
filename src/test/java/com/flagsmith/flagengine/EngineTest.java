@@ -7,17 +7,18 @@ import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.IdentityModel;
 import com.flagsmith.flagengine.models.ResponseJSON;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.testng.Assert;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.BeforeClass;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Test(groups = "unit")
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+
 public class EngineTest {
 
   private Engine engine;
@@ -27,14 +28,13 @@ public class EngineTest {
       "src/test/java/com/flagsmith/flagengine/enginetestdata/" +
           "data/environment_n9fbf9h3v4fFgH3U3ngWhb.json";
 
-  @BeforeClass(groups = "unit")
+  @BeforeClass
   public void init() {
     engine = new Engine();
     objectMapper = MapperFactory.getMapper();
   }
 
-  @DataProvider(name = "environmentdata")
-  private Object[][] load() {
+  private Object[][] engineTestData() {
     try {
       JsonNode engineTestData = objectMapper.
           readTree(new File(environmentJsonFile));
@@ -72,7 +72,8 @@ public class EngineTest {
     return null;
   }
 
-  @Test(dataProvider = "environmentdata")
+  @ParameterizedTest()
+  @MethodSource("engineTestData")
   public void testEngine(IdentityModel identity, ResponseJSON expectedResponse) {
     List<FeatureStateModel> featureStates =
         engine.getIdentityFeatureStates(environmentModel, identity);
@@ -98,8 +99,8 @@ public class EngineTest {
       Object featureStateValue = featureState.getValue(identity.getDjangoId());
       Object expectedResponseValue = sortedResponse.get(index).getValue(identity.getDjangoId());
 
-      Assert.assertEquals(featureStateValue, expectedResponseValue);
-      Assert.assertEquals(featureState.getEnabled(), sortedResponse.get(index).getEnabled());
+      assertEquals(featureStateValue, expectedResponseValue);
+      assertEquals(featureState.getEnabled(), sortedResponse.get(index).getEnabled());
       index++;
     }
   }
