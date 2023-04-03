@@ -1,15 +1,16 @@
 package com.flagsmith;
 
 import com.flagsmith.config.Retry;
-import static org.testng.Assert.*;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.testng.annotations.Test;
 
-@Test(groups="unit")
 public class FlagsmithRetryTest {
 
+  @Test
   public void FlagsmithRetry_simpleInstance() {
     Retry retryObject = new Retry(3);
 
@@ -28,6 +29,7 @@ public class FlagsmithRetryTest {
     assertTrue(retryObject.getAttempts().equals(1));
   }
 
+  @Test
   public void FlagsmithRetry_shouldExactlyRunThreeTimes() {
     Retry retryObject = new Retry(3);
 
@@ -43,6 +45,7 @@ public class FlagsmithRetryTest {
     assertTrue(attempts.equals(3));
   }
 
+  @Test
   public void FlagsmithRetry_validateSleep() {
     Retry retryObject = new Retry(3);
     List<Long> delays = new ArrayList<Long>() {{
@@ -63,6 +66,7 @@ public class FlagsmithRetryTest {
     assertTrue(attempts.equals(3));
   }
 
+  @Test
   public void FlagsmithRetry_shouldNotExceedBackoffMax() {
     Retry retryObject = new Retry(7);
     retryObject = retryObject.toBuilder().backoffMax(1f).build();

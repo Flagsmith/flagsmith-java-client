@@ -3,75 +3,80 @@ package com.flagsmith.flagengine.unit.segments;
 import com.flagsmith.flagengine.segments.SegmentConditionModel;
 import com.flagsmith.flagengine.segments.SegmentEvaluator;
 import com.flagsmith.flagengine.segments.constants.SegmentConditions;
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
 
 public class SegmentModelTest {
 
-  @DataProvider(name = "conditionTestData")
-  public Object[][] conditionTestData() {
-    return new Object[][] {
-        new Object[] {SegmentConditions.EQUAL, "bar", "bar", true},
-        new Object[] {SegmentConditions.EQUAL, "bar", "baz", false},
-        new Object[] {SegmentConditions.EQUAL, 1, "1", true},
-        new Object[] {SegmentConditions.EQUAL, 1, "2", false},
-        new Object[] {SegmentConditions.EQUAL, true, "true", true},
-        new Object[] {SegmentConditions.EQUAL, false, "false", true},
-        new Object[] {SegmentConditions.EQUAL, false, "true", false},
-        new Object[] {SegmentConditions.EQUAL, true, "false", false},
-        new Object[] {SegmentConditions.EQUAL, 1.23, "1.23", true},
-        new Object[] {SegmentConditions.EQUAL, 1.23, "4.56", false},
-        new Object[] {SegmentConditions.GREATER_THAN, 2, "1", true},
-        new Object[] {SegmentConditions.GREATER_THAN, 1, "1", false},
-        new Object[] {SegmentConditions.GREATER_THAN, 0, "1", false},
-        new Object[] {SegmentConditions.GREATER_THAN, 2.1, "2.0", true},
-        new Object[] {SegmentConditions.GREATER_THAN, 2.1, "2.1", false},
-        new Object[] {SegmentConditions.GREATER_THAN, 2.0, "2.1", false},
-        new Object[] {SegmentConditions.GREATER_THAN_INCLUSIVE, 2, "1", true},
-        new Object[] {SegmentConditions.GREATER_THAN_INCLUSIVE, 1, "1", true},
-        new Object[] {SegmentConditions.GREATER_THAN_INCLUSIVE, 0, "1", false},
-        new Object[] {SegmentConditions.GREATER_THAN_INCLUSIVE, 2.1, "2.0", true},
-        new Object[] {SegmentConditions.GREATER_THAN_INCLUSIVE, 2.1, "2.1", true},
-        new Object[] {SegmentConditions.GREATER_THAN_INCLUSIVE, 2.0, "2.1", false},
-        new Object[] {SegmentConditions.LESS_THAN, 1, "2", true},
-        new Object[] {SegmentConditions.LESS_THAN, 1, "1", false},
-        new Object[] {SegmentConditions.LESS_THAN, 1, "0", false},
-        new Object[] {SegmentConditions.LESS_THAN, 2.0, "2.1", true},
-        new Object[] {SegmentConditions.LESS_THAN, 2.1, "2.1", false},
-        new Object[] {SegmentConditions.LESS_THAN, 2.1, "2.0", false},
-        new Object[] {SegmentConditions.LESS_THAN_INCLUSIVE, 1, "2", true},
-        new Object[] {SegmentConditions.LESS_THAN_INCLUSIVE, 1, "1", true},
-        new Object[] {SegmentConditions.LESS_THAN_INCLUSIVE, 1, "0", false},
-        new Object[] {SegmentConditions.LESS_THAN_INCLUSIVE, 2.0, "2.1", true},
-        new Object[] {SegmentConditions.LESS_THAN_INCLUSIVE, 2.1, "2.1", true},
-        new Object[] {SegmentConditions.LESS_THAN_INCLUSIVE, 2.1, "2.0", false},
-        new Object[] {SegmentConditions.NOT_EQUAL, "bar", "baz", true},
-        new Object[] {SegmentConditions.NOT_EQUAL, "bar", "bar", false},
-        new Object[] {SegmentConditions.NOT_EQUAL, 1, "2", true},
-        new Object[] {SegmentConditions.NOT_EQUAL, 1, "1", false},
-        new Object[] {SegmentConditions.NOT_EQUAL, true, "false", true},
-        new Object[] {SegmentConditions.NOT_EQUAL, false, "true", true},
-        new Object[] {SegmentConditions.NOT_EQUAL, false, "false", false},
-        new Object[] {SegmentConditions.NOT_EQUAL, true, "true", false},
-        new Object[] {SegmentConditions.CONTAINS, "bar", "b", true},
-        new Object[] {SegmentConditions.CONTAINS, "bar", "bar", true},
-        new Object[] {SegmentConditions.CONTAINS, "bar", "baz", false},
-        new Object[] {SegmentConditions.NOT_CONTAINS, "bar", "b", false},
-        new Object[] {SegmentConditions.NOT_CONTAINS, "bar", "bar", false},
-        new Object[] {SegmentConditions.NOT_CONTAINS, "bar", "baz", true},
-        new Object[] {SegmentConditions.REGEX, "foo", "[a-z]+", true},
-        new Object[] {SegmentConditions.REGEX, "FOO", "[a-z]+", false},
-        new Object[] {SegmentConditions.MODULO, 2, "2|0", true},
-        new Object[] {SegmentConditions.MODULO, 3, "2|0", false},
-        new Object[] {SegmentConditions.MODULO, 2.0, "2|0", true},
-        new Object[] {SegmentConditions.MODULO, 2.0, "2.0|0.0", true},
-        new Object[] {SegmentConditions.MODULO, "foo", "2|0", false},
-        new Object[] {SegmentConditions.MODULO, "foo", "foo|bar", false},
-    };
+  private static Stream<Arguments> conditionTestData() {
+    return Stream.of(
+        Arguments.of(SegmentConditions.EQUAL, "bar", "bar", true),
+        Arguments.of(SegmentConditions.EQUAL, "bar", "baz", false),
+        Arguments.of(SegmentConditions.EQUAL, 1, "1", true),
+        Arguments.of(SegmentConditions.EQUAL, 1, "2", false),
+        Arguments.of(SegmentConditions.EQUAL, true, "true", true),
+        Arguments.of(SegmentConditions.EQUAL, false, "false", true),
+        Arguments.of(SegmentConditions.EQUAL, false, "true", false),
+        Arguments.of(SegmentConditions.EQUAL, true, "false", false),
+        Arguments.of(SegmentConditions.EQUAL, 1.23, "1.23", true),
+        Arguments.of(SegmentConditions.EQUAL, 1.23, "4.56", false),
+        Arguments.of(SegmentConditions.GREATER_THAN, 2, "1", true),
+        Arguments.of(SegmentConditions.GREATER_THAN, 1, "1", false),
+        Arguments.of(SegmentConditions.GREATER_THAN, 0, "1", false),
+        Arguments.of(SegmentConditions.GREATER_THAN, 2.1, "2.0", true),
+        Arguments.of(SegmentConditions.GREATER_THAN, 2.1, "2.1", false),
+        Arguments.of(SegmentConditions.GREATER_THAN, 2.0, "2.1", false),
+        Arguments.of(SegmentConditions.GREATER_THAN_INCLUSIVE, 2, "1", true),
+        Arguments.of(SegmentConditions.GREATER_THAN_INCLUSIVE, 1, "1", true),
+        Arguments.of(SegmentConditions.GREATER_THAN_INCLUSIVE, 0, "1", false),
+        Arguments.of(SegmentConditions.GREATER_THAN_INCLUSIVE, 2.1, "2.0", true),
+        Arguments.of(SegmentConditions.GREATER_THAN_INCLUSIVE, 2.1, "2.1", true),
+        Arguments.of(SegmentConditions.GREATER_THAN_INCLUSIVE, 2.0, "2.1", false),
+        Arguments.of(SegmentConditions.LESS_THAN, 1, "2", true),
+        Arguments.of(SegmentConditions.LESS_THAN, 1, "1", false),
+        Arguments.of(SegmentConditions.LESS_THAN, 1, "0", false),
+        Arguments.of(SegmentConditions.LESS_THAN, 2.0, "2.1", true),
+        Arguments.of(SegmentConditions.LESS_THAN, 2.1, "2.1", false),
+        Arguments.of(SegmentConditions.LESS_THAN, 2.1, "2.0", false),
+        Arguments.of(SegmentConditions.LESS_THAN_INCLUSIVE, 1, "2", true),
+        Arguments.of(SegmentConditions.LESS_THAN_INCLUSIVE, 1, "1", true),
+        Arguments.of(SegmentConditions.LESS_THAN_INCLUSIVE, 1, "0", false),
+        Arguments.of(SegmentConditions.LESS_THAN_INCLUSIVE, 2.0, "2.1", true),
+        Arguments.of(SegmentConditions.LESS_THAN_INCLUSIVE, 2.1, "2.1", true),
+        Arguments.of(SegmentConditions.LESS_THAN_INCLUSIVE, 2.1, "2.0", false),
+        Arguments.of(SegmentConditions.NOT_EQUAL, "bar", "baz", true),
+        Arguments.of(SegmentConditions.NOT_EQUAL, "bar", "bar", false),
+        Arguments.of(SegmentConditions.NOT_EQUAL, 1, "2", true),
+        Arguments.of(SegmentConditions.NOT_EQUAL, 1, "1", false),
+        Arguments.of(SegmentConditions.NOT_EQUAL, true, "false", true),
+        Arguments.of(SegmentConditions.NOT_EQUAL, false, "true", true),
+        Arguments.of(SegmentConditions.NOT_EQUAL, false, "false", false),
+        Arguments.of(SegmentConditions.NOT_EQUAL, true, "true", false),
+        Arguments.of(SegmentConditions.CONTAINS, "bar", "b", true),
+        Arguments.of(SegmentConditions.CONTAINS, "bar", "bar", true),
+        Arguments.of(SegmentConditions.CONTAINS, "bar", "baz", false),
+        Arguments.of(SegmentConditions.NOT_CONTAINS, "bar", "b", false),
+        Arguments.of(SegmentConditions.NOT_CONTAINS, "bar", "bar", false),
+        Arguments.of(SegmentConditions.NOT_CONTAINS, "bar", "baz", true),
+        Arguments.of(SegmentConditions.REGEX, "foo", "[a-z]+", true),
+        Arguments.of(SegmentConditions.REGEX, "FOO", "[a-z]+", false),
+        Arguments.of(SegmentConditions.MODULO, 2, "2|0", true),
+        Arguments.of(SegmentConditions.MODULO, 3, "2|0", false),
+        Arguments.of(SegmentConditions.MODULO, 2.0, "2|0", true),
+        Arguments.of(SegmentConditions.MODULO, 2.0, "2.0|0.0", true),
+        Arguments.of(SegmentConditions.MODULO, "foo", "2|0", false),
+        Arguments.of(SegmentConditions.MODULO, "foo", "foo|bar", false)
+    );
   }
 
-  @Test(dataProvider = "conditionTestData")
+  @ParameterizedTest
+  @MethodSource("conditionTestData")
   public void testSegmentConditionMatchesTraitValue(
       SegmentConditions condition,
       Object traitValue,
@@ -85,35 +90,11 @@ public class SegmentModelTest {
 
     Boolean actualResult = SegmentEvaluator.conditionMatchesTraitValue(conditionModel, traitValue);
 
-    Assert.assertTrue(actualResult.equals(expectedResponse));
+    assertTrue(actualResult.equals(expectedResponse));
   }
 
-  @DataProvider(name = "semverTestData")
-  public Object[][] semverTestData() {
-    return new Object[][] {
-        new Object[] {SegmentConditions.EQUAL, "1.0.0", "1.0.0:semver", true},
-        new Object[] {SegmentConditions.EQUAL, "1.0.0", "1.0.1:semver", false},
-        new Object[] {SegmentConditions.NOT_EQUAL, "1.0.0", "1.0.0:semver", false},
-        new Object[] {SegmentConditions.NOT_EQUAL, "1.0.0", "1.0.1:semver", true},
-        new Object[] {SegmentConditions.GREATER_THAN, "1.0.1", "1.0.0:semver", true},
-        new Object[] {SegmentConditions.GREATER_THAN, "1.0.0", "1.0.0-beta:semver", true},
-        new Object[] {SegmentConditions.GREATER_THAN, "1.0.1", "1.2.0:semver", false},
-        new Object[] {SegmentConditions.GREATER_THAN, "1.0.1", "1.0.1:semver", false},
-        new Object[] {SegmentConditions.GREATER_THAN, "1.2.4", "1.2.3-pre.2+build.4:semver", true},
-        new Object[] {SegmentConditions.LESS_THAN, "1.0.0", "1.0.1:semver", true},
-        new Object[] {SegmentConditions.LESS_THAN, "1.0.0", "1.0.0:semver", false},
-        new Object[] {SegmentConditions.LESS_THAN, "1.0.1", "1.0.0:semver", false},
-        new Object[] {SegmentConditions.LESS_THAN, "1.0.0-rc.2", "1.0.0-rc.3:semver", true},
-        new Object[] {SegmentConditions.GREATER_THAN_INCLUSIVE, "1.0.1", "1.0.0:semver", true},
-        new Object[] {SegmentConditions.GREATER_THAN_INCLUSIVE, "1.0.1", "1.2.0:semver", false},
-        new Object[] {SegmentConditions.GREATER_THAN_INCLUSIVE, "1.0.1", "1.0.1:semver", true},
-        new Object[] {SegmentConditions.LESS_THAN_INCLUSIVE, "1.0.0", "1.0.1:semver", true},
-        new Object[] {SegmentConditions.LESS_THAN_INCLUSIVE, "1.0.0", "1.0.0:semver", true},
-        new Object[] {SegmentConditions.LESS_THAN_INCLUSIVE, "1.0.1", "1.0.0:semver", false},
-    };
-  }
-
-  @Test(dataProvider = "semverTestData")
+  @ParameterizedTest
+  @MethodSource("semverTestData")
   public void testSemverMatchesTraitValue(
       SegmentConditions condition,
       Object traitValue,
@@ -127,7 +108,31 @@ public class SegmentModelTest {
 
     Boolean actualResult = SegmentEvaluator.conditionMatchesTraitValue(conditionModel, traitValue);
 
-    Assert.assertTrue(actualResult.equals(expectedResponse));
+    assertTrue(actualResult.equals(expectedResponse));
+  }
+
+  private static Stream<Arguments> semverTestData() {
+    return Stream.of(
+        Arguments.of(SegmentConditions.EQUAL, "1.0.0", "1.0.0:semver", true),
+        Arguments.of(SegmentConditions.EQUAL, "1.0.0", "1.0.1:semver", false),
+        Arguments.of(SegmentConditions.NOT_EQUAL, "1.0.0", "1.0.0:semver", false),
+        Arguments.of(SegmentConditions.NOT_EQUAL, "1.0.0", "1.0.1:semver", true),
+        Arguments.of(SegmentConditions.GREATER_THAN, "1.0.1", "1.0.0:semver", true),
+        Arguments.of(SegmentConditions.GREATER_THAN, "1.0.0", "1.0.0-beta:semver", true),
+        Arguments.of(SegmentConditions.GREATER_THAN, "1.0.1", "1.2.0:semver", false),
+        Arguments.of(SegmentConditions.GREATER_THAN, "1.0.1", "1.0.1:semver", false),
+        Arguments.of(SegmentConditions.GREATER_THAN, "1.2.4", "1.2.3-pre.2+build.4:semver", true),
+        Arguments.of(SegmentConditions.LESS_THAN, "1.0.0", "1.0.1:semver", true),
+        Arguments.of(SegmentConditions.LESS_THAN, "1.0.0", "1.0.0:semver", false),
+        Arguments.of(SegmentConditions.LESS_THAN, "1.0.1", "1.0.0:semver", false),
+        Arguments.of(SegmentConditions.LESS_THAN, "1.0.0-rc.2", "1.0.0-rc.3:semver", true),
+        Arguments.of(SegmentConditions.GREATER_THAN_INCLUSIVE, "1.0.1", "1.0.0:semver", true),
+        Arguments.of(SegmentConditions.GREATER_THAN_INCLUSIVE, "1.0.1", "1.2.0:semver", false),
+        Arguments.of(SegmentConditions.GREATER_THAN_INCLUSIVE, "1.0.1", "1.0.1:semver", true),
+        Arguments.of(SegmentConditions.LESS_THAN_INCLUSIVE, "1.0.0", "1.0.1:semver", true),
+        Arguments.of(SegmentConditions.LESS_THAN_INCLUSIVE, "1.0.0", "1.0.0:semver", true),
+        Arguments.of(SegmentConditions.LESS_THAN_INCLUSIVE, "1.0.1", "1.0.0:semver", false)
+    );
   }
 
 

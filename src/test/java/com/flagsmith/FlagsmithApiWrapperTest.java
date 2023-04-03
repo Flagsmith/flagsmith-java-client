@@ -9,8 +9,8 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -37,10 +37,10 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.mock.MockInterceptor;
 import org.bouncycastle.ocsp.Req;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-@Test(groups = "unit")
+
 public class FlagsmithApiWrapperTest {
 
   private final String API_KEY = "OUR_API_KEY";
@@ -51,7 +51,7 @@ public class FlagsmithApiWrapperTest {
   private FlagsmithConfig defaultConfig;
   private MockInterceptor interceptor;
 
-  @BeforeMethod(groups = "unit")
+  @BeforeEach
   public void init() {
     flagsmithLogger = mock(FlagsmithLogger.class);
     doThrow(new FlagsmithException("error Response")).when(flagsmithLogger)
@@ -65,7 +65,7 @@ public class FlagsmithApiWrapperTest {
     sut = new FlagsmithApiWrapper(defaultConfig, null, flagsmithLogger, API_KEY);
   }
 
-  @Test(groups = "unit")
+  @Test
   public void getFeatureFlags_noUser_success() throws JsonProcessingException {
     // Arrange
     interceptor.addRule()
@@ -82,7 +82,7 @@ public class FlagsmithApiWrapperTest {
     verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
   }
 
-  @Test(groups = "unit")
+  @Test
   public void getFeatureFlags_noUser_fail() {
     // Arrange
     interceptor.addRule()
@@ -99,7 +99,7 @@ public class FlagsmithApiWrapperTest {
     verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
   }
 
-  @Test(groups = "unit")
+  @Test
   public void identifyUserWithTraits_success() throws JsonProcessingException {
     // Arrange
     final List<TraitModel> traits = new ArrayList<TraitModel>(Arrays.asList(new TraitModel()));
@@ -124,7 +124,7 @@ public class FlagsmithApiWrapperTest {
     verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
   }
 
-  @Test(groups = "unit")
+  @Test
   public void identifyUserWithTraits_fail() {
     // Arrange
     final List<TraitModel> traits = new ArrayList<TraitModel>(Arrays.asList(new TraitModel()));
@@ -142,7 +142,7 @@ public class FlagsmithApiWrapperTest {
     verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
   }
 
-  @Test(groups = "unit")
+  @Test
   public void testClose_ClosesRequestProcessor() {
     // Given
     RequestProcessor mockedRequestProcessor = mock(RequestProcessor.class);
@@ -156,7 +156,7 @@ public class FlagsmithApiWrapperTest {
     verify(mockedRequestProcessor, times(1)).close();
   }
 
-  @Test(groups = "unit")
+  @Test
   public void testClose_ClosesAnalyticsProcessor() {
     // Given
     AnalyticsProcessor mockedAnalyticsProcessor = mock(AnalyticsProcessor.class);

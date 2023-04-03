@@ -1,6 +1,6 @@
 package com.flagsmith;
 
-import static com.flagsmith.IntegrationSuiteTest.BACKEND_PORT;
+import static com.flagsmith.IntegrationTests.BACKEND_PORT;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -34,14 +34,14 @@ public class FlagsmithTestHelper {
 
   public static ProjectEnvironment createProjectEnvironment(String projectName,
       String environmentName, boolean cached) {
-    final int projectId = createProject(projectName, IntegrationSuiteTest.TestData.organisationId);
+    final int projectId = createProject(projectName, IntegrationTests.TestData.organisationId);
 
     final Map<String, Object> environment = createEnvironment(environmentName, projectId);
     final String environmentApiKey = (String) environment.get("api_key");
 
     FlagsmithClient.Builder clientBuilder = FlagsmithClient.newBuilder()
         .withApiUrl(String.format("http://localhost:%d/api/v1/",
-            IntegrationSuiteTest.TestData.backend.getMappedPort(BACKEND_PORT)))
+            IntegrationTests.TestData.backend.getMappedPort(BACKEND_PORT)))
         .setApiKey(environmentApiKey);
     if (cached) {
       clientBuilder.withCache(FlagsmithCacheConfig.newBuilder()
@@ -431,7 +431,7 @@ public class FlagsmithTestHelper {
   public static Headers defaultHeaders() {
     return new Headers(
         new Header("Content-type", "application/json"),
-        new Header("Authorization", "Token " + IntegrationSuiteTest.TestData.token));
+        new Header("Authorization", "Token " + IntegrationTests.TestData.token));
   }
 
   public static abstract class Feature {

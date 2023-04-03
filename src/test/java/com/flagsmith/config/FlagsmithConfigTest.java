@@ -1,19 +1,17 @@
 package com.flagsmith.config;
 
 import static org.junit.Assert.assertNull;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertTrue;
-
-import com.flagsmith.config.FlagsmithConfig;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import okhttp3.mock.MockInterceptor;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 public class FlagsmithConfigTest {
 
-  @Test(groups = "unit")
+  @Test
   public void configTest_defaults() {
     final FlagsmithConfig flagsmithConfig = FlagsmithConfig.newBuilder().build();
 
@@ -24,7 +22,7 @@ public class FlagsmithConfigTest {
     assertNull(flagsmithConfig.getHttpClient().proxy());
   }
 
-  @Test(groups = "unit")
+  @Test
   public void configTest_custom() {
     Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("proxy", 1234));
 
@@ -43,7 +41,7 @@ public class FlagsmithConfigTest {
     assertEquals(proxy, flagsmithConfig.getHttpClient().proxy());
   }
 
-  @Test(groups = "unit")
+  @Test
   public void configTest_multipleInterceptors() {
     final FlagsmithConfig flagsmithConfig = FlagsmithConfig.newBuilder()
         .addHttpInterceptor(new MockInterceptor())

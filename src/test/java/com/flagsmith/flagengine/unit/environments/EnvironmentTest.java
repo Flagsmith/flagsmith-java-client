@@ -5,10 +5,9 @@ import com.flagsmith.MapperFactory;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.helpers.FeatureStateHelper;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-@Test(groups = "unit")
 public class EnvironmentTest {
 
   @Test
@@ -58,26 +57,26 @@ public class EnvironmentTest {
     JsonNode node = MapperFactory.getMapper().readTree(json);
     EnvironmentModel environmentModel = EnvironmentModel.load(node, EnvironmentModel.class);
 
-    Assert.assertNotNull(environmentModel);
-    Assert.assertTrue(environmentModel.getId() == 1);
-    Assert.assertEquals(environmentModel.getApiKey(), "api-key");
+    Assertions.assertNotNull(environmentModel);
+    Assertions.assertTrue(environmentModel.getId() == 1);
+    Assertions.assertEquals(environmentModel.getApiKey(), "api-key");
 
-    Assert.assertNotNull(environmentModel.getProject());
-    Assert.assertNotNull(environmentModel.getFeatureStates());
+    Assertions.assertNotNull(environmentModel.getProject());
+    Assertions.assertNotNull(environmentModel.getFeatureStates());
 
-    Assert.assertTrue(environmentModel.getFeatureStates().size() == 3);
+    Assertions.assertTrue(environmentModel.getFeatureStates().size() == 3);
 
-    Assert.assertNull(environmentModel.getAmplitudeConfig());
-    Assert.assertNull(environmentModel.getMixpanelConfig());
-    Assert.assertNull(environmentModel.getHeapConfig());
-    Assert.assertNull(environmentModel.getSegmentConfig());
+    Assertions.assertNull(environmentModel.getAmplitudeConfig());
+    Assertions.assertNull(environmentModel.getMixpanelConfig());
+    Assertions.assertNull(environmentModel.getHeapConfig());
+    Assertions.assertNull(environmentModel.getSegmentConfig());
 
     FeatureStateModel featureState = FeatureStateHelper.getFeatureStateForFeatureByName(
         environmentModel.getFeatureStates(),
         "feature_with_string_value"
     );
 
-    Assert.assertNotNull(featureState);
+    Assertions.assertNotNull(featureState);
   }
 
   @Test
@@ -131,13 +130,13 @@ public class EnvironmentTest {
     JsonNode node = MapperFactory.getMapper().readTree(json);
     EnvironmentModel environmentModel = EnvironmentModel.load(node, EnvironmentModel.class);
 
-    Assert.assertNotNull(environmentModel);
+    Assertions.assertNotNull(environmentModel);
 
-    Assert.assertNotNull(environmentModel.getFeatureStates());
-    Assert.assertEquals(environmentModel.getFeatureStates().size(), 1);
+    Assertions.assertNotNull(environmentModel.getFeatureStates());
+    Assertions.assertEquals(environmentModel.getFeatureStates().size(), 1);
 
     FeatureStateModel featureState = environmentModel.getFeatureStates().get(0);
-    Assert.assertNotNull(featureState.getMultivariateFeatureStateValues());
-    Assert.assertEquals(featureState.getMultivariateFeatureStateValues().size(), 2);
+    Assertions.assertNotNull(featureState.getMultivariateFeatureStateValues());
+    Assertions.assertEquals(featureState.getMultivariateFeatureStateValues().size(), 2);
   }
 }

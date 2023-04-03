@@ -3,12 +3,12 @@ package com.flagsmith.flagengine.unit.Identities;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.flagengine.identities.IdentityModel;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-@Test(groups = "unit")
 public class IdentitiesTest {
 
+  @Test
   public void testBuildIdentityModelFromDictionaryNoFeatureStates() throws Exception {
     String json = "{\n" +
         "  \"id\": 1,\n" +
@@ -21,13 +21,14 @@ public class IdentitiesTest {
     JsonNode node = MapperFactory.getMapper().readTree(json);
     IdentityModel identityModel = IdentityModel.load(node, IdentityModel.class);
 
-    Assert.assertNotNull(identityModel.getIdentityFeatures());
-    Assert.assertEquals(identityModel.getIdentityFeatures().size(), 0);
+    Assertions.assertNotNull(identityModel.getIdentityFeatures());
+    Assertions.assertEquals(identityModel.getIdentityFeatures().size(), 0);
 
-    Assert.assertNotNull(identityModel.getIdentityTraits());
-    Assert.assertEquals(identityModel.getIdentityTraits().size(), 1);
+    Assertions.assertNotNull(identityModel.getIdentityTraits());
+    Assertions.assertEquals(identityModel.getIdentityTraits().size(), 1);
   }
 
+  @Test
   public void testBuildIdentityModelFromDictionaryUsesIdentityFeatureListForIdentityFeatures()
       throws Exception {
     String json = "{\n" +
@@ -52,20 +53,22 @@ public class IdentitiesTest {
     JsonNode node = MapperFactory.getMapper().readTree(json);
     IdentityModel identityModel = IdentityModel.load(node, IdentityModel.class);
 
-    Assert.assertNotNull(identityModel.getIdentityFeatures());
-    Assert.assertEquals(identityModel.getIdentityFeatures().size(), 1);
+    Assertions.assertNotNull(identityModel.getIdentityFeatures());
+    Assertions.assertEquals(identityModel.getIdentityFeatures().size(), 1);
   }
 
+  @Test
   public void testBuildBuildIdentityModelFromDictCreatesIdentityUuid() throws Exception {
     String json = "{\"identifier\": \"test_user\", \"environment_api_key\": \"some_key\"}";
 
     JsonNode node = MapperFactory.getMapper().readTree(json);
     IdentityModel identityModel = IdentityModel.load(node, IdentityModel.class);
 
-    Assert.assertNotNull(identityModel);
-    Assert.assertNotNull(identityModel.getIdentityUuid());
+    Assertions.assertNotNull(identityModel);
+    Assertions.assertNotNull(identityModel.getIdentityUuid());
   }
 
+  @Test
   public void testBuildIdentityModelFromDictionaryWithFeatureStates() throws Exception {
     String json = "{\n" +
         "        \"id\": 1,\n" +
@@ -89,8 +92,8 @@ public class IdentitiesTest {
     JsonNode node = MapperFactory.getMapper().readTree(json);
     IdentityModel identityModel = IdentityModel.load(node, IdentityModel.class);
 
-    Assert.assertNotNull(identityModel);
-    Assert.assertNotNull(identityModel.getIdentityFeatures());
-    Assert.assertEquals(identityModel.getIdentityFeatures().size(), 1);
+    Assertions.assertNotNull(identityModel);
+    Assertions.assertNotNull(identityModel.getIdentityFeatures());
+    Assertions.assertEquals(identityModel.getIdentityFeatures().size(), 1);
   }
 }
