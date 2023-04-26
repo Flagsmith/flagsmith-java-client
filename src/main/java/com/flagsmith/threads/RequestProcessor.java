@@ -18,7 +18,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-@Data
 public class RequestProcessor {
 
   private ExecutorService executor = Executors.newFixedThreadPool(3);
@@ -124,4 +123,11 @@ public class RequestProcessor {
     this.executor.shutdown();
   }
 
+  public FlagsmithLogger getLogger() {
+    return logger;
+  }
+
+  public OkHttpClient getClient() {
+    return client;
+  }
 }

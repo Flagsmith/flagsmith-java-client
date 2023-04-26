@@ -20,12 +20,13 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import lombok.Data;
+import lombok.Getter;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 
-@Data
+@Getter
 public class FlagsmithApiWrapper implements FlagsmithSdk {
 
   private static final String AUTH_HEADER = "X-Environment-Key";
@@ -259,6 +260,15 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     }
 
     return null;
+  }
+
+  @Override
+  public RequestProcessor getRequestor() {
+    return this.requestor;
+  }
+
+  public void setRequestor(RequestProcessor requestor) {
+    this.requestor = requestor;
   }
 
   @Override
