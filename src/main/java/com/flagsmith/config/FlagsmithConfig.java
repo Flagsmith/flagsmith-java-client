@@ -1,8 +1,6 @@
 package com.flagsmith.config;
 
-import com.flagsmith.FlagsmithClient;
 import com.flagsmith.FlagsmithFlagDefaults;
-import com.flagsmith.interfaces.DefaultFlagHandler;
 import com.flagsmith.threads.AnalyticsProcessor;
 
 import java.net.Proxy;
@@ -11,7 +9,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
-import lombok.Data;
+
+import lombok.Getter;
 import okhttp3.HttpUrl;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
@@ -21,7 +20,7 @@ import okhttp3.OkHttpClient;
  *
  * <p>Created by Pavlo Maksymchuk.
  */
-@Data
+@Getter
 public final class FlagsmithConfig {
 
   private static final int DEFAULT_CONNECT_TIMEOUT_MILLIS = 2000;
@@ -80,6 +79,10 @@ public final class FlagsmithConfig {
 
   public static FlagsmithConfig.Builder newBuilder() {
     return new FlagsmithConfig.Builder();
+  }
+
+  public void setFlagsmithFlagDefaults(FlagsmithFlagDefaults flagsmithFlagDefaults) {
+    this.flagsmithFlagDefaults = flagsmithFlagDefaults;
   }
 
   public static class Builder {
@@ -187,6 +190,7 @@ public final class FlagsmithConfig {
 
     /**
      * Add retries for HTTP request to the builder.
+     *
      * @param retries no of retries for requests
      * @return
      */
@@ -197,6 +201,7 @@ public final class FlagsmithConfig {
 
     /**
      * Local evaluation config.
+     *
      * @param localEvaluation boolean to enable
      * @return
      */
@@ -206,7 +211,9 @@ public final class FlagsmithConfig {
     }
 
     /**
-     * set environment refresh rate with polling manager. Only needed when local evaluation is true.
+     * set environment refresh rate with polling manager. Only needed when local evaluation is
+     * true.
+     *
      * @param seconds seconds
      * @return
      */
@@ -230,6 +237,7 @@ public final class FlagsmithConfig {
 
     /**
      * Enable Analytics Processor.
+     *
      * @param enable boolean to enable
      * @return
      */

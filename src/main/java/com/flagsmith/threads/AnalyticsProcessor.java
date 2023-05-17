@@ -8,7 +8,7 @@ import com.flagsmith.interfaces.FlagsmithSdk;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import lombok.Data;
+import lombok.Getter;
 import lombok.ToString;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -16,7 +16,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 
-@Data
+@Getter
 public class AnalyticsProcessor {
 
   private final String analyticsEndpoint = "analytics/flags/";
@@ -90,6 +90,11 @@ public class AnalyticsProcessor {
    */
   public void setLogger(FlagsmithLogger logger) {
     this.logger = logger;
+  }
+
+
+  public void setApi(FlagsmithSdk api) {
+    this.api = api;
   }
 
   /**
