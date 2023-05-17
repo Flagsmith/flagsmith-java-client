@@ -2,7 +2,11 @@ package com.flagsmith;
 
 import static okhttp3.mock.MediaTypes.MEDIATYPE_JSON;
 import static org.mockito.Mockito.*;
-import static org.testng.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -34,19 +38,17 @@ import okhttp3.Request;
 import okhttp3.ResponseBody;
 import okhttp3.mock.MockInterceptor;
 import okio.Buffer;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.invocation.Invocation;
 import org.slf4j.Logger;
-import org.testng.Assert;
-import org.testng.annotations.Test;
 
 /**
  * Unit tests are env specific and will probably will need to adjust keys,
  * identities and features
  * ids etc as required.
  */
-@Test(groups = "unit")
 public class FlagsmithClientTest {
 
     private static String DEFAULT_FLAG_VALUE = "foobar";
@@ -60,7 +62,7 @@ public class FlagsmithClientTest {
         return defaultFlag;
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testClient_When_Cache_Disabled_Return_Null() {
         FlagsmithClient client = FlagsmithClient.newBuilder()
                 .setApiKey("api-key")
@@ -68,10 +70,10 @@ public class FlagsmithClientTest {
 
         FlagsmithCache cache = client.getCache();
 
-        Assert.assertNull(cache);
+        assertNull(cache);
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testClient_validateObjectCreation() throws InterruptedException {
         PollingManager manager = mock(PollingManager.class);
         FlagsmithClient client = FlagsmithClient.newBuilder()
@@ -85,16 +87,16 @@ public class FlagsmithClientTest {
         verify(manager, times(1)).startPolling();
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testLocalEvaluationRequiresServerKey() throws InterruptedException {
-        Assert.assertThrows(RuntimeException.class, () -> FlagsmithClient.newBuilder()
+        assertThrows(RuntimeException.class, () -> FlagsmithClient.newBuilder()
                 .withConfiguration(
                         FlagsmithConfig.newBuilder().withLocalEvaluation(Boolean.TRUE).build())
                 .setApiKey("not-a-server-key")
                 .build());
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testClient_errorEnvironmentApi() {
         Logger logger = mock(Logger.class);
 
@@ -128,10 +130,10 @@ public class FlagsmithClientTest {
                 found = true;
             }
         }
-        Assert.assertTrue(found);
+        assertTrue(found);
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testClient_validateEnvironment()
             throws JsonProcessingException {
         String baseUrl = "http://bad-url";
@@ -155,11 +157,11 @@ public class FlagsmithClientTest {
                         MEDIATYPE_JSON);
 
         client.updateEnvironment();
-        Assert.assertNotNull(client.getEnvironment());
-        Assert.assertEquals(client.getEnvironment(), environmentModel);
+        assertNotNull(client.getEnvironment());
+        assertEquals(client.getEnvironment(), environmentModel);
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testClient_flagsApiException()
             throws FlagsmithApiError {
         String baseUrl = "http://bad-url";
@@ -179,10 +181,10 @@ public class FlagsmithClientTest {
                         500,
                         ResponseBody.create("error", MEDIATYPE_JSON));
 
-        Assert.assertThrows(FlagsmithApiError.class, () -> client.getEnvironmentFlags());
+        assertThrows(FlagsmithApiError.class, () -> client.getEnvironmentFlags());
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testClient_flagsApiEmpty()
             throws FlagsmithClientError {
         String baseUrl = "http://bad-url";
@@ -202,12 +204,12 @@ public class FlagsmithClientTest {
                         "[]",
                         MEDIATYPE_JSON);
 
-        Assert.assertNotNull(client);
+        assertNotNull(client);
         List<BaseFlag> flags = client.getEnvironmentFlags().getAllFlags();
-        Assert.assertTrue(flags.isEmpty());
+        assertTrue(flags.isEmpty());
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testClient_flagsApi()
             throws JsonProcessingException, FlagsmithClientError {
         String baseUrl = "http://bad-url";
@@ -230,12 +232,12 @@ public class FlagsmithClientTest {
                         MEDIATYPE_JSON);
 
         List<BaseFlag> flags = client.getEnvironmentFlags().getAllFlags();
-        Assert.assertEquals(flags.get(0).getEnabled(), Boolean.TRUE);
-        Assert.assertEquals(flags.get(0).getValue(), "some-value");
-        Assert.assertEquals(flags.get(0).getFeatureName(), "some_feature");
+        assertEquals(flags.get(0).getEnabled(), Boolean.TRUE);
+        assertEquals(flags.get(0).getValue(), "some-value");
+        assertEquals(flags.get(0).getFeatureName(), "some_feature");
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testClient_identityFlagsApiNoTraitsException() throws FlagsmithClientError {
         String baseUrl = "http://bad-url";
         String identifier = "identifier";
@@ -255,10 +257,10 @@ public class FlagsmithClientTest {
                         500,
                         ResponseBody.create("error", MEDIATYPE_JSON));
 
-        Assert.assertThrows(FlagsmithApiError.class, () -> client.getIdentityFlags(identifier));
+        assertThrows(FlagsmithApiError.class, () -> client.getIdentityFlags(identifier));
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testClient_identityFlagsApiNoTraits() throws FlagsmithClientError {
         String baseUrl = "http://bad-url";
         String identifier = "identifier";
@@ -281,12 +283,12 @@ public class FlagsmithClientTest {
                         MEDIATYPE_JSON);
 
         List<BaseFlag> flags = client.getIdentityFlags(identifier).getAllFlags();
-        Assert.assertEquals(flags.get(0).getEnabled(), Boolean.TRUE);
-        Assert.assertEquals(flags.get(0).getValue(), "some-value");
-        Assert.assertEquals(flags.get(0).getFeatureName(), "some_feature");
+        assertEquals(flags.get(0).getEnabled(), Boolean.TRUE);
+        assertEquals(flags.get(0).getValue(), "some-value");
+        assertEquals(flags.get(0).getFeatureName(), "some_feature");
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testClient_identityFlagsApiWithTraits()
             throws FlagsmithClientError, IOException {
         String baseUrl = "http://bad-url";
@@ -330,13 +332,13 @@ public class FlagsmithClientTest {
             }
         });
 
-        Assert.assertEquals(expectedRequest.toString(), buffer.readUtf8());
-        Assert.assertEquals(flags.get(0).getEnabled(), Boolean.TRUE);
-        Assert.assertEquals(flags.get(0).getValue(), "some-value");
-        Assert.assertEquals(flags.get(0).getFeatureName(), "some_feature");
+        assertEquals(expectedRequest.toString(), buffer.readUtf8());
+        assertEquals(flags.get(0).getEnabled(), Boolean.TRUE);
+        assertEquals(flags.get(0).getValue(), "some-value");
+        assertEquals(flags.get(0).getFeatureName(), "some_feature");
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testClient_identityFlagsApiWithTraitsWithLocalEnvironment() {
         String baseUrl = "http://bad-url";
         String identifier = "identifier";
@@ -364,7 +366,7 @@ public class FlagsmithClientTest {
                 () -> client.getEnvironmentFlags());
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testClient_defaultFlagWithNoEnvironment() throws FlagsmithClientError {
         String baseUrl = "http://bad-url";
         String identifier = "identifier";
@@ -400,12 +402,12 @@ public class FlagsmithClientTest {
         Flags flags = client.getEnvironmentFlags();
 
         DefaultFlag flag = (DefaultFlag) flags.getFlag("some_feature");
-        Assert.assertEquals(flag.getIsDefault(), Boolean.TRUE);
-        Assert.assertEquals(flag.getEnabled(), Boolean.TRUE);
-        Assert.assertEquals(flag.getValue(), "some-value");
+        assertEquals(flag.getIsDefault(), Boolean.TRUE);
+        assertEquals(flag.getEnabled(), Boolean.TRUE);
+        assertEquals(flag.getValue(), "some-value");
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testClient_When_Cache_Enabled_Return_Cache_Obj() {
         FlagsmithClient client = FlagsmithClient.newBuilder()
                 .setApiKey("api-key")
@@ -418,10 +420,10 @@ public class FlagsmithClientTest {
 
         FlagsmithCache cache = client.getCache();
 
-        Assert.assertNotNull(cache);
+        assertNotNull(cache);
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testGetIdentitySegmentsNoTraits() throws JsonProcessingException,
             FlagsmithClientError {
         String baseUrl = "http://bad-url";
@@ -451,10 +453,10 @@ public class FlagsmithClientTest {
         String identifier = "identifier";
         List<Segment> segments = client.getIdentitySegments(identifier);
 
-        Assert.assertTrue(segments.isEmpty());
+        assertTrue(segments.isEmpty());
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testGetIdentitySegmentsWithValidTrait() throws JsonProcessingException,
             FlagsmithClientError {
         String baseUrl = "http://bad-url";
@@ -490,11 +492,11 @@ public class FlagsmithClientTest {
 
         List<Segment> segments = client.getIdentitySegments(identifier, traits);
 
-        Assert.assertEquals(segments.size(), 1);
-        Assert.assertEquals(segments.get(0).getName(), "Test segment");
+        assertEquals(segments.size(), 1);
+        assertEquals(segments.get(0).getName(), "Test segment");
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testUpdateEnvironment_DoesNothing_WhenGetEnvironmentThrowsExceptionAndEnvironmentExists() {
         // Given
         EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
@@ -519,10 +521,10 @@ public class FlagsmithClientTest {
         // Then
         // No exception is thrown and the client environment remains what was first
         // retrieved from the ApiWrapper
-        Assert.assertEquals(client.getEnvironment(), environmentModel);
+        assertEquals(client.getEnvironment(), environmentModel);
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testUpdateEnvironment_DoesNothing_WhenGetEnvironmentReturnsNullAndEnvironmentExists() {
         // Given
         EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
@@ -546,10 +548,10 @@ public class FlagsmithClientTest {
 
         // Then
         // The client environment is not overwritten with null
-        Assert.assertEquals(client.getEnvironment(), environmentModel);
+        assertEquals(client.getEnvironment(), environmentModel);
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testUpdateEnvironment_DoesNothing_WhenGetEnvironmentReturnsNullAndEnvironmentNotExists() {
         // Given
         FlagsmithApiWrapper mockApiWrapper = mock(FlagsmithApiWrapper.class);
@@ -566,10 +568,10 @@ public class FlagsmithClientTest {
 
         // Then
         // The environment remains null
-        Assert.assertEquals(client.getEnvironment(), null);
+        assertEquals(client.getEnvironment(), null);
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testClose_StopsPollingManager() {
         // Given
         PollingManager mockedPollingManager = mock(PollingManager.class);
@@ -586,7 +588,7 @@ public class FlagsmithClientTest {
         verify(mockedPollingManager, times(1)).stopPolling();
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testClose_ClosesFlagsmithSdk() {
         // Given
         FlagsmithApiWrapper mockedApiWrapper = mock(FlagsmithApiWrapper.class);
@@ -603,7 +605,7 @@ public class FlagsmithClientTest {
         verify(mockedApiWrapper, times(1)).close();
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testLocalEvaluation_ReturnsConsistentResults() throws FlagsmithClientError {
         // Specific test to ensure that results are consistent when making multiple
         // calls to
@@ -639,12 +641,12 @@ public class FlagsmithClientTest {
         String expectedValue = "some-value";
 
         for (Flags flags : results) {
-            Assert.assertEquals(flags.isFeatureEnabled("some_feature"), expectedState);
-            Assert.assertEquals(flags.getFeatureValue("some_feature"), expectedValue);
+            assertEquals(flags.isFeatureEnabled("some_feature"), expectedState);
+            assertEquals(flags.getFeatureValue("some_feature"), expectedValue);
         }
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testGetEnvironmentFlags_UsesDefaultFlags_IfLocalEvaluationEnvironmentNull()
             throws FlagsmithClientError {
         // Given
@@ -664,11 +666,11 @@ public class FlagsmithClientTest {
         Flags environmentFlags = client.getEnvironmentFlags();
 
         // Then
-        Assert.assertEquals(environmentFlags.getFeatureValue("foo"), DEFAULT_FLAG_VALUE);
-        Assert.assertEquals(environmentFlags.isFeatureEnabled("foo"), DEFAULT_FLAG_STATE);
+        assertEquals(environmentFlags.getFeatureValue("foo"), DEFAULT_FLAG_VALUE);
+        assertEquals(environmentFlags.isFeatureEnabled("foo"), DEFAULT_FLAG_STATE);
     }
 
-    @Test(groups = "unit")
+    @Test
     public void testGetIdentityFlags_UsesDefaultFlags_IfLocalEvaluationEnvironmentNull() throws FlagsmithClientError {
         // Given
         FlagsmithConfig config = FlagsmithConfig.newBuilder().withLocalEvaluation(true).build();
@@ -687,7 +689,7 @@ public class FlagsmithClientTest {
         Flags identityFlags = client.getIdentityFlags("some-identity");
 
         // Then
-        Assert.assertEquals(identityFlags.getFeatureValue("foo"), DEFAULT_FLAG_VALUE);
-        Assert.assertEquals(identityFlags.isFeatureEnabled("foo"), DEFAULT_FLAG_STATE);
+        assertEquals(identityFlags.getFeatureValue("foo"), DEFAULT_FLAG_VALUE);
+        assertEquals(identityFlags.isFeatureEnabled("foo"), DEFAULT_FLAG_STATE);
     }
 }

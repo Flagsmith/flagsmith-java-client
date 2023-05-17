@@ -1,29 +1,20 @@
 package com.flagsmith;
 
-import static com.flagsmith.FlagsmithTestHelper.flag;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.testng.AssertJUnit.assertNull;
-import static org.testng.AssertJUnit.assertTrue;
 
 import com.flagsmith.exceptions.FlagsmithClientError;
-import com.flagsmith.flagengine.features.FeatureStateModel;
-import com.flagsmith.flagengine.identities.traits.TraitModel;
-import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.DefaultFlag;
-import com.flagsmith.models.Flag;
 import com.flagsmith.models.Flags;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
 
 public class FlagsmithFlagDefaultsTest {
 
   private FlagsmithFlagDefaults sut;
 
-  @BeforeMethod(groups = "unit")
+  @BeforeEach
   public void init() {
     sut = new FlagsmithFlagDefaults();
   }
@@ -39,7 +30,7 @@ public class FlagsmithFlagDefaultsTest {
     return new DefaultFlag();
   }
 
-  @Test(groups = "unit")
+  @Test
   public void getDefaultFlags_withCustomDefaultValues() throws FlagsmithClientError {
     // Arrange
     sut.setDefaultFlagValueFunc((name) -> defaultFlagHandler(name));

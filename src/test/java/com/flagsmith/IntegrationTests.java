@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableMap;
 import io.restassured.RestAssured;
+import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
@@ -12,19 +14,16 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.utility.DockerImageName;
-import org.testng.annotations.AfterGroups;
-import org.testng.annotations.BeforeGroups;
-import org.testng.annotations.Test;
 
-@Test(groups = "integration")
-public class IntegrationSuiteTest {
+
+public class IntegrationTests {
 
   public static final int BACKEND_PORT = 8000;
   private static final Network network = Network.newNetwork();
   private static PostgreSQLContainer<?> postgres;
 
-  @BeforeGroups(groups = "integration")
-  public static void beforeClass() {
+  @BeforeClass
+  public static void init() {
       postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:10.6-alpine"))
         .withNetwork(network)
         .withNetworkAliases("flagsmith-db")
@@ -56,18 +55,18 @@ public class IntegrationSuiteTest {
         .describedAs("Super user have to be created")
         .isEqualTo("ADMIN USER CREATED");
 
-    TestData.token = flagSmithAuthenticate();
+    TestData.token = flagsmithAuthenticate();
     TestData.organisationId = createOrganisation("Test Organisation");
   }
 
-  @AfterGroups(groups = "integration")
-  public static void afterClass() {
+  @AfterAll
+  public static void teardown() {
     TestData.backend.stop();
     postgres.stop();
     network.close();
   }
 
-  private static String flagSmithAuthenticate() {
+  private static String flagsmithAuthenticate() {
     return RestAssured.given()
         .body(ImmutableMap.of(
             // from https://github.com/Flagsmith/flagsmith-api/blob/v2.5.0/src/app/settings/common.py#L255-L258
@@ -96,7 +95,6 @@ public class IntegrationSuiteTest {
   }
 
   public static class TestData {
-
     public static String token;
     public static int organisationId;
     public static GenericContainer<?> backend;
