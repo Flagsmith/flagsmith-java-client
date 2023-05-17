@@ -1,18 +1,16 @@
 package com.flagsmith.config;
 
-import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.models.Flags;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
-import java.util.List;
+
 import java.util.concurrent.TimeUnit;
-import lombok.Data;
-import lombok.NonNull;
+import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 
-@Data
+@Getter
 public final class FlagsmithCacheConfig {
 
   private static final int DEFAULT_MAX_SIZE = 10;
@@ -163,7 +161,7 @@ public final class FlagsmithCacheConfig {
     private final String envFlagsCacheKey;
 
     public FlagsmithCacheImpl(final Cache<String, Flags> cache,
-                              final String envFlagsCacheKey) {
+        final String envFlagsCacheKey) {
       this.cache = cache;
       this.envFlagsCacheKey = envFlagsCacheKey;
     }

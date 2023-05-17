@@ -35,6 +35,7 @@ import org.mockito.ArgumentCaptor;
 
 
 public class FlagsmithApiWrapperCachingTest {
+
   private final String API_KEY = "OUR_API_KEY";
   private final String BASE_URL = "https://unit-test.com";
   private FlagsmithCache flagsmithCacheImpl;
@@ -61,7 +62,8 @@ public class FlagsmithApiWrapperCachingTest {
     flagsmithLogger = mock(FlagsmithLogger.class);
     requestProcessor = mock(RequestProcessor.class);
 
-    flagsmithAPIWrapper = new FlagsmithApiWrapper(flagsmithCacheImpl, defaultConfig, null, flagsmithLogger, API_KEY);
+    flagsmithAPIWrapper = new FlagsmithApiWrapper(
+        flagsmithCacheImpl, defaultConfig, null, flagsmithLogger, API_KEY);
     flagsmithAPIWrapper.setRequestor(requestProcessor);
   }
 
@@ -177,7 +179,7 @@ public class FlagsmithApiWrapperCachingTest {
 
     final List<FeatureStateModel> featureStateModels = new ArrayList<>();
     when(requestProcessor.executeAsync(any(), any(), any()))
-            .thenReturn(FlagsmithTestHelper.futurableReturn(featureStateModels));
+        .thenReturn(FlagsmithTestHelper.futurableReturn(featureStateModels));
 
     // When
     Flags flags = flagsmithAPIWrapper.getFeatureFlags(false);
