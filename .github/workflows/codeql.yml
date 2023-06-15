@@ -39,6 +39,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
       - name: Set up JDK (${{ matrix.java }} ${{ matrix.distribution }})
         uses: actions/setup-java@v2
