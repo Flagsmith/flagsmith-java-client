@@ -57,13 +57,16 @@ public class SegmentEvaluator {
     List<TraitModel> traits =
         overrideTraits != null ? overrideTraits : identity.getIdentityTraits();
 
+    String identityHashKey = identity.getDjangoId() == null ? identity.getCompositeKey()
+        : identity.getDjangoId().toString();
+
     if (segmentRules != null && segmentRules.size() > 0) {
       List<Boolean> segmentRuleEvaluations = segmentRules.stream().map(
           (rule) -> traitsMatchSegmentRule(
               traits,
               rule,
               segment.getId(),
-              identity.getCompositeKey()
+              identityHashKey
           )
       ).collect(Collectors.toList());
 

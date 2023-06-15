@@ -103,4 +103,44 @@ public class SegmentEvaluatorTest {
     // The result is as we expect from the DataProvider definition
     Assertions.assertEquals(inSegment, expectedResult);
   }
+
+  private static Stream<Arguments> identitiesInSegmentsPercentageSplit() {
+    return Stream.of(
+        Arguments.of(null, "Test", Boolean.TRUE),
+        Arguments.of(1, "Test", Boolean.FALSE));
+  }
+
+  @ParameterizedTest
+  @MethodSource("identitiesInSegmentsPercentageSplit")
+  public void testIdentityInSegmentPercentageSplitUsesDjangoId(Integer djangoId, String identifier,
+      Boolean expectedResult) {
+    // Given
+    // An identity with djangoId and identifier as defined in the DataProvider
+    IdentityModel identityModel = new IdentityModel();
+    identityModel.setDjangoId(djangoId);
+    identityModel.setIdentifier(identifier);
+    identityModel.setEnvironmentApiKey("key");
+
+    // And a segment with 50% percentage split
+    SegmentConditionModel segmentCondition = new SegmentConditionModel();
+    segmentCondition.setOperator(SegmentConditions.PERCENTAGE_SPLIT);
+    segmentCondition.setValue("50");
+
+    SegmentRuleModel segmentRule = new SegmentRuleModel();
+    segmentRule.setConditions(new ArrayList<>(Arrays.asList(segmentCondition)));
+    segmentRule.setType(SegmentRules.ALL_RULE.getRule());
+
+    SegmentModel segment = new SegmentModel();
+    segment.setId(1);
+    segment.setName("% split");
+    segment.setRules(new ArrayList<>(Arrays.asList(segmentRule)));
+
+    // When
+    // We evaluat~e whether the identity is in the segment
+    Boolean result = SegmentEvaluator.evaluateIdentityInSegment(identityModel, segment, null);
+
+    // Then
+    // The result is as we expect from the DataProvider definition
+    Assertions.assertEquals(result, expectedResult);
+  }
 }
