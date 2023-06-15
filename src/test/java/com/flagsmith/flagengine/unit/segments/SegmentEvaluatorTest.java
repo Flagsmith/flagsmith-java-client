@@ -136,7 +136,7 @@ public class SegmentEvaluatorTest {
     segment.setRules(new ArrayList<>(Arrays.asList(segmentRule)));
 
     // When
-    // We evaluat~e whether the identity is in the segment
+    // We evaluate whether the identity is in the segment
     Boolean result = SegmentEvaluator.evaluateIdentityInSegment(identityModel, segment, null);
 
     // Then
