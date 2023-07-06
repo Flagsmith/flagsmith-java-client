@@ -174,15 +174,18 @@ public class SegmentEvaluator {
    */
   public static Boolean conditionMatchesTraitValue(SegmentConditionModel condition, Object value) {
     SegmentConditions operator = condition.getOperator();
-    if (operator.equals(SegmentConditions.NOT_CONTAINS)) {
-      return ((String) value).indexOf(condition.getValue()) == -1;
-    } else if (operator.equals(SegmentConditions.CONTAINS)) {
-      return ((String) value).indexOf(condition.getValue()) > -1;
-    } else if (operator.equals(SegmentConditions.REGEX)) {
-      Pattern pattern = Pattern.compile(condition.getValue());
-      return pattern.matcher((String) value).find();
-    } else {
-      return TypeCasting.compare(operator, value, condition.getValue());
+    switch (operator) {
+      case NOT_CONTAINS:
+        return ((String) value).indexOf(condition.getValue()) == -1;
+      case CONTAINS:
+        return ((String) value).indexOf(condition.getValue()) > -1;
+      case IN:
+        return condition.getValue().indexOf((String) value) > -1;
+      case REGEX:
+        Pattern pattern = Pattern.compile(condition.getValue());
+        return pattern.matcher((String) value).find();
+      default:
+        return TypeCasting.compare(operator, value, condition.getValue());
     }
   }
 }

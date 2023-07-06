@@ -71,8 +71,11 @@ public class SegmentModelTest {
         Arguments.of(SegmentConditions.MODULO, 2.0, "2|0", true),
         Arguments.of(SegmentConditions.MODULO, 2.0, "2.0|0.0", true),
         Arguments.of(SegmentConditions.MODULO, "foo", "2|0", false),
-        Arguments.of(SegmentConditions.MODULO, "foo", "foo|bar", false)
-    );
+        Arguments.of(SegmentConditions.MODULO, "foo", "foo|bar", false),
+        Arguments.of(SegmentConditions.IN, "foo", "", false),
+        Arguments.of(SegmentConditions.IN, "foo", "foo, bar", true),
+        Arguments.of(SegmentConditions.IN, "bar", "foo, bar", true),
+        Arguments.of(SegmentConditions.IN, "foo", "foo", true));
   }
 
   @ParameterizedTest
@@ -131,9 +134,7 @@ public class SegmentModelTest {
         Arguments.of(SegmentConditions.GREATER_THAN_INCLUSIVE, "1.0.1", "1.0.1:semver", true),
         Arguments.of(SegmentConditions.LESS_THAN_INCLUSIVE, "1.0.0", "1.0.1:semver", true),
         Arguments.of(SegmentConditions.LESS_THAN_INCLUSIVE, "1.0.0", "1.0.0:semver", true),
-        Arguments.of(SegmentConditions.LESS_THAN_INCLUSIVE, "1.0.1", "1.0.0:semver", false)
-    );
+        Arguments.of(SegmentConditions.LESS_THAN_INCLUSIVE, "1.0.1", "1.0.0:semver", false));
   }
-
 
 }
