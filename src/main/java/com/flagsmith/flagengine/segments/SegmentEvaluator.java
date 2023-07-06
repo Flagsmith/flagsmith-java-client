@@ -176,14 +176,14 @@ public class SegmentEvaluator {
     SegmentConditions operator = condition.getOperator();
     switch (operator) {
       case NOT_CONTAINS:
-        return ((String) value).indexOf(condition.getValue()) == -1;
+        return (String.valueOf(value)).indexOf(condition.getValue()) == -1;
       case CONTAINS:
-        return ((String) value).indexOf(condition.getValue()) > -1;
+        return (String.valueOf(value)).indexOf(condition.getValue()) > -1;
       case IN:
-        return condition.getValue().indexOf((String) value) > -1;
+        return condition.getValue().indexOf(String.valueOf(value)) > -1;
       case REGEX:
         Pattern pattern = Pattern.compile(condition.getValue());
-        return pattern.matcher((String) value).find();
+        return pattern.matcher(String.valueOf(value)).find();
       default:
         return TypeCasting.compare(operator, value, condition.getValue());
     }

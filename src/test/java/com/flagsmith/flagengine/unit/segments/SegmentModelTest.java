@@ -61,11 +61,17 @@ public class SegmentModelTest {
         Arguments.of(SegmentConditions.CONTAINS, "bar", "b", true),
         Arguments.of(SegmentConditions.CONTAINS, "bar", "bar", true),
         Arguments.of(SegmentConditions.CONTAINS, "bar", "baz", false),
+        Arguments.of(SegmentConditions.CONTAINS, 1, "2", false),
+        Arguments.of(SegmentConditions.CONTAINS, 12, "1", true),
         Arguments.of(SegmentConditions.NOT_CONTAINS, "bar", "b", false),
         Arguments.of(SegmentConditions.NOT_CONTAINS, "bar", "bar", false),
         Arguments.of(SegmentConditions.NOT_CONTAINS, "bar", "baz", true),
+        Arguments.of(SegmentConditions.NOT_CONTAINS, 1, "2", true),
+        Arguments.of(SegmentConditions.NOT_CONTAINS, 12, "1", false),
         Arguments.of(SegmentConditions.REGEX, "foo", "[a-z]+", true),
         Arguments.of(SegmentConditions.REGEX, "FOO", "[a-z]+", false),
+        Arguments.of(SegmentConditions.REGEX, 42, "[a-z]+", false),
+        Arguments.of(SegmentConditions.REGEX, 42, "\\d+", true),
         Arguments.of(SegmentConditions.MODULO, 2, "2|0", true),
         Arguments.of(SegmentConditions.MODULO, 3, "2|0", false),
         Arguments.of(SegmentConditions.MODULO, 2.0, "2|0", true),
@@ -75,7 +81,10 @@ public class SegmentModelTest {
         Arguments.of(SegmentConditions.IN, "foo", "", false),
         Arguments.of(SegmentConditions.IN, "foo", "foo, bar", true),
         Arguments.of(SegmentConditions.IN, "bar", "foo, bar", true),
-        Arguments.of(SegmentConditions.IN, "foo", "foo", true));
+        Arguments.of(SegmentConditions.IN, "foo", "foo", true),
+        Arguments.of(SegmentConditions.IN, 1, "1,2,3,4", true),
+        Arguments.of(SegmentConditions.IN, 1, "", false),
+        Arguments.of(SegmentConditions.IN, 1, "1", true));
   }
 
   @ParameterizedTest
