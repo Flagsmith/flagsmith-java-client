@@ -4,6 +4,7 @@ import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithApiError;
 import com.flagsmith.exceptions.FlagsmithClientError;
+import com.flagsmith.exceptions.FlagsmithRuntimeError;
 import com.flagsmith.flagengine.Engine;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
@@ -478,7 +479,7 @@ public class FlagsmithClient {
 
       if (configuration.getEnableLocalEvaluation()) {
         if (!apiKey.startsWith("ser.")) {
-          throw new RuntimeException(
+          throw new FlagsmithRuntimeError(
               "In order to use local evaluation, please generate a server key "
                   + "in the environment settings page.");
         }

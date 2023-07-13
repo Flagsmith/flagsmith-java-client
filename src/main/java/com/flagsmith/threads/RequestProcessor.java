@@ -7,12 +7,13 @@ import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.config.Retry;
 import com.flagsmith.exceptions.FlagsmithApiError;
+import com.flagsmith.exceptions.FlagsmithRuntimeError;
+
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import lombok.Data;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -104,7 +105,7 @@ public class RequestProcessor {
           localRetry.retryAttempted();
         } while (localRetry.isRetry(statusCode));
       } catch (Exception e) {
-        throw new RuntimeException();
+        throw new FlagsmithRuntimeError();
       } finally {
         if (!completableFuture.isDone()) {
           if (doThrow) {

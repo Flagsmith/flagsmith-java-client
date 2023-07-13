@@ -3,6 +3,7 @@ package com.flagsmith;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.flagsmith.config.FlagsmithConfig;
+import com.flagsmith.exceptions.FlagsmithRuntimeError;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
@@ -159,7 +160,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     } catch (ExecutionException ee) {
       logger.error("Execution failed on fetching Feature flags.", ee);
       if (doThrow) {
-        throw new RuntimeException(ee);
+        throw new FlagsmithRuntimeError(ee);
       }
     }
 
@@ -230,7 +231,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     } catch (ExecutionException ee) {
       logger.error("Execution failed on fetching Feature flags.", ee);
       if (doThrow) {
-        throw new RuntimeException(ee);
+        throw new FlagsmithRuntimeError(ee);
       }
     }
 
@@ -256,7 +257,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
       logger.error("Environment loading interrupted.", ie);
     } catch (ExecutionException ee) {
       logger.error("Execution failed on Environment loading.", ee);
-      throw new RuntimeException(ee);
+      throw new FlagsmithRuntimeError(ee);
     }
 
     return null;
