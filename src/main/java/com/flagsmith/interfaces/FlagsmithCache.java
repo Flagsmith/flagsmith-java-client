@@ -70,6 +70,13 @@ public interface FlagsmithCache {
   String getEnvFlagsCacheKey();
 
   /**
+   * Returns the cache key for a given identity.
+   *
+   * @return string
+   */
+  String getIdentityFlagsCacheKey(String identifier);
+
+  /**
    * Returns the Cache instance.
    *
    * @return

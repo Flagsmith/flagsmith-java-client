@@ -174,9 +174,11 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   ) {
     assertValidUser(identifier);
     Flags flags = null;
+    String cacheKey = null;
 
-    if (getCache() != null && getCache().getEnvFlagsCacheKey() != null) {
-      flags = getCache().getIfPresent(getCache().getEnvFlagsCacheKey());
+    if (getCache() != null) {
+      cacheKey = getCache().getIdentityFlagsCacheKey(identifier);
+      flags = getCache().getIfPresent(cacheKey);
 
       if (flags != null) {
         return flags;
@@ -218,9 +220,9 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
           getConfig().getFlagsmithFlagDefaults()
       );
 
-      if (getCache() != null) {
-        getCache().getCache().put("identifier" + identifier, flags);
-        logger.info("Got feature flags for flags = {} and cached.", flags);
+      if (cacheKey != null) {
+        getCache().getCache().put(cacheKey, flags);
+        logger.info("Cached flags for identity {}.", identifier);
       }
 
     } catch (TimeoutException ie) {

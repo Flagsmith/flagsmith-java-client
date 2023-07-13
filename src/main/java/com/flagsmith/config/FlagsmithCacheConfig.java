@@ -207,6 +207,11 @@ public final class FlagsmithCacheConfig {
     }
 
     @Override
+    public String getIdentityFlagsCacheKey(String identifier) {
+      return "identity" + identifier;
+    }
+
+    @Override
     public Cache<String, Flags> getCache() {
       return cache;
     }
