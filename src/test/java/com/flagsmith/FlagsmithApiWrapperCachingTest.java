@@ -156,7 +156,10 @@ public class FlagsmithApiWrapperCachingTest {
   public void identifyUserWithTraits_fetchFlagsFromFlagsmithAndStoreThemInCache_whenCacheEmpty() {
     // Arrange
     String identifier = "test-user";
+    String expectedCacheKey = "identity" + identifier;
     final ArrayList<TraitModel> traits = new ArrayList<>();
+
+    when(flagsmithCacheImpl.getIdentityFlagsCacheKey(identifier)).thenReturn(expectedCacheKey);
 
     final FlagsAndTraitsResponse flagsAndTraitsResponse = new FlagsAndTraitsResponse();
     when(requestProcessor.executeAsync(any(), any(), any()))
@@ -170,6 +173,11 @@ public class FlagsmithApiWrapperCachingTest {
     // Assert
     verify(requestProcessor, times(1)).executeAsync(any(), any(), any());
     assertEquals(newFlagsList(new ArrayList<>()), actualUserFlagsAndTraits);
+
+    verify(flagsmithCacheImpl, times(1)).getIfPresent(expectedCacheKey);
+
+    assertEquals(1, cache.estimatedSize());
+    assertEquals(cache.getIfPresent(expectedCacheKey), actualUserFlagsAndTraits);
   }
 
   @Test
