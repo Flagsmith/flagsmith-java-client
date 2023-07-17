@@ -86,6 +86,8 @@ public class SegmentModelTest {
         Arguments.of(SegmentConditions.IN, 1, "1,2,3,4", true),
         Arguments.of(SegmentConditions.IN, 1, "", false),
         Arguments.of(SegmentConditions.IN, 1, "1", true),
+        // Flagsmith's engine does not evaluate `IN` condition for floats/doubles and booleans
+        // due to ambiguous serialization across supported platforms.
         Arguments.of(SegmentConditions.IN, 1.5, "1.5", false),
         Arguments.of(SegmentConditions.IN, false, "false", false)
     );
