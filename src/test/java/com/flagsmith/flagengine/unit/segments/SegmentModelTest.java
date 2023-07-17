@@ -79,12 +79,16 @@ public class SegmentModelTest {
         Arguments.of(SegmentConditions.MODULO, "foo", "2|0", false),
         Arguments.of(SegmentConditions.MODULO, "foo", "foo|bar", false),
         Arguments.of(SegmentConditions.IN, "foo", "", false),
-        Arguments.of(SegmentConditions.IN, "foo", "foo, bar", true),
-        Arguments.of(SegmentConditions.IN, "bar", "foo, bar", true),
+        Arguments.of(SegmentConditions.IN, "foo", "foo,bar", true),
+        Arguments.of(SegmentConditions.IN, "bar", "foo,bar", true),
+        Arguments.of(SegmentConditions.IN, "ba", "foo,bar", false),
         Arguments.of(SegmentConditions.IN, "foo", "foo", true),
         Arguments.of(SegmentConditions.IN, 1, "1,2,3,4", true),
         Arguments.of(SegmentConditions.IN, 1, "", false),
-        Arguments.of(SegmentConditions.IN, 1, "1", true));
+        Arguments.of(SegmentConditions.IN, 1, "1", true),
+        Arguments.of(SegmentConditions.IN, 1.5, "1.5", false),
+        Arguments.of(SegmentConditions.IN, false, "false", false)
+    );
   }
 
   @ParameterizedTest

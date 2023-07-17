@@ -180,7 +180,13 @@ public class SegmentEvaluator {
       case CONTAINS:
         return (String.valueOf(value)).indexOf(condition.getValue()) > -1;
       case IN:
-        return condition.getValue().indexOf(String.valueOf(value)) > -1;
+        if (value instanceof String) {
+          return Arrays.asList(condition.getValue().split(",")).contains(value);
+        }
+        if (value instanceof Integer) {
+          return Arrays.asList(condition.getValue().split(",")).contains(String.valueOf(value));
+        }
+        return false;
       case REGEX:
         Pattern pattern = Pattern.compile(condition.getValue());
         return pattern.matcher(String.valueOf(value)).find();
