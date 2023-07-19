@@ -61,17 +61,35 @@ public class SegmentModelTest {
         Arguments.of(SegmentConditions.CONTAINS, "bar", "b", true),
         Arguments.of(SegmentConditions.CONTAINS, "bar", "bar", true),
         Arguments.of(SegmentConditions.CONTAINS, "bar", "baz", false),
+        Arguments.of(SegmentConditions.CONTAINS, 1, "2", false),
+        Arguments.of(SegmentConditions.CONTAINS, 12, "1", true),
         Arguments.of(SegmentConditions.NOT_CONTAINS, "bar", "b", false),
         Arguments.of(SegmentConditions.NOT_CONTAINS, "bar", "bar", false),
         Arguments.of(SegmentConditions.NOT_CONTAINS, "bar", "baz", true),
+        Arguments.of(SegmentConditions.NOT_CONTAINS, 1, "2", true),
+        Arguments.of(SegmentConditions.NOT_CONTAINS, 12, "1", false),
         Arguments.of(SegmentConditions.REGEX, "foo", "[a-z]+", true),
         Arguments.of(SegmentConditions.REGEX, "FOO", "[a-z]+", false),
+        Arguments.of(SegmentConditions.REGEX, 42, "[a-z]+", false),
+        Arguments.of(SegmentConditions.REGEX, 42, "\\d+", true),
         Arguments.of(SegmentConditions.MODULO, 2, "2|0", true),
         Arguments.of(SegmentConditions.MODULO, 3, "2|0", false),
         Arguments.of(SegmentConditions.MODULO, 2.0, "2|0", true),
         Arguments.of(SegmentConditions.MODULO, 2.0, "2.0|0.0", true),
         Arguments.of(SegmentConditions.MODULO, "foo", "2|0", false),
-        Arguments.of(SegmentConditions.MODULO, "foo", "foo|bar", false)
+        Arguments.of(SegmentConditions.MODULO, "foo", "foo|bar", false),
+        Arguments.of(SegmentConditions.IN, "foo", "", false),
+        Arguments.of(SegmentConditions.IN, "foo", "foo,bar", true),
+        Arguments.of(SegmentConditions.IN, "bar", "foo,bar", true),
+        Arguments.of(SegmentConditions.IN, "ba", "foo,bar", false),
+        Arguments.of(SegmentConditions.IN, "foo", "foo", true),
+        Arguments.of(SegmentConditions.IN, 1, "1,2,3,4", true),
+        Arguments.of(SegmentConditions.IN, 1, "", false),
+        Arguments.of(SegmentConditions.IN, 1, "1", true),
+        // Flagsmith's engine does not evaluate `IN` condition for floats/doubles and booleans
+        // due to ambiguous serialization across supported platforms.
+        Arguments.of(SegmentConditions.IN, 1.5, "1.5", false),
+        Arguments.of(SegmentConditions.IN, false, "false", false)
     );
   }
 
@@ -131,9 +149,7 @@ public class SegmentModelTest {
         Arguments.of(SegmentConditions.GREATER_THAN_INCLUSIVE, "1.0.1", "1.0.1:semver", true),
         Arguments.of(SegmentConditions.LESS_THAN_INCLUSIVE, "1.0.0", "1.0.1:semver", true),
         Arguments.of(SegmentConditions.LESS_THAN_INCLUSIVE, "1.0.0", "1.0.0:semver", true),
-        Arguments.of(SegmentConditions.LESS_THAN_INCLUSIVE, "1.0.1", "1.0.0:semver", false)
-    );
+        Arguments.of(SegmentConditions.LESS_THAN_INCLUSIVE, "1.0.1", "1.0.0:semver", false));
   }
-
 
 }
