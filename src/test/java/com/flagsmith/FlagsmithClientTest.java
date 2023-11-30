@@ -717,7 +717,6 @@ public class FlagsmithClientTest {
                 .build();
 
         // When
-        client.getEnvironmentFlags();
         client.close();
 
         // Then
