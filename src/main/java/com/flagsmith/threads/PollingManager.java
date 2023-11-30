@@ -32,7 +32,7 @@ public class PollingManager {
    * @return
    */
   private Thread initializeThread() {
-    return new Thread() {
+    Thread thread = new Thread() {
       @Override
       public void run() {
         try {
@@ -45,6 +45,8 @@ public class PollingManager {
         }
       }
     };
+    thread.setDaemon(true);
+    return thread;
   }
 
   /**
@@ -61,5 +63,10 @@ public class PollingManager {
     internalThread.interrupt();
   }
 
-
+  /**
+   * Get thread status
+   */
+  public Boolean getIsThreadAlive() {
+    return internalThread.isAlive();
+  }
 }

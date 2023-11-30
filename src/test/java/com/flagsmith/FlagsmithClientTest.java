@@ -7,11 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.flagsmith.responses.FlagsAndTraitsResponse;
 import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithApiError;
@@ -24,6 +25,7 @@ import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.DefaultFlag;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.Segment;
+import com.flagsmith.responses.FlagsAndTraitsResponse;
 import com.flagsmith.threads.PollingManager;
 import com.flagsmith.threads.RequestProcessor;
 
@@ -691,5 +693,35 @@ public class FlagsmithClientTest {
         // Then
         assertEquals(identityFlags.getFeatureValue("foo"), DEFAULT_FLAG_VALUE);
         assertEquals(identityFlags.isFeatureEnabled("foo"), DEFAULT_FLAG_STATE);
+    }
+
+    @Test
+    public void testClose() throws FlagsmithApiError, InterruptedException {
+        // Given
+        int pollingInterval = 1;
+
+        FlagsmithConfig config = FlagsmithConfig
+                .newBuilder()
+                .withLocalEvaluation(true)
+                .withEnvironmentRefreshIntervalSeconds(pollingInterval)
+                .build();
+
+        FlagsmithApiWrapper mockedApiWrapper = mock(FlagsmithApiWrapper.class);
+        when(mockedApiWrapper.getEnvironment()).thenReturn(FlagsmithTestHelper.environmentModel());
+        when(mockedApiWrapper.getConfig()).thenReturn(config);
+
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withFlagsmithApiWrapper(mockedApiWrapper)
+                .withConfiguration(config)
+                .setApiKey("ser.dummy-key")
+                .build();
+
+        // When
+        client.getEnvironmentFlags();
+        client.close();
+
+        // Then
+        Thread.sleep(pollingInterval);
+        assertFalse(client.getPollingManager().getIsThreadAlive());
     }
 }
