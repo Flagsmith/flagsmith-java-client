@@ -721,7 +721,7 @@ public class FlagsmithClientTest {
 
         // Then
         // Since the thread will only stop once it reads the interrupt signal correctly
-        // on it's next polling interval, we need to wait for the polling interval
+        // on its next polling interval, we need to wait for the polling interval
         // to complete before checking the thread has been killed correctly.
         Thread.sleep(pollingInterval);
         assertFalse(client.getPollingManager().getIsThreadAlive());
