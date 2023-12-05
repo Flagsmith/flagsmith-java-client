@@ -7,7 +7,6 @@ import static org.testng.Assert.assertThrows;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.flagsmith.responses.FlagsAndTraitsResponse;
 import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithApiError;
@@ -20,6 +19,7 @@ import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.DefaultFlag;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.Segment;
+import com.flagsmith.responses.FlagsAndTraitsResponse;
 import com.flagsmith.threads.PollingManager;
 import com.flagsmith.threads.RequestProcessor;
 
@@ -590,5 +590,37 @@ public class FlagsmithClientTest {
         Assert.assertEquals(flags.isFeatureEnabled("some_feature"), expectedState);
         Assert.assertEquals(flags.getFeatureValue("some_feature"), expectedValue);
     }
+  }
+
+  @Test(groups = "unit")
+  public void testClose() throws FlagsmithApiError, InterruptedException {
+    // Given
+    int pollingInterval = 1;
+
+    FlagsmithConfig config = FlagsmithConfig
+            .newBuilder()
+            .withLocalEvaluation(true)
+            .withEnvironmentRefreshIntervalSeconds(pollingInterval)
+            .build();
+
+    FlagsmithApiWrapper mockedApiWrapper = mock(FlagsmithApiWrapper.class);
+    when(mockedApiWrapper.getEnvironment()).thenReturn(FlagsmithTestHelper.environmentModel());
+    when(mockedApiWrapper.getConfig()).thenReturn(config);
+
+    FlagsmithClient client = FlagsmithClient.newBuilder()
+            .withFlagsmithApiWrapper(mockedApiWrapper)
+            .withConfiguration(config)
+            .setApiKey("ser.dummy-key")
+            .build();
+
+    // When
+    client.close();
+
+    // Then
+    // Since the thread will only stop once it reads the interrupt signal correctly
+    // on its next polling interval, we need to wait for the polling interval
+    // to complete before checking the thread has been killed correctly.
+    Thread.sleep(pollingInterval);
+    Assert.assertFalse(client.getPollingManager().getIsThreadAlive());
   }
 }
