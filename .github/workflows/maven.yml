@@ -4,32 +4,39 @@ on:
   push:
 
 jobs:
-  build:
+  do_something:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        distribution: ["zulu", "adopt"]
-        java: ["8", "11", "15"]
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2.3.1
-        with:
-          submodules: recursive
+      - name: Do something
+        run: echo "I did something!"
 
-      - name: Set up JDK (${{ matrix.java }} ${{ matrix.distribution }})
-        uses: actions/setup-java@v2
-        with:
-          distribution: ${{ matrix.distribution }}
-          java-version: ${{ matrix.java }}
+  # build:
+  #   runs-on: ubuntu-latest
 
-      - name: Cache Maven Packages
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
+  #   strategy:
+  #     matrix:
+  #       distribution: ["zulu", "adopt"]
+  #       java: ["8", "11", "15"]
 
-      - name: Build with Maven
-        run: mvn -B test
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v2.3.1
+  #       with:
+  #         submodules: recursive
+
+  #     - name: Set up JDK (${{ matrix.java }} ${{ matrix.distribution }})
+  #       uses: actions/setup-java@v2
+  #       with:
+  #         distribution: ${{ matrix.distribution }}
+  #         java-version: ${{ matrix.java }}
+
+  #     - name: Cache Maven Packages
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: ~/.m2
+  #         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+  #         restore-keys: ${{ runner.os }}-m2
+
+  #     - name: Build with Maven
+  #       run: mvn -B test
