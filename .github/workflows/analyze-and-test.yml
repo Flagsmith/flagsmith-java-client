@@ -1,15 +1,10 @@
-# This action runs GitHub's industry-leading static analysis engine, CodeQL, against a repository's source
-# code to find security vulnerabilities. It then automatically uploads the results to GitHub so they can be
-# displayed in the repository's security tab.
-#
-name: "CodeQL"
+name: "Analyze and test"
 
 on:
   push:
-    branches: [main, release/**]
+    branches:
+      - main
   pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [main, release/**]
   schedule:
     #        ┌───────────── minute (0 - 59)
     #        │ ┌───────────── hour (0 - 23)
@@ -23,8 +18,8 @@ on:
     - cron: '0 0 * * 4'
 
 jobs:
-  analyze:
-    name: Analyze
+  analyze_and_test:
+    name: Analyze and test
     runs-on: ubuntu-latest
 
     strategy:
@@ -58,3 +53,6 @@ jobs:
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
+
+      - name: Run tests
+        run: mvn -B test
