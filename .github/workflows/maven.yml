@@ -4,9 +4,9 @@ on:
   push:
 
 jobs:
-  do_something:
+  do_something_else:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Do something
-        run: echo "I did something!"
+      - name: Do something else
+        run: echo "I did something else!"
