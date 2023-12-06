@@ -64,7 +64,7 @@ public class PollingManager {
   }
 
   /**
-   * Get thread status
+   * Get thread status.
    */
   public Boolean getIsThreadAlive() {
     return internalThread.isAlive();
