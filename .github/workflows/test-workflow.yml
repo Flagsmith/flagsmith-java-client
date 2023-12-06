@@ -1,0 +1,12 @@
+name: test workflow
+
+on:
+  push:
+
+jobs:
+  do_something:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Do something
+        run: echo "I did something!"
