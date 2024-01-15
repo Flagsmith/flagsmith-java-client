@@ -5,6 +5,7 @@ import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithApiError;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.exceptions.FlagsmithRuntimeError;
+import com.flagsmith.exceptions.FlagsmithValidationException;
 import com.flagsmith.flagengine.Engine;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
@@ -72,7 +73,10 @@ public class FlagsmithClient {
    * @return
    */
   public Flags getEnvironmentFlags() throws FlagsmithClientError {
-    if (flagsmithSdk.getConfig().getEnableLocalEvaluation()) {
+    FlagsmithConfig config = getConfig();
+    Boolean useEnvironmentDocument = config.getEnableLocalEvaluation() | config.getOfflineMode();
+
+    if (useEnvironmentDocument) {
       return getEnvironmentFlagsFromDocument();
     }
 
@@ -105,7 +109,9 @@ public class FlagsmithClient {
    */
   public Flags getIdentityFlags(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
-    if (flagsmithSdk.getConfig().getEnableLocalEvaluation()) {
+    FlagsmithConfig config = getConfig();
+    Boolean useEnvironmentDocument = config.getEnableLocalEvaluation() | config.getOfflineMode();
+    if (useEnvironmentDocument) {
       return getIdentityFlagsFromDocument(identifier, traits);
     }
 
@@ -165,7 +171,7 @@ public class FlagsmithClient {
 
   private Flags getEnvironmentFlagsFromDocument() throws FlagsmithClientError {
     if (environment == null) {
-      if (flagsmithSdk.getConfig().getFlagsmithFlagDefaults() == null) {
+      if (getConfig().getFlagsmithFlagDefaults() == null) {
         throw new FlagsmithClientError("Unable to get flags. No environment present.");
       }
       return getDefaultFlags();
@@ -173,15 +179,15 @@ public class FlagsmithClient {
 
     return Flags.fromFeatureStateModels(
         Engine.getEnvironmentFeatureStates(environment),
-        flagsmithSdk.getConfig().getAnalyticsProcessor(),
+        getConfig().getAnalyticsProcessor(),
         null,
-        flagsmithSdk.getConfig().getFlagsmithFlagDefaults());
+        getConfig().getFlagsmithFlagDefaults());
   }
 
   private Flags getIdentityFlagsFromDocument(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
     if (environment == null) {
-      if (flagsmithSdk.getConfig().getFlagsmithFlagDefaults() == null) {
+      if (getConfig().getFlagsmithFlagDefaults() == null) {
         throw new FlagsmithClientError("Unable to get flags. No environment present.");
       }
       return getDefaultFlags();
@@ -192,17 +198,23 @@ public class FlagsmithClient {
 
     return Flags.fromFeatureStateModels(
         featureStates,
-        flagsmithSdk.getConfig().getAnalyticsProcessor(),
+        getConfig().getAnalyticsProcessor(),
         identity.getCompositeKey(),
-        flagsmithSdk.getConfig().getFlagsmithFlagDefaults());
+        getConfig().getFlagsmithFlagDefaults());
   }
 
-  private Flags getEnvironmentFlagsFromApi() throws FlagsmithApiError {
+  private Flags getEnvironmentFlagsFromApi() throws FlagsmithApiError, FlagsmithClientError {
     try {
       return flagsmithSdk.getFeatureFlags(Boolean.TRUE);
     } catch (Exception e) {
-      if (flagsmithSdk.getConfig().getFlagsmithFlagDefaults() != null) {
+      if (getConfig().getFlagsmithFlagDefaults() != null) {
         return getDefaultFlags();
+      } else if (environment != null) {
+        try {
+          return getEnvironmentFlagsFromDocument();
+        } catch (FlagsmithClientError ce) {
+          // Do nothing and fall through to FlagsmithApiError
+        }
       }
 
       throw new FlagsmithApiError("Failed to get feature flags.");
@@ -225,8 +237,16 @@ public class FlagsmithClient {
           traitsList,
           Boolean.TRUE);
     } catch (Exception e) {
-      if (flagsmithSdk.getConfig().getFlagsmithFlagDefaults() != null) {
+      FlagsmithConfig config = getConfig();
+
+      if (config.getFlagsmithFlagDefaults() != null) {
         return getDefaultFlags();
+      } else if (environment != null) {
+        try {
+          return getIdentityFlagsFromDocument(identifier, traits);
+        } catch (FlagsmithClientError ce) {
+          // Do nothing and fall through to FlagsmithApiError
+        }
       }
 
       throw new FlagsmithApiError("Failed to get feature flags.");
@@ -258,7 +278,7 @@ public class FlagsmithClient {
 
   private Flags getDefaultFlags() {
     Flags flags = new Flags();
-    flags.setDefaultFlagHandler(flagsmithSdk.getConfig().getFlagsmithFlagDefaults());
+    flags.setDefaultFlagHandler(getConfig().getFlagsmithFlagDefaults());
     return flags;
   }
 
@@ -269,6 +289,10 @@ public class FlagsmithClient {
     } else {
       return "Unable to update environment from API. Continuing to use previous copy.";
     }
+  }
+
+  private FlagsmithConfig getConfig() {
+      return flagsmithSdk.getConfig();
   }
 
   /**
@@ -451,33 +475,40 @@ public class FlagsmithClient {
      * @return a FlagsmithClient
      */
     public FlagsmithClient build() {
-      final FlagsmithApiWrapper flagsmithApiWrapper;
+      if (configuration.getOfflineMode()) {
+        if (configuration.getOfflineHandler() == null) {
+          throw new FlagsmithRuntimeError("Offline handler must be provided to use offline mode.");
+        }
+      }
 
       if (this.flagsmithApiWrapper != null) {
-        flagsmithApiWrapper = this.flagsmithApiWrapper;
+        client.flagsmithSdk = this.flagsmithApiWrapper;
       } else if (cacheConfig != null) {
-        flagsmithApiWrapper = new FlagsmithApiWrapper(
+        client.flagsmithSdk = new FlagsmithApiWrapper(
             cacheConfig.getCache(),
             this.configuration,
             this.customHeaders,
             client.logger,
             apiKey);
       } else {
-        flagsmithApiWrapper = new FlagsmithApiWrapper(
+        client.flagsmithSdk = new FlagsmithApiWrapper(
             this.configuration,
             this.customHeaders,
             client.logger,
             apiKey);
       }
 
-      client.flagsmithSdk = flagsmithApiWrapper;
-
       if (configuration.getAnalyticsProcessor() != null) {
-        configuration.getAnalyticsProcessor().setApi(flagsmithApiWrapper);
+        configuration.getAnalyticsProcessor().setApi(client.flagsmithSdk);
         configuration.getAnalyticsProcessor().setLogger(client.logger);
       }
 
       if (configuration.getEnableLocalEvaluation()) {
+        if (configuration.getOfflineHandler() != null) {
+          throw new FlagsmithRuntimeError(
+            "Local evaluation and offline handler cannot be used together.");
+        }
+
         if (!apiKey.startsWith("ser.")) {
           throw new FlagsmithRuntimeError(
               "In order to use local evaluation, please generate a server key "
@@ -493,6 +524,13 @@ public class FlagsmithClient {
         }
 
         client.pollingManager.startPolling();
+      }
+
+      if (configuration.getOfflineHandler() != null) {
+        if (configuration.getFlagsmithFlagDefaults() != null) {
+          throw new FlagsmithRuntimeError("Cannot use both default flag handler and offline handler.");
+        }
+        client.environment = configuration.getOfflineHandler().getEnvironment();
       }
 
       return this.client;

@@ -1,11 +1,13 @@
 package com.flagsmith;
 
 import static okhttp3.mock.MediaTypes.MEDIATYPE_JSON;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
@@ -17,12 +19,15 @@ import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithApiError;
 import com.flagsmith.exceptions.FlagsmithClientError;
+import com.flagsmith.exceptions.FlagsmithRuntimeError;
+import com.flagsmith.exceptions.FlagsmithValidationException;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.DefaultFlag;
+import com.flagsmith.models.Flag;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.Segment;
 import com.flagsmith.responses.FlagsAndTraitsResponse;
@@ -40,7 +45,9 @@ import okhttp3.Request;
 import okhttp3.ResponseBody;
 import okhttp3.mock.MockInterceptor;
 import okio.Buffer;
+import org.junit.Rule;
 import org.junit.jupiter.api.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.invocation.Invocation;
@@ -725,5 +732,103 @@ public class FlagsmithClientTest {
         // to complete before checking the thread has been killed correctly.
         Thread.sleep(pollingInterval);
         assertFalse(client.getPollingManager().getIsThreadAlive());
+    }
+
+    @Test
+    public void testOfflineMode() throws FlagsmithClientError {
+        // Given
+        EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
+        FlagsmithConfig config = FlagsmithConfig
+                .newBuilder()
+                .withOfflineMode(true)
+                .withOfflineHandler(new DummyOfflineHandler())
+                .build();
+
+        // When
+        FlagsmithClient client = FlagsmithClient.newBuilder().withConfiguration(config).build();
+
+        // Then
+        assertEquals(environmentModel, client.getEnvironment());
+
+        Flags environmentFlags = client.getEnvironmentFlags();
+        assertTrue(environmentFlags.isFeatureEnabled("some_feature"));
+
+        Flags identityFlags = client.getIdentityFlags("my-identity");
+        assertTrue(identityFlags.isFeatureEnabled("some_feature"));
+    }
+
+    @Test
+    public void testCannotUserOfflineModeWithoutOfflineHandler() throws FlagsmithRuntimeError {
+        FlagsmithConfig config = FlagsmithConfig.newBuilder().withOfflineMode(true).build();
+
+        FlagsmithRuntimeError ex = assertThrows(
+                FlagsmithRuntimeError.class,
+                () -> FlagsmithClient.newBuilder().withConfiguration(config).build());
+
+        assertEquals("Offline handler must be provided to use offline mode.", ex.getMessage());
+    }
+
+    @Test
+    public void testCannotUserOfflineHandlerWithLocalEvaluationMode() throws FlagsmithRuntimeError {
+        FlagsmithConfig config = FlagsmithConfig
+                .newBuilder()
+                .withOfflineHandler(new DummyOfflineHandler())
+                .withLocalEvaluation(true)
+                .build();
+
+        FlagsmithRuntimeError ex = assertThrows(
+                FlagsmithRuntimeError.class,
+                () -> FlagsmithClient.newBuilder().withConfiguration(config).build());
+
+        assertEquals("Local evaluation and offline handler cannot be used together.", ex.getMessage());
+    }
+
+    @Test
+    public void testCannotUseDefaultHandlerAndOfflineHandler() throws FlagsmithClientError {
+        FlagsmithConfig config = FlagsmithConfig
+                .newBuilder()
+                .withOfflineHandler(new DummyOfflineHandler())
+                .build();
+
+        FlagsmithClient.Builder clientBuilder = FlagsmithClient
+                .newBuilder()
+                .withConfiguration(config)
+                .setDefaultFlagValueFunction(FlagsmithClientTest::defaultHandler);
+
+        FlagsmithRuntimeError ex = assertThrows(
+                FlagsmithRuntimeError.class,
+                () -> clientBuilder.build());
+
+        assertEquals("Cannot use both default flag handler and offline handler.", ex.getMessage());
+    }
+
+    @Test
+    public void testFlagsmithUsesOfflineHandlerIfSetAndNoAPIResponse() throws FlagsmithClientError {
+        // Given
+        MockInterceptor interceptor = new MockInterceptor();
+        String baseUrl = "http://bad-url";
+
+        FlagsmithConfig config = FlagsmithConfig
+                .newBuilder()
+                .baseUri(baseUrl)
+                .addHttpInterceptor(interceptor)
+                .withOfflineHandler(new DummyOfflineHandler())
+                .build();
+        FlagsmithClient client = FlagsmithClient
+                .newBuilder()
+                .withConfiguration(config)
+                .setApiKey("some-key")
+                .build();
+
+        interceptor.addRule().get(baseUrl + "/flags/").respond(500);
+        interceptor.addRule().post(baseUrl + "/identities/").respond(500);
+
+        // When
+        Flags environmentFlags = client.getEnvironmentFlags();
+        Flags identityFlags = client.getIdentityFlags("some-identity");
+
+        // Then
+        assertTrue(environmentFlags.isFeatureEnabled("some_feature"));
+        assertTrue(identityFlags.isFeatureEnabled("some_feature"));
     }
 }
