@@ -3,6 +3,7 @@ package com.flagsmith.models;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import lombok.Data;
+import lombok.ToString;
 
 @Data
 public class Flag extends BaseFlag {
