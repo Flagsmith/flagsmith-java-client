@@ -288,7 +288,7 @@ public class FlagsmithTestHelper {
     overriddenFeatureState.setEnabled(true);
     overriddenFeatureState.setMultivariateFeatureStateValues(new ArrayList<>());
 
-    Set<FeatureStateModel> identityFeatures = new HashSet<>();
+    List<FeatureStateModel> identityFeatures = new ArrayList<>();
     identityFeatures.add(overriddenFeatureState);
 
     final IdentityModel identity = new IdentityModel();
