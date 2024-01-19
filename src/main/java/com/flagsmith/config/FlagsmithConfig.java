@@ -46,7 +46,6 @@ public final class FlagsmithConfig {
   private Boolean offlineMode = false;
   private IOfflineHandler offlineHandler = null;
 
-
   protected FlagsmithConfig(Builder builder) {
     this.baseUri = builder.baseUri;
     this.flagsUri = this.baseUri.newBuilder("flags/").build();
@@ -221,7 +220,8 @@ public final class FlagsmithConfig {
     }
 
     /**
-     * set environment refresh rate with polling manager. Only needed when local evaluation is
+     * set environment refresh rate with polling manager. Only needed when local
+     * evaluation is
      * true.
      *
      * @param seconds seconds
@@ -244,7 +244,6 @@ public final class FlagsmithConfig {
       return this;
     }
 
-
     /**
      * Enable Analytics Processor.
      *
@@ -263,19 +262,19 @@ public final class FlagsmithConfig {
      * @return
      */
     public Builder withOfflineMode(Boolean offlineMode) {
-        this.offlineMode = offlineMode;
-        return this;
+      this.offlineMode = offlineMode;
+      return this;
     }
 
     /**
-     * Set the offline handler (used as a fallback or with offlineMode)
+     * Set the offline handler (used as a fallback or with offlineMode).
      *
      * @param offlineHandler the offline handler
      * @return
      */
     public Builder withOfflineHandler(IOfflineHandler offlineHandler) {
-        this.offlineHandler = offlineHandler;
-        return this;
+      this.offlineHandler = offlineHandler;
+      return this;
     }
 
     public FlagsmithConfig build() {

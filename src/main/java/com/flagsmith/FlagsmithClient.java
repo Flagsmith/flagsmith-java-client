@@ -5,7 +5,6 @@ import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithApiError;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.exceptions.FlagsmithRuntimeError;
-import com.flagsmith.exceptions.FlagsmithValidationException;
 import com.flagsmith.flagengine.Engine;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
@@ -257,7 +256,7 @@ public class FlagsmithClient {
       throws FlagsmithClientError {
     if (environment == null) {
       throw new FlagsmithClientError(
-        "Unable to build identity model when no local environment present.");
+          "Unable to build identity model when no local environment present.");
     }
 
     List<TraitModel> traitsList = traits.entrySet().stream().map((entry) -> {
@@ -285,14 +284,14 @@ public class FlagsmithClient {
   private String getEnvironmentUpdateErrorMessage() {
     if (this.environment == null) {
       return "Unable to update environment from API. "
-             + "No environment configured - using defaultHandler if configured.";
+          + "No environment configured - using defaultHandler if configured.";
     } else {
       return "Unable to update environment from API. Continuing to use previous copy.";
     }
   }
 
   private FlagsmithConfig getConfig() {
-      return flagsmithSdk.getConfig();
+    return flagsmithSdk.getConfig();
   }
 
   /**
@@ -506,7 +505,7 @@ public class FlagsmithClient {
       if (configuration.getEnableLocalEvaluation()) {
         if (configuration.getOfflineHandler() != null) {
           throw new FlagsmithRuntimeError(
-            "Local evaluation and offline handler cannot be used together.");
+              "Local evaluation and offline handler cannot be used together.");
         }
 
         if (!apiKey.startsWith("ser.")) {
@@ -528,7 +527,8 @@ public class FlagsmithClient {
 
       if (configuration.getOfflineHandler() != null) {
         if (configuration.getFlagsmithFlagDefaults() != null) {
-          throw new FlagsmithRuntimeError("Cannot use both default flag handler and offline handler.");
+          throw new FlagsmithRuntimeError(
+            "Cannot use both default flag handler and offline handler.");
         }
         client.environment = configuration.getOfflineHandler().getEnvironment();
       }
