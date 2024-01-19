@@ -236,9 +236,7 @@ public class FlagsmithClient {
           traitsList,
           Boolean.TRUE);
     } catch (Exception e) {
-      FlagsmithConfig config = getConfig();
-
-      if (config.getFlagsmithFlagDefaults() != null) {
+      if (getConfig().getFlagsmithFlagDefaults() != null) {
         return getDefaultFlags();
       } else if (environment != null) {
         try {
@@ -256,7 +254,7 @@ public class FlagsmithClient {
       throws FlagsmithClientError {
     if (environment == null) {
       throw new FlagsmithClientError(
-          "Unable to build identity model when no local environment present.");
+        "Unable to build identity model when no local environment present.");
     }
 
     List<TraitModel> traitsList = traits.entrySet().stream().map((entry) -> {
@@ -284,7 +282,7 @@ public class FlagsmithClient {
   private String getEnvironmentUpdateErrorMessage() {
     if (this.environment == null) {
       return "Unable to update environment from API. "
-          + "No environment configured - using defaultHandler if configured.";
+        + "No environment configured - using defaultHandler if configured.";
     } else {
       return "Unable to update environment from API. Continuing to use previous copy.";
     }

@@ -221,8 +221,7 @@ public final class FlagsmithConfig {
 
     /**
      * set environment refresh rate with polling manager. Only needed when local
-     * evaluation is
-     * true.
+     * evaluation is true.
      *
      * @param seconds seconds
      * @return
