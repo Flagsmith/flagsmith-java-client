@@ -72,10 +72,7 @@ public class FlagsmithClient {
    * @return
    */
   public Flags getEnvironmentFlags() throws FlagsmithClientError {
-    FlagsmithConfig config = getConfig();
-    Boolean useEnvironmentDocument = config.getEnableLocalEvaluation() | config.getOfflineMode();
-
-    if (useEnvironmentDocument) {
+    if (getShouldUseEnvironmentDocument()) {
       return getEnvironmentFlagsFromDocument();
     }
 
@@ -108,9 +105,7 @@ public class FlagsmithClient {
    */
   public Flags getIdentityFlags(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
-    FlagsmithConfig config = getConfig();
-    Boolean useEnvironmentDocument = config.getEnableLocalEvaluation() | config.getOfflineMode();
-    if (useEnvironmentDocument) {
+    if (getShouldUseEnvironmentDocument()) {
       return getIdentityFlagsFromDocument(identifier, traits);
     }
 
@@ -202,7 +197,7 @@ public class FlagsmithClient {
         getConfig().getFlagsmithFlagDefaults());
   }
 
-  private Flags getEnvironmentFlagsFromApi() throws FlagsmithApiError, FlagsmithClientError {
+  private Flags getEnvironmentFlagsFromApi() throws FlagsmithApiError {
     try {
       return flagsmithSdk.getFeatureFlags(Boolean.TRUE);
     } catch (Exception e) {
@@ -300,6 +295,15 @@ public class FlagsmithClient {
    */
   public FlagsmithCache getCache() {
     return this.flagsmithSdk.getCache();
+  }
+
+  /**
+   * Returns a boolean indicating whether the flags should be retrieved from a
+   * locally stored environment document instead of retrieved from the API.
+   */
+  private Boolean getShouldUseEnvironmentDocument() {
+    FlagsmithConfig config = getConfig();
+    return config.getEnableLocalEvaluation() | config.getOfflineMode();
   }
 
   public static class Builder {
