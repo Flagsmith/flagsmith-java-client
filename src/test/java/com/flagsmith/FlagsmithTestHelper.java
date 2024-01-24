@@ -273,8 +273,8 @@ public class FlagsmithTestHelper {
     return user;
   }
 
-  public static EnvironmentModel environmentModel() {
-    String environment = "{\n" +
+  public static String environmentString() {
+    return "{\n" +
         "  \"api_key\": \"B62qaMZNwfiqT76p38ggrQ\",\n" +
         "  \"project\": {\n" +
         "    \"name\": \"Test project\",\n" +
@@ -329,9 +329,11 @@ public class FlagsmithTestHelper {
         "    }\n" +
         "  ]\n" +
         "}";
+  }
 
+  public static EnvironmentModel environmentModel() {
     try {
-      return EnvironmentModel.load(MapperFactory.getMapper().readTree(environment), EnvironmentModel.class);
+      return EnvironmentModel.load(MapperFactory.getMapper().readTree(environmentString()), EnvironmentModel.class);
     } catch (JsonProcessingException e) {
       // environment model json
     }
