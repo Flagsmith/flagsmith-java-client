@@ -27,7 +27,6 @@ import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.DefaultFlag;
-import com.flagsmith.models.Flag;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.Segment;
 import com.flagsmith.responses.FlagsAndTraitsResponse;
@@ -35,7 +34,6 @@ import com.flagsmith.threads.PollingManager;
 import com.flagsmith.threads.RequestProcessor;
 
 import java.io.IOException;
-import java.security.Identity;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -46,9 +44,7 @@ import okhttp3.Request;
 import okhttp3.ResponseBody;
 import okhttp3.mock.MockInterceptor;
 import okio.Buffer;
-import org.junit.Rule;
 import org.junit.jupiter.api.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.invocation.Invocation;
@@ -600,7 +596,7 @@ public class FlagsmithClientTest {
 
         // Then
         // Identity overrides are correctly stored
-        IdentityModel actualIdentity = client.getIdentityOverridesByIdentifier().get("overridden-identity");
+        IdentityModel actualIdentity = client.getIdentitiesWithOverridesByIdentifier().get("overridden-identity");
 
         assertEquals(actualIdentity.getIdentityFeatures().size(), 1);
         assertEquals(actualIdentity.getIdentityFeatures().iterator().next().getValue(), "overridden-value");

@@ -39,7 +39,7 @@ public class FlagsmithClient {
   private FlagsmithSdk flagsmithSdk;
   private EnvironmentModel environment;
   private PollingManager pollingManager;
-  private Map<String, IdentityModel> identityOverridesByIdentifier;
+  private Map<String, IdentityModel> identitiesWithOverridesByIdentifier;
 
   private FlagsmithClient() {
   }
@@ -61,11 +61,11 @@ public class FlagsmithClient {
         List<IdentityModel> identityOverrides = updatedEnvironment.getIdentityOverrides();
 
         if (identityOverrides != null) {
-          Map<String, IdentityModel> identityOverridesByIdentifier = new HashMap<>();
+          Map<String, IdentityModel> identitiesWithOverridesByIdentifier = new HashMap<>();
           for (IdentityModel identity : identityOverrides) {
-            identityOverridesByIdentifier.put(identity.getIdentifier(), identity);
+            identitiesWithOverridesByIdentifier.put(identity.getIdentifier(), identity);
           }
-          this.identityOverridesByIdentifier = identityOverridesByIdentifier;
+          this.identitiesWithOverridesByIdentifier = identitiesWithOverridesByIdentifier;
         }
 
         this.environment = updatedEnvironment;
@@ -271,8 +271,8 @@ public class FlagsmithClient {
       return trait;
     }).collect(Collectors.toList());
 
-    if (identityOverridesByIdentifier != null) {
-      IdentityModel identityOverride = identityOverridesByIdentifier.get(identifier);
+    if (identitiesWithOverridesByIdentifier != null) {
+      IdentityModel identityOverride = identitiesWithOverridesByIdentifier.get(identifier);
       if (identityOverride != null) {
         identityOverride.updateTraits(traitsList);
         return identityOverride;
