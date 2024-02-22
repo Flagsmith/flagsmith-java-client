@@ -15,9 +15,12 @@ import com.flagsmith.flagengine.segments.SegmentModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.models.BaseFlag;
+import com.flagsmith.models.Flag;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.Segment;
 import com.flagsmith.threads.PollingManager;
+
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -112,6 +115,16 @@ public class FlagsmithClient {
     return getIdentityFlagsFromApi(identifier, traits);
   }
 
+  public BaseFlag getIdentityFlag(String identifier, Map<String, Object> traits)
+    throws FlagsmithClientError {
+    if (getShouldUseEnvironmentDocument()) {
+      return getIdentityFlagFromDocument(identifier, traits);
+    }
+
+    // TODO: Irrelevant to the current task
+    return getIdentityFlagsFromApi(identifier, traits).getFlag(identifier);
+  }
+
   /**
    * Get a list of segments that the given identity is in.
    *
@@ -178,6 +191,24 @@ public class FlagsmithClient {
         getConfig().getFlagsmithFlagDefaults());
   }
 
+  private BaseFlag getIdentityFlagFromDocument(String identifier, Map<String, Object> traits)
+      throws FlagsmithClientError {
+    if (environment == null) {
+      if (getConfig().getFlagsmithFlagDefaults() == null) {
+        throw new FlagsmithClientError("Unable to get flags. No environment present.");
+      }
+      return getDefaultFlags().getFlag(identifier);
+    }
+
+    IdentityModel identity = buildIdentityModel(identifier, traits);
+    FeatureStateModel featureState = Engine.getIdentityFeatureStateForFlag(environment, identity, null, identifier);
+
+    return Flags.fromFeatureStateModels(
+        Collections.singletonList(featureState),
+        getConfig().getAnalyticsProcessor(),
+        identity.getCompositeKey(),
+        getConfig().getFlagsmithFlagDefaults()).getFlag(identifier);
+  }
   private Flags getIdentityFlagsFromDocument(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
     if (environment == null) {
