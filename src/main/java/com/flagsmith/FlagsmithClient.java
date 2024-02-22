@@ -15,7 +15,6 @@ import com.flagsmith.flagengine.segments.SegmentModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.models.BaseFlag;
-import com.flagsmith.models.Flag;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.Segment;
 import com.flagsmith.threads.PollingManager;
@@ -115,8 +114,14 @@ public class FlagsmithClient {
     return getIdentityFlagsFromApi(identifier, traits);
   }
 
+  /**
+   * Get a specific flag for a given identity in the current environment.
+   *
+   * @param identifier identifier string
+   * @param traits     list of key value traits
+   */
   public BaseFlag getIdentityFlag(String identifier, Map<String, Object> traits)
-    throws FlagsmithClientError {
+      throws FlagsmithClientError {
     if (getShouldUseEnvironmentDocument()) {
       return getIdentityFlagFromDocument(identifier, traits);
     }
@@ -201,7 +206,8 @@ public class FlagsmithClient {
     }
 
     IdentityModel identity = buildIdentityModel(identifier, traits);
-    FeatureStateModel featureState = Engine.getIdentityFeatureStateForFlag(environment, identity, null, identifier);
+    FeatureStateModel featureState =
+        Engine.getIdentityFeatureStateForFlag(environment, identity, identifier);
 
     return Flags.fromFeatureStateModels(
         Collections.singletonList(featureState),
@@ -209,6 +215,7 @@ public class FlagsmithClient {
         identity.getCompositeKey(),
         getConfig().getFlagsmithFlagDefaults()).getFlag(identifier);
   }
+
   private Flags getIdentityFlagsFromDocument(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
     if (environment == null) {

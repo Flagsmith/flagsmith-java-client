@@ -88,6 +88,12 @@ public class EngineTest {
 
       assertEquals(featureStateValue, expectedResponseValue);
       assertEquals(featureState.getEnabled(), sortedResponse.get(index).getEnabled());
+
+      FeatureStateModel standaloneFeatureState = Engine.getIdentityFeatureStateForFlag(environmentModel, identity,
+          featureState.getFeature().getName());
+
+      assertEquals(standaloneFeatureState.getValue(identity.getDjangoId()), expectedResponseValue);
+      assertEquals(standaloneFeatureState.getEnabled(), sortedResponse.get(index).getEnabled());
       index++;
     }
   }
