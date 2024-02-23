@@ -7,6 +7,7 @@ import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.exceptions.FlagsmithRuntimeError;
 import com.flagsmith.flagengine.Engine;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
+import com.flagsmith.flagengine.environments.OptimizedAccessEnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.IdentityModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
@@ -40,6 +41,7 @@ public class FlagsmithClient {
   private final FlagsmithLogger logger = new FlagsmithLogger();
   private FlagsmithSdk flagsmithSdk;
   private EnvironmentModel environment;
+  private OptimizedAccessEnvironmentModel optimizedAccessEnvironmentModel;
   private PollingManager pollingManager;
 
   private FlagsmithClient() {
@@ -60,6 +62,8 @@ public class FlagsmithClient {
       // then don't overwrite the copy we already have.
       if (updatedEnvironment != null) {
         this.environment = updatedEnvironment;
+        optimizedAccessEnvironmentModel =
+            OptimizedAccessEnvironmentModel.fromEnvironmentModel(environment);
       } else {
         logger.error(getEnvironmentUpdateErrorMessage());
       }
@@ -119,15 +123,16 @@ public class FlagsmithClient {
    *
    * @param identifier identifier string
    * @param traits     list of key value traits
+   * @param flagName   name of the flag
    */
-  public BaseFlag getIdentityFlag(String identifier, Map<String, Object> traits)
+  public BaseFlag getIdentityFlag(String identifier, Map<String, Object> traits, String flagName)
       throws FlagsmithClientError {
     if (getShouldUseEnvironmentDocument()) {
-      return getIdentityFlagFromDocument(identifier, traits);
+      return getIdentityFlagFromDocument(identifier, traits, flagName);
     }
 
     // TODO: Irrelevant to the current task
-    return getIdentityFlagsFromApi(identifier, traits).getFlag(identifier);
+    return getIdentityFlagsFromApi(identifier, traits).getFlag(flagName);
   }
 
   /**
@@ -196,24 +201,26 @@ public class FlagsmithClient {
         getConfig().getFlagsmithFlagDefaults());
   }
 
-  private BaseFlag getIdentityFlagFromDocument(String identifier, Map<String, Object> traits)
-      throws FlagsmithClientError {
+  private BaseFlag getIdentityFlagFromDocument(
+      String identifier,
+      Map<String, Object> traits,
+      String flagName) throws FlagsmithClientError {
     if (environment == null) {
       if (getConfig().getFlagsmithFlagDefaults() == null) {
         throw new FlagsmithClientError("Unable to get flags. No environment present.");
       }
-      return getDefaultFlags().getFlag(identifier);
+      return getDefaultFlags().getFlag(flagName);
     }
 
     IdentityModel identity = buildIdentityModel(identifier, traits);
     FeatureStateModel featureState =
-        Engine.getIdentityFeatureStateForFlag(environment, identity, identifier);
+        Engine.getIdentityFeatureStateForFlag(optimizedAccessEnvironmentModel, identity, flagName);
 
     return Flags.fromFeatureStateModels(
         Collections.singletonList(featureState),
         getConfig().getAnalyticsProcessor(),
         identity.getCompositeKey(),
-        getConfig().getFlagsmithFlagDefaults()).getFlag(identifier);
+        getConfig().getFlagsmithFlagDefaults()).getFlag(flagName);
   }
 
   private Flags getIdentityFlagsFromDocument(String identifier, Map<String, Object> traits)
