@@ -7,7 +7,6 @@ import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.exceptions.FlagsmithRuntimeError;
 import com.flagsmith.flagengine.Engine;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
-import com.flagsmith.flagengine.environments.OptimizedAccessEnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.IdentityModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
@@ -41,7 +40,6 @@ public class FlagsmithClient {
   private final FlagsmithLogger logger = new FlagsmithLogger();
   private FlagsmithSdk flagsmithSdk;
   private EnvironmentModel environment;
-  private OptimizedAccessEnvironmentModel optimizedAccessEnvironmentModel;
   private PollingManager pollingManager;
 
   private FlagsmithClient() {
@@ -62,8 +60,7 @@ public class FlagsmithClient {
       // then don't overwrite the copy we already have.
       if (updatedEnvironment != null) {
         this.environment = updatedEnvironment;
-        optimizedAccessEnvironmentModel =
-            OptimizedAccessEnvironmentModel.fromEnvironmentModel(environment);
+        this.environment.initializeCache();
       } else {
         logger.error(getEnvironmentUpdateErrorMessage());
       }
@@ -131,7 +128,6 @@ public class FlagsmithClient {
       return getIdentityFlagFromDocument(identifier, traits, flagName);
     }
 
-    // TODO: Irrelevant to the current task
     return getIdentityFlagsFromApi(identifier, traits).getFlag(flagName);
   }
 
@@ -214,7 +210,7 @@ public class FlagsmithClient {
 
     IdentityModel identity = buildIdentityModel(identifier, traits);
     FeatureStateModel featureState =
-        Engine.getIdentityFeatureStateForFlag(optimizedAccessEnvironmentModel, identity, flagName);
+        Engine.getIdentityFeatureStateForFlag(environment, identity, flagName);
 
     return Flags.fromFeatureStateModels(
         Collections.singletonList(featureState),

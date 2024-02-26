@@ -1,7 +1,6 @@
 package com.flagsmith.flagengine;
 
 import com.flagsmith.flagengine.environments.EnvironmentModel;
-import com.flagsmith.flagengine.environments.OptimizedAccessEnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.IdentityModel;
@@ -89,7 +88,7 @@ public class Engine {
   }
 
   public static FeatureStateModel getIdentityFeatureStateForFlag(
-      OptimizedAccessEnvironmentModel environmentModel,
+      EnvironmentModel environmentModel,
       IdentityModel identityModel,
       String featureName) {
 
@@ -104,7 +103,7 @@ public class Engine {
    * @param featureName Feature Name to search for.
    */
   public static FeatureStateModel getIdentityFeatureStateForFlag(
-      OptimizedAccessEnvironmentModel environmentModel,
+      EnvironmentModel environmentModel,
       IdentityModel identityModel,
       String featureName,
       List<TraitModel> overrideTraits) {
@@ -112,7 +111,7 @@ public class Engine {
     FeatureStateModel model = getIdentityFeature(environmentModel, identityModel,
         overrideTraits, featureName);
 
-    if (environmentModel.getEnvironmentModel().getProject().getHideDisabledFlags()) {
+    if (environmentModel.getProject().getHideDisabledFlags()) {
       return model != null && model.getEnabled() ? model : null;
     }
 
@@ -191,7 +190,7 @@ public class Engine {
   }
 
   private static FeatureStateModel getIdentityFeature(
-      OptimizedAccessEnvironmentModel environmentModel,
+      EnvironmentModel environmentModel,
       IdentityModel identityModel, List<TraitModel> overrideTraits,
       String featureName) {
 
