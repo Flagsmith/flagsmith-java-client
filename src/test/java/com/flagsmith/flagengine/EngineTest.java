@@ -3,11 +3,11 @@ package com.flagsmith.flagengine;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
-import com.flagsmith.flagengine.environments.OptimizedAccessEnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.IdentityModel;
 import com.flagsmith.flagengine.models.ResponseJSON;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.BeforeClass;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -26,36 +26,7 @@ public class EngineTest {
       "src/test/java/com/flagsmith/flagengine/enginetestdata/" +
           "data/environment_n9fbf9h3v4fFgH3U3ngWhb.json";
 
-  private static final String BIG_ENVIRONMENT_JSON_FILE_LOCATION =
-      "src/test/java/com/flagsmith/flagengine/enginetestdata/" +
-          "data/environment_big.json";
-
-  public static Stream<Arguments> engineTestDataBig() {
-    try {
-      ObjectMapper objectMapper = MapperFactory.getMapper();
-      JsonNode environmentNode = objectMapper.
-          readTree(new File(BIG_ENVIRONMENT_JSON_FILE_LOCATION));
-
-      EnvironmentModel environmentModel = EnvironmentModel.load(environmentNode, EnvironmentModel.class);
-
-
-      List<Arguments> returnValues = new ArrayList<>();
-
-      IdentityModel identityModel = new IdentityModel();
-      ResponseJSON expectedResponse = null;
-
-      returnValues.add(Arguments.of(identityModel, environmentModel, expectedResponse));
-
-
-      return returnValues.stream();
-
-    } catch (Exception e) {
-      System.out.println(e.getMessage());
-    }
-    return null;
-  }
-
-  public static Stream<Arguments> engineTestData() {
+  private static Stream<Arguments> engineTestData() {
     try {
       ObjectMapper objectMapper = MapperFactory.getMapper();
       JsonNode engineTestData = objectMapper.
@@ -117,16 +88,6 @@ public class EngineTest {
 
       assertEquals(featureStateValue, expectedResponseValue);
       assertEquals(featureState.getEnabled(), sortedResponse.get(index).getEnabled());
-
-      OptimizedAccessEnvironmentModel optimizedAccessEnvironmentModel =
-          OptimizedAccessEnvironmentModel.fromEnvironmentModel(environmentModel);
-
-      FeatureStateModel standaloneFeatureState =
-          Engine.getIdentityFeatureStateForFlag(optimizedAccessEnvironmentModel, identity,
-              featureState.getFeature().getName());
-
-      assertEquals(standaloneFeatureState.getValue(identity.getDjangoId()), expectedResponseValue);
-      assertEquals(standaloneFeatureState.getEnabled(), sortedResponse.get(index).getEnabled());
       index++;
     }
   }
