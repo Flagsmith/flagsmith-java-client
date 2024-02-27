@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.LongAdder;
 
 import lombok.Getter;
 import lombok.ToString;
@@ -23,7 +24,7 @@ public class AnalyticsProcessor {
 
   private final String analyticsEndpoint = "analytics/flags/";
   private Integer analyticsTimer = 10;
-  private Map<String, Integer> analyticsData;
+  private Map<String, LongAdder> analyticsData;
   @ToString.Exclude private FlagsmithSdk api;
   private Long nextFlush;
   private AtomicBoolean isFlushing = new AtomicBoolean(false);
@@ -66,7 +67,7 @@ public class AnalyticsProcessor {
    */
   public AnalyticsProcessor(
       FlagsmithSdk api, FlagsmithLogger logger, RequestProcessor requestProcessor) {
-    this.analyticsData = new ConcurrentHashMap<String, Integer>();
+    this.analyticsData = new ConcurrentHashMap<String, LongAdder>();
     this.requestProcessor = requestProcessor;
     this.logger = logger;
     this.nextFlush = Instant.now().getEpochSecond() + analyticsTimer;
@@ -150,7 +151,7 @@ public class AnalyticsProcessor {
    * @param featureName name of the feature to track evaluation for
    */
   public void trackFeature(String featureName) {
-    analyticsData.put(featureName, analyticsData.getOrDefault(featureName, 0) + 1);
+    analyticsData.computeIfAbsent(featureName, k -> new LongAdder()).increment();
 
     if (nextFlush.compareTo(Instant.now().getEpochSecond()) < 0) {
       this.flush();
