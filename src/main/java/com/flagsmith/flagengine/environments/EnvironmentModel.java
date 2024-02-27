@@ -52,8 +52,8 @@ public class EnvironmentModel extends BaseModel {
 
   /**
    * Initialize the cache for the environment. This allows O(1) access to environment feature
-   * states using {@link #getEnvironmentFeatureStates()} and feature segments using
-   * {@link #getFeatureSegments()}.
+   * states using {@link EnvironmentModel#getEnvironmentFeatureStates()} and feature segments using
+   * {@link EnvironmentModel#getFeatureSegments()} ()}.
    */
   public void initializeCache() {
     environmentFeatureStates = featureStates.stream()
