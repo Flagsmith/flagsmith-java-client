@@ -59,8 +59,8 @@ public class FlagsmithClient {
       // if we didn't get an environment from the API,
       // then don't overwrite the copy we already have.
       if (updatedEnvironment != null) {
+        updatedEnvironment.initializeCache();
         this.environment = updatedEnvironment;
-        this.environment.initializeCache();
       } else {
         logger.error(getEnvironmentUpdateErrorMessage());
       }
