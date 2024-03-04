@@ -76,7 +76,6 @@ public class RequestProcessor {
   public <T> Future<T> executeAsync(
       Request request, TypeReference<T> clazz, Boolean doThrow, Retry retries) {
     CompletableFuture<T> completableFuture = new CompletableFuture<>();
-    Call call = getClient().newCall(request);
     Retry localRetry = retries.toBuilder().build();
     // run the execute method in a fixed thread with retries.
     executor.submit(() -> {
@@ -84,6 +83,7 @@ public class RequestProcessor {
       try {
         Integer statusCode = null;
         do {
+          Call call = getClient().newCall(request);
           localRetry.waitWithBackoff();
           Boolean throwOrNot = localRetry.getAttempts() == localRetry.getTotal()
               ? doThrow : Boolean.FALSE;

@@ -66,6 +66,27 @@ public class FlagsmithApiWrapperTest {
   }
 
   @Test
+  void getFeatureFlags_retries() {
+    // Arrange
+    interceptor.addRule()
+        .get(BASE_URL + "/flags/")
+        .anyTimes()
+        .respond(503);
+
+    // Act
+    try {
+      sut.getFeatureFlags(true);
+    } catch (Exception e) {
+      // ignore
+    }
+
+    // Assert
+    // Since the Retry object is local to the call, the only external behaviour we can watch
+    // is the logger
+    verify(flagsmithLogger, times(2)).httpError(any(), any(Response.class), anyBoolean());
+  }
+
+  @Test
   public void getFeatureFlags_noUser_success() throws JsonProcessingException {
     // Arrange
     interceptor.addRule()
