@@ -9,6 +9,7 @@ import com.flagsmith.flagengine.segments.SegmentEvaluator;
 import com.flagsmith.flagengine.segments.SegmentModel;
 import com.flagsmith.flagengine.utils.exceptions.FeatureStateNotFound;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,6 +87,37 @@ public class Engine {
     return featureStates;
   }
 
+  public static FeatureStateModel getIdentityFeatureStateForFlag(
+      EnvironmentModel environmentModel,
+      IdentityModel identityModel,
+      String featureName) {
+
+    return getIdentityFeatureStateForFlag(environmentModel, identityModel, featureName, null);
+  }
+
+  /**
+   * Get a specific feature state for a given identity in a given environment.
+   * @param environmentModel Instance of the Environment.
+   * @param identityModel Instance of identity.
+   * @param overrideTraits Traits to override identity's traits.
+   * @param featureName Feature Name to search for.
+   */
+  public static FeatureStateModel getIdentityFeatureStateForFlag(
+      EnvironmentModel environmentModel,
+      IdentityModel identityModel,
+      String featureName,
+      List<TraitModel> overrideTraits) {
+
+    FeatureStateModel model = getIdentityFeature(environmentModel, identityModel,
+        overrideTraits, featureName);
+
+    if (environmentModel.getProject().getHideDisabledFlags()) {
+      return model != null && model.getEnabled() ? model : null;
+    }
+
+    return model;
+  }
+
   /**
    * Get a specific feature state for a given identity in a given environment.
    *
@@ -143,7 +175,7 @@ public class Engine {
         if (existing != null && existing.isHigherPriority(featureState)) {
           continue;
         }
-        
+
         featureStates.put(featureState.getFeature(), featureState);
       }
     }
@@ -155,5 +187,36 @@ public class Engine {
     }
 
     return featureStates;
+  }
+
+  private static FeatureStateModel getIdentityFeature(
+      EnvironmentModel environmentModel,
+      IdentityModel identityModel, List<TraitModel> overrideTraits,
+      String featureName) {
+
+    FeatureStateModel featureStateToReturn =
+        environmentModel.getEnvironmentFeatureStates().get(featureName);
+
+    List<SegmentModel> segments = environmentModel.getFeatureSegments()
+        .getOrDefault(featureName, Collections.emptyList());
+
+    List<FeatureStateModel> segmentFeatureStates = segments.stream()
+        .filter(segmentModel -> SegmentEvaluator
+            .evaluateIdentityInSegment(identityModel, segmentModel, overrideTraits))
+        .flatMap(segmentModel -> segmentModel.getFeatureStates().stream()
+            .filter(featureStateModel -> featureStateModel.getFeature().getName()
+                .equals(featureName)))
+        .collect(Collectors.toList());
+
+    for (FeatureStateModel featureStateModel : segmentFeatureStates) {
+      if (featureStateToReturn != null
+          && featureStateToReturn.isHigherPriority(featureStateModel)) {
+        continue;
+      }
+      featureStateToReturn = featureStateModel;
+    }
+
+
+    return featureStateToReturn;
   }
 }

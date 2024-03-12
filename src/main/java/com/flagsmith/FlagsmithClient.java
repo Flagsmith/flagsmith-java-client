@@ -18,6 +18,8 @@ import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.Segment;
 import com.flagsmith.threads.PollingManager;
+
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +59,7 @@ public class FlagsmithClient {
       // if we didn't get an environment from the API,
       // then don't overwrite the copy we already have.
       if (updatedEnvironment != null) {
+        updatedEnvironment.initializeCache();
         this.environment = updatedEnvironment;
       } else {
         logger.error(getEnvironmentUpdateErrorMessage());
@@ -110,6 +113,22 @@ public class FlagsmithClient {
     }
 
     return getIdentityFlagsFromApi(identifier, traits);
+  }
+
+  /**
+   * Get a specific flag for a given identity in the current environment.
+   *
+   * @param identifier identifier string
+   * @param traits     list of key value traits
+   * @param flagName   name of the flag
+   */
+  public BaseFlag getIdentityFlag(String identifier, Map<String, Object> traits, String flagName)
+      throws FlagsmithClientError {
+    if (getShouldUseEnvironmentDocument()) {
+      return getIdentityFlagFromDocument(identifier, traits, flagName);
+    }
+
+    return getIdentityFlagsFromApi(identifier, traits).getFlag(flagName);
   }
 
   /**
@@ -176,6 +195,28 @@ public class FlagsmithClient {
         getConfig().getAnalyticsProcessor(),
         null,
         getConfig().getFlagsmithFlagDefaults());
+  }
+
+  private BaseFlag getIdentityFlagFromDocument(
+      String identifier,
+      Map<String, Object> traits,
+      String flagName) throws FlagsmithClientError {
+    if (environment == null) {
+      if (getConfig().getFlagsmithFlagDefaults() == null) {
+        throw new FlagsmithClientError("Unable to get flags. No environment present.");
+      }
+      return getDefaultFlags().getFlag(flagName);
+    }
+
+    IdentityModel identity = buildIdentityModel(identifier, traits);
+    FeatureStateModel featureState =
+        Engine.getIdentityFeatureStateForFlag(environment, identity, flagName);
+
+    return Flags.fromFeatureStateModels(
+        Collections.singletonList(featureState),
+        getConfig().getAnalyticsProcessor(),
+        identity.getCompositeKey(),
+        getConfig().getFlagsmithFlagDefaults()).getFlag(flagName);
   }
 
   private Flags getIdentityFlagsFromDocument(String identifier, Map<String, Object> traits)

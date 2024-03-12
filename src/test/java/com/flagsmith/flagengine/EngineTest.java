@@ -14,6 +14,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -61,22 +62,18 @@ public class EngineTest {
 
   @ParameterizedTest()
   @MethodSource("engineTestData")
-  public void testEngine(IdentityModel identity, EnvironmentModel environmentModel, ResponseJSON expectedResponse) {
+  public void testIdentityFeatureStates(IdentityModel identity, EnvironmentModel environmentModel, ResponseJSON expectedResponse) {
     List<FeatureStateModel> featureStates =
         Engine.getIdentityFeatureStates(environmentModel, identity);
 
     List<FeatureStateModel> sortedFeatureStates = featureStates
         .stream()
-        .sorted((featureState1, t1)
-            -> featureState1.getFeature().getName()
-            .compareTo(t1.getFeature().getName()))
+        .sorted(Comparator.comparing(featureState -> featureState.getFeature().getName()))
         .collect(Collectors.toList());
 
     List<FeatureStateModel> sortedResponse = expectedResponse.getFlags()
         .stream()
-        .sorted((featureState1, t1)
-            -> featureState1.getFeature().getName()
-            .compareTo(t1.getFeature().getName()))
+        .sorted(Comparator.comparing(featureState -> featureState.getFeature().getName()))
         .collect(Collectors.toList());
 
     assert (sortedResponse.size() == sortedFeatureStates.size());
@@ -89,6 +86,23 @@ public class EngineTest {
       assertEquals(featureStateValue, expectedResponseValue);
       assertEquals(featureState.getEnabled(), sortedResponse.get(index).getEnabled());
       index++;
+    }
+  }
+
+  @ParameterizedTest()
+  @MethodSource("engineTestData")
+  public void getIdentityFeatureStateForFlag(IdentityModel identity, EnvironmentModel environmentModel, ResponseJSON expectedResponse) {
+    environmentModel.initializeCache();
+
+    for (FeatureStateModel expectedFlag : expectedResponse.getFlags()) {
+      FeatureStateModel calculatedFlag =
+          Engine.getIdentityFeatureStateForFlag(environmentModel, identity, expectedFlag.getFeature().getName());
+
+      Object calculatedFeatureValue = calculatedFlag.getValue(identity.getDjangoId());
+      Object expectedFeatureValue = expectedFlag.getValue(identity.getDjangoId());
+
+      assertEquals(calculatedFeatureValue, expectedFeatureValue);
+      assertEquals(calculatedFlag.getEnabled(), expectedFlag.getEnabled());
     }
   }
 }

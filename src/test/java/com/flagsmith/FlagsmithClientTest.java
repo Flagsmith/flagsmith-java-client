@@ -1,15 +1,9 @@
 package com.flagsmith;
 
 import static okhttp3.mock.MediaTypes.MEDIATYPE_JSON;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -34,10 +28,7 @@ import com.flagsmith.threads.PollingManager;
 import com.flagsmith.threads.RequestProcessor;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import okhttp3.Request;
@@ -166,6 +157,11 @@ public class FlagsmithClientTest {
 
         client.updateEnvironment();
         assertNotNull(client.getEnvironment());
+
+        // Client environment should have cache initialized
+        assertNotEquals(client.getEnvironment(), environmentModel);
+
+        environmentModel.initializeCache();
         assertEquals(client.getEnvironment(), environmentModel);
     }
 
@@ -462,6 +458,39 @@ public class FlagsmithClientTest {
         List<Segment> segments = client.getIdentitySegments(identifier);
 
         assertTrue(segments.isEmpty());
+    }
+
+    @Test
+    public void  testGetIdentityFlag() throws JsonProcessingException,
+        FlagsmithClientError {
+        String baseUrl = "http://bad-url";
+
+        EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
+
+        MockInterceptor interceptor = new MockInterceptor();
+        interceptor.addRule()
+            .get(baseUrl + "/environment-document/")
+            .anyTimes()
+            .respond(
+                MapperFactory.getMapper().writeValueAsString(environmentModel),
+                MEDIATYPE_JSON);
+
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+            .withConfiguration(
+                FlagsmithConfig.newBuilder()
+                    .baseUri(baseUrl)
+                    .addHttpInterceptor(interceptor)
+                    .withLocalEvaluation(true)
+                    .build())
+            .setApiKey("ser.abcdefg")
+            .build();
+
+        client.updateEnvironment();
+
+        String identifier = "identifier";
+        BaseFlag flag = client.getIdentityFlag(identifier, Collections.emptyMap(), "some_feature");
+
+        assertEquals(flag.getValue(), "some-value");
     }
 
     @Test
