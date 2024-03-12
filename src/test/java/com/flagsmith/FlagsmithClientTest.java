@@ -22,11 +22,11 @@ import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.exceptions.FlagsmithRuntimeError;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.flagengine.identities.IdentityModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.DefaultFlag;
-import com.flagsmith.models.Flag;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.Segment;
 import com.flagsmith.responses.FlagsAndTraitsResponse;
@@ -44,9 +44,7 @@ import okhttp3.Request;
 import okhttp3.ResponseBody;
 import okhttp3.mock.MockInterceptor;
 import okio.Buffer;
-import org.junit.Rule;
 import org.junit.jupiter.api.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.invocation.Invocation;
@@ -580,6 +578,31 @@ public class FlagsmithClientTest {
     }
 
     @Test
+    public void testUpdateEnvironment_StoresIdentityOverrides_WhenGetEnvironmentReturnsEnvironmentWithOverrides() {
+        // Given
+        EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
+
+        FlagsmithApiWrapper mockApiWrapper = mock(FlagsmithApiWrapper.class);
+        when(mockApiWrapper.getEnvironment()).thenReturn(environmentModel);
+
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withFlagsmithApiWrapper(mockApiWrapper)
+                .withConfiguration(FlagsmithConfig.newBuilder().withLocalEvaluation(true).build())
+                .setApiKey("ser.dummy-key")
+                .build();
+
+        // When
+        client.updateEnvironment();
+
+        // Then
+        // Identity overrides are correctly stored
+        IdentityModel actualIdentity = client.getIdentitiesWithOverridesByIdentifier().get("overridden-identity");
+
+        assertEquals(actualIdentity.getIdentityFeatures().size(), 1);
+        assertEquals(actualIdentity.getIdentityFeatures().iterator().next().getValue(), "overridden-value");
+    }
+
+    @Test
     public void testClose_StopsPollingManager() {
         // Given
         PollingManager mockedPollingManager = mock(PollingManager.class);
@@ -652,6 +675,35 @@ public class FlagsmithClientTest {
             assertEquals(flags.isFeatureEnabled("some_feature"), expectedState);
             assertEquals(flags.getFeatureValue("some_feature"), expectedValue);
         }
+    }
+
+    @Test
+    public void testLocalEvaluation_ReturnsIdentityOverrides() throws FlagsmithClientError {
+        // Given
+        EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
+
+        FlagsmithConfig config = FlagsmithConfig.newBuilder().withLocalEvaluation(true).build();
+
+        FlagsmithApiWrapper mockedApiWrapper = mock(FlagsmithApiWrapper.class);
+        when(mockedApiWrapper.getEnvironment())
+                .thenReturn(environmentModel)
+                .thenReturn(null);
+        when(mockedApiWrapper.getConfig()).thenReturn(config);
+
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withFlagsmithApiWrapper(mockedApiWrapper)
+                .withConfiguration(config)
+                .setApiKey("ser.dummy-key")
+                .build();
+
+        Flags flagsWithoutOverride = client.getIdentityFlags("test");
+
+        // When
+        Flags flagsWithOverride = client.getIdentityFlags("overridden-identity");
+
+        // Then
+        assertEquals(flagsWithoutOverride.getFeatureValue("some_feature"), "some-value");
+        assertEquals(flagsWithOverride.getFeatureValue("some_feature"), "overridden-value");
     }
 
     @Test

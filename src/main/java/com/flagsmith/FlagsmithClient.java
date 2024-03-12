@@ -39,6 +39,7 @@ public class FlagsmithClient {
   private FlagsmithSdk flagsmithSdk;
   private EnvironmentModel environment;
   private PollingManager pollingManager;
+  private Map<String, IdentityModel> identitiesWithOverridesByIdentifier;
 
   private FlagsmithClient() {
   }
@@ -57,6 +58,16 @@ public class FlagsmithClient {
       // if we didn't get an environment from the API,
       // then don't overwrite the copy we already have.
       if (updatedEnvironment != null) {
+        List<IdentityModel> identityOverrides = updatedEnvironment.getIdentityOverrides();
+
+        if (identityOverrides != null) {
+          Map<String, IdentityModel> identitiesWithOverridesByIdentifier = new HashMap<>();
+          for (IdentityModel identity : identityOverrides) {
+            identitiesWithOverridesByIdentifier.put(identity.getIdentifier(), identity);
+          }
+          this.identitiesWithOverridesByIdentifier = identitiesWithOverridesByIdentifier;
+        }
+
         this.environment = updatedEnvironment;
       } else {
         logger.error(getEnvironmentUpdateErrorMessage());
@@ -138,7 +149,7 @@ public class FlagsmithClient {
     if (environment == null) {
       throw new FlagsmithClientError("Local evaluation required to obtain identity segments.");
     }
-    IdentityModel identityModel = buildIdentityModel(
+    IdentityModel identityModel = getIdentityModel(
         identifier, (traits != null ? traits : new HashMap<>()));
     List<SegmentModel> segmentModels = SegmentEvaluator.getIdentitySegments(
         environment, identityModel);
@@ -187,7 +198,7 @@ public class FlagsmithClient {
       return getDefaultFlags();
     }
 
-    IdentityModel identity = buildIdentityModel(identifier, traits);
+    IdentityModel identity = getIdentityModel(identifier, traits);
     List<FeatureStateModel> featureStates = Engine.getIdentityFeatureStates(environment, identity);
 
     return Flags.fromFeatureStateModels(
@@ -245,11 +256,11 @@ public class FlagsmithClient {
     }
   }
 
-  private IdentityModel buildIdentityModel(String identifier, Map<String, Object> traits)
+  private IdentityModel getIdentityModel(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
     if (environment == null) {
       throw new FlagsmithClientError(
-        "Unable to build identity model when no local environment present.");
+          "Unable to build identity model when no local environment present.");
     }
 
     List<TraitModel> traitsList = traits.entrySet().stream().map((entry) -> {
@@ -259,6 +270,14 @@ public class FlagsmithClient {
 
       return trait;
     }).collect(Collectors.toList());
+
+    if (identitiesWithOverridesByIdentifier != null) {
+      IdentityModel identityOverride = identitiesWithOverridesByIdentifier.get(identifier);
+      if (identityOverride != null) {
+        identityOverride.updateTraits(traitsList);
+        return identityOverride;
+      }
+    }
 
     IdentityModel identity = new IdentityModel();
     identity.setIdentityTraits(traitsList);
