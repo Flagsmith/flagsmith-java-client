@@ -3,14 +3,13 @@ package com.flagsmith.config;
 import com.flagsmith.FlagsmithFlagDefaults;
 import com.flagsmith.interfaces.IOfflineHandler;
 import com.flagsmith.threads.AnalyticsProcessor;
-
 import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
-
 import lombok.Getter;
 import okhttp3.HttpUrl;
 import okhttp3.Interceptor;
@@ -57,13 +56,19 @@ public final class FlagsmithConfig {
         .writeTimeout(builder.writeTimeoutMillis, TimeUnit.MILLISECONDS)
         .readTimeout(builder.readTimeoutMillis, TimeUnit.MILLISECONDS);
     if (builder.sslSocketFactory != null && builder.trustManager != null) {
-      httpBuilder = httpBuilder.sslSocketFactory(builder.sslSocketFactory, builder.trustManager);
+      httpBuilder.sslSocketFactory(builder.sslSocketFactory, builder.trustManager);
     }
     for (final Interceptor interceptor : builder.interceptors) {
-      httpBuilder = httpBuilder.addInterceptor(interceptor);
+      httpBuilder.addInterceptor(interceptor);
     }
     if (builder.proxy != null) {
-      httpBuilder = httpBuilder.proxy(builder.proxy);
+      httpBuilder.proxy(builder.proxy);
+    }
+    if (!builder.supportedProtocols.isEmpty()) {
+      httpBuilder.protocols(
+          builder.supportedProtocols.stream()
+              .map(Protocol::internalProtocol)
+              .collect(Collectors.toList()));
     }
     this.httpClient = httpBuilder.build();
 
@@ -99,6 +104,7 @@ public final class FlagsmithConfig {
     private int connectTimeoutMillis = DEFAULT_CONNECT_TIMEOUT_MILLIS;
     private int writeTimeoutMillis = DEFAULT_WRITE_TIMEOUT_MILLIS;
     private int readTimeoutMillis = DEFAULT_READ_TIMEOUT_MILLIS;
+    private List<Protocol> supportedProtocols = new ArrayList<>();
     private Retry retries = new Retry(3);
     private SSLSocketFactory sslSocketFactory;
     private X509TrustManager trustManager;
@@ -220,8 +226,8 @@ public final class FlagsmithConfig {
     }
 
     /**
-     * set environment refresh rate with polling manager. Only needed when local
-     * evaluation is true.
+     * set environment refresh rate with polling manager. Only needed when local evaluation is
+     * true.
      *
      * @param seconds seconds
      * @return
@@ -276,8 +282,35 @@ public final class FlagsmithConfig {
       return this;
     }
 
+    /**
+     * Specify the list of protocols supported for calls to the server.
+     * @param supportedProtocols the list of supported protocols
+     * @return
+     */
+    public Builder withSupportedProtocols(List<Protocol> supportedProtocols) {
+      this.supportedProtocols.clear();
+      this.supportedProtocols.addAll(supportedProtocols);
+      return this;
+    }
+
     public FlagsmithConfig build() {
       return new FlagsmithConfig(this);
+    }
+  }
+
+  // This enum prevents leakage of the underlying HTTP client implementation details.
+  enum Protocol {
+    HTTP_1_1(okhttp3.Protocol.HTTP_1_1),
+    HTTP_2(okhttp3.Protocol.HTTP_2);
+
+    private final okhttp3.Protocol protocol;
+
+    Protocol(okhttp3.Protocol protocol) {
+      this.protocol = protocol;
+    }
+
+    okhttp3.Protocol internalProtocol() {
+      return protocol;
     }
   }
 }
