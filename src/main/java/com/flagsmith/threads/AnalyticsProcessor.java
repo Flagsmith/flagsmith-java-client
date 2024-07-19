@@ -6,8 +6,11 @@ import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.LongAdder;
+
 import lombok.Getter;
 import lombok.ToString;
 import okhttp3.HttpUrl;
@@ -21,9 +24,10 @@ public class AnalyticsProcessor {
 
   private final String analyticsEndpoint = "analytics/flags/";
   private Integer analyticsTimer = 10;
-  private Map<String, Integer> analyticsData;
+  private Map<String, LongAdder> analyticsData;
   @ToString.Exclude private FlagsmithSdk api;
   private Long nextFlush;
+  private AtomicBoolean isFlushing = new AtomicBoolean(false);
   private RequestProcessor requestProcessor;
   private HttpUrl analyticsUrl;
   FlagsmithLogger logger;
@@ -63,7 +67,7 @@ public class AnalyticsProcessor {
    */
   public AnalyticsProcessor(
       FlagsmithSdk api, FlagsmithLogger logger, RequestProcessor requestProcessor) {
-    this.analyticsData = new HashMap<String, Integer>();
+    this.analyticsData = new ConcurrentHashMap<String, LongAdder>();
     this.requestProcessor = requestProcessor;
     this.logger = logger;
     this.nextFlush = Instant.now().getEpochSecond() + analyticsTimer;
@@ -111,30 +115,35 @@ public class AnalyticsProcessor {
    * Push the analytics to the server.
    */
   public void flush() {
+    // Make sure analytics data is only flushed once.
+    if (isFlushing.compareAndSet(false, true)) {
+      if (analyticsData.isEmpty()) {
+        isFlushing.set(false);
+        return;
+      }
 
-    if (analyticsData.isEmpty()) {
-      return;
+      String response;
+
+      try {
+        ObjectMapper mapper = MapperFactory.getMapper();
+        response = mapper.writeValueAsString(analyticsData);
+        analyticsData.clear();
+      } catch (JsonProcessingException jpe) {
+        logger.error("Error parsing analytics data to JSON.", jpe);
+        isFlushing.set(false);
+        return;
+      }
+
+      MediaType json = MediaType.parse("application/json; charset=utf-8");
+      RequestBody body = RequestBody.create(json, response);
+
+      Request request = api.newPostRequest(getAnalyticsUrl(), body);
+
+      getRequestProcessor().executeAsync(request, Boolean.FALSE);
+
+      setNextFlush();
+      isFlushing.set(false);
     }
-
-    String response;
-
-    try {
-      ObjectMapper mapper = MapperFactory.getMapper();
-      response = mapper.writeValueAsString(analyticsData);
-    } catch (JsonProcessingException jpe) {
-      logger.error("Error parsing analytics data to JSON.", jpe);
-      return;
-    }
-
-    MediaType json = MediaType.parse("application/json; charset=utf-8");
-    RequestBody body = RequestBody.create(json, response);
-
-    Request request = api.newPostRequest(getAnalyticsUrl(), body);
-
-    getRequestProcessor().executeAsync(request, Boolean.FALSE);
-
-    analyticsData.clear();
-    setNextFlush();
   }
 
   /**
@@ -142,7 +151,8 @@ public class AnalyticsProcessor {
    * @param featureName name of the feature to track evaluation for
    */
   public void trackFeature(String featureName) {
-    analyticsData.put(featureName, analyticsData.getOrDefault(featureName, 0) + 1);
+    analyticsData.computeIfAbsent(featureName, k -> new LongAdder()).increment();
+
     if (nextFlush.compareTo(Instant.now().getEpochSecond()) < 0) {
       this.flush();
     }

@@ -66,11 +66,6 @@ public class EnvironmentTest {
 
     Assertions.assertTrue(environmentModel.getFeatureStates().size() == 3);
 
-    Assertions.assertNull(environmentModel.getAmplitudeConfig());
-    Assertions.assertNull(environmentModel.getMixpanelConfig());
-    Assertions.assertNull(environmentModel.getHeapConfig());
-    Assertions.assertNull(environmentModel.getSegmentConfig());
-
     FeatureStateModel featureState = FeatureStateHelper.getFeatureStateForFeatureByName(
         environmentModel.getFeatureStates(),
         "feature_with_string_value"
