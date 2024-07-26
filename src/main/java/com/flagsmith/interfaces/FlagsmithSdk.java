@@ -16,7 +16,7 @@ public interface FlagsmithSdk {
   Flags getFeatureFlags(boolean doThrow);
 
   Flags identifyUserWithTraits(
-      String identifier, List<TraitModel> traits, boolean doThrow
+      String identifier, List<? extends TraitModel> traits, boolean isTransient, boolean doThrow
   );
 
   FlagsmithConfig getConfig();

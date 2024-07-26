@@ -72,7 +72,7 @@ public interface FlagsmithCache {
    *
    * @return string
    */
-  String getIdentityFlagsCacheKey(String identifier);
+  String getIdentityFlagsCacheKey(String identifier, boolean isTransient);
 
   /**
    * Returns the Cache instance.

@@ -27,7 +27,7 @@ public class IdentityModel extends BaseModel {
   @JsonProperty("identity_uuid")
   private String identityUuid = UUID.randomUUID().toString();
   @JsonProperty("identity_traits")
-  private List<TraitModel> identityTraits = new ArrayList<>();
+  private List<? extends TraitModel> identityTraits = new ArrayList<>();
   @JsonProperty("identity_features")
   private List<FeatureStateModel> identityFeatures = new ArrayList<>();
   @JsonProperty("composite_key")
@@ -48,7 +48,7 @@ public class IdentityModel extends BaseModel {
    *
    * @param traits traits to update
    */
-  public void updateTraits(List<TraitModel> traits) {
+  public void updateTraits(List<? extends TraitModel> traits) {
     Map<String, TraitModel> existingTraits = new HashMap<>();
 
     if (identityTraits != null && identityTraits.size() > 0) {

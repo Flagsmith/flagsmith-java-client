@@ -172,14 +172,14 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
 
   @Override
   public Flags identifyUserWithTraits(
-      String identifier, List<TraitModel> traits, boolean doThrow
+      String identifier, List<? extends TraitModel> traits, boolean isTransient, boolean doThrow
   ) {
     assertValidUser(identifier);
     Flags flags = null;
     String cacheKey = null;
 
     if (getCache() != null) {
-      cacheKey = getCache().getIdentityFlagsCacheKey(identifier);
+      cacheKey = getCache().getIdentityFlagsCacheKey(identifier, isTransient);
       flags = getCache().getIfPresent(cacheKey);
 
       if (flags != null) {
@@ -187,18 +187,22 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
       }
     }
 
-    // we are using identities endpoint to create bulk user Trait
-    HttpUrl url = defaultConfig.getIdentitiesUri();
-
     ObjectNode node = MapperFactory.getMapper().createObjectNode();
     node.put("identifier", identifier);
+
+    if (isTransient) {
+      node.put("transient", true);
+    }
 
     if (traits != null) {
       node.putPOJO("traits", traits);
     }
 
     MediaType json = MediaType.parse("application/json; charset=utf-8");
-    RequestBody body = RequestBody.create(json, node.toString());
+    RequestBody body = RequestBody.create(node.toString(), json);
+
+    // we are using identities endpoint to create bulk user Trait
+    HttpUrl url = defaultConfig.getIdentitiesUri();
 
     final Request request = this.newPostRequest(url, body);
 

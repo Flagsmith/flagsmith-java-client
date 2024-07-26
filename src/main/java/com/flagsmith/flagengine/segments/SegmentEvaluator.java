@@ -51,9 +51,9 @@ public class SegmentEvaluator {
    * @param overrideTraits Overriden traits.
    */
   public static Boolean evaluateIdentityInSegment(IdentityModel identity, SegmentModel segment,
-                                                  List<TraitModel> overrideTraits) {
+                                                  List<? extends TraitModel> overrideTraits) {
     List<SegmentRuleModel> segmentRules = segment.getRules();
-    List<TraitModel> traits =
+    List<? extends TraitModel> traits =
         overrideTraits != null ? overrideTraits : identity.getIdentityTraits();
 
     String identityHashKey = identity.getDjangoId() == null ? identity.getCompositeKey()
@@ -83,7 +83,7 @@ public class SegmentEvaluator {
    * @param segmentId Segment ID (for hashing)
    * @param identityId Identity ID (for hashing)
    */
-  private static Boolean traitsMatchSegmentRule(List<TraitModel> identityTraits,
+  private static Boolean traitsMatchSegmentRule(List<? extends TraitModel> identityTraits,
                                                 SegmentRuleModel rule,
                                                 Integer segmentId, String identityId) {
     Boolean matchingCondition = Boolean.TRUE;
@@ -122,7 +122,7 @@ public class SegmentEvaluator {
    * @param segmentId Segment ID (for hashing)
    * @param identityId Identity ID (for hashing)
    */
-  private static Boolean traitsMatchSegmentCondition(List<TraitModel> identityTraits,
+  private static Boolean traitsMatchSegmentCondition(List<? extends TraitModel> identityTraits,
                                                      SegmentConditionModel condition,
                                                      Integer segmentId, String identityId) {
     if (condition.getOperator().equals(SegmentConditions.PERCENTAGE_SPLIT)) {
@@ -137,7 +137,7 @@ public class SegmentEvaluator {
     }
 
     if (identityTraits != null) {
-      Optional<TraitModel> matchingTrait = identityTraits
+      Optional<? extends TraitModel> matchingTrait = identityTraits
           .stream()
           .filter((trait) -> trait.getTraitKey().equals(condition.getProperty_()))
           .findFirst();
@@ -154,7 +154,7 @@ public class SegmentEvaluator {
    * @param trait Trait to match against.
    * @param condition Condition to evaluate with.
    */
-  private static Boolean traitMatchesSegmentCondition(Optional<TraitModel> trait,
+  private static Boolean traitMatchesSegmentCondition(Optional<? extends TraitModel> trait,
                                                       SegmentConditionModel condition) {
     if (condition.getOperator().equals(SegmentConditions.IS_NOT_SET)) {
       return !trait.isPresent();
