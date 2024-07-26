@@ -33,7 +33,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
 
-
 public class FlagsmithApiWrapperCachingTest {
 
   private final String API_KEY = "OUR_API_KEY";
@@ -134,7 +133,7 @@ public class FlagsmithApiWrapperCachingTest {
   public void identifyUserWithTraits_nullUser() {
     // Act
     assertThrows(IllegalArgumentException.class,
-        () -> flagsmithAPIWrapper.identifyUserWithTraits(null, new ArrayList<>(), true));
+        () -> flagsmithAPIWrapper.identifyUserWithTraits(null, new ArrayList<>(), false, true));
 
     // Assert
     verify(flagsmithCacheImpl, times(0)).getCache();
@@ -145,7 +144,7 @@ public class FlagsmithApiWrapperCachingTest {
   public void identifyUserWithTraits_nullUserIdentifier() {
     // Act
     assertThrows(IllegalArgumentException.class,
-        () -> flagsmithAPIWrapper.identifyUserWithTraits("", new ArrayList<>(), true));
+        () -> flagsmithAPIWrapper.identifyUserWithTraits("", new ArrayList<>(), false, true));
 
     // Assert
     verify(flagsmithCacheImpl, times(0)).getCache();
@@ -159,7 +158,7 @@ public class FlagsmithApiWrapperCachingTest {
     String expectedCacheKey = "identity" + identifier;
     final ArrayList<TraitModel> traits = new ArrayList<>();
 
-    when(flagsmithCacheImpl.getIdentityFlagsCacheKey(identifier)).thenReturn(expectedCacheKey);
+    when(flagsmithCacheImpl.getIdentityFlagsCacheKey(identifier, false)).thenReturn(expectedCacheKey);
 
     final FlagsAndTraitsResponse flagsAndTraitsResponse = new FlagsAndTraitsResponse();
     when(requestProcessor.executeAsync(any(), any(), any()))
@@ -167,8 +166,7 @@ public class FlagsmithApiWrapperCachingTest {
 
     // Act
     final Flags actualUserFlagsAndTraits = flagsmithAPIWrapper.identifyUserWithTraits(
-        identifier, traits, true
-    );
+        identifier, traits, false, true);
 
     // Assert
     verify(requestProcessor, times(1)).executeAsync(any(), any(), any());
@@ -215,8 +213,7 @@ public class FlagsmithApiWrapperCachingTest {
 
     // Act
     final Flags actualUserFlagsAndTraits = flagsmithAPIWrapper.identifyUserWithTraits(
-        identifier, traits, true
-    );
+        identifier, traits, false, true);
 
     // Assert
     ArgumentCaptor<Request> argument = ArgumentCaptor.forClass(Request.class);
@@ -228,7 +225,6 @@ public class FlagsmithApiWrapperCachingTest {
 
   private Flags newFlagsList(List<FeatureStateModel> flags) {
     return Flags.fromApiFlags(
-        flags, null, defaultConfig.getFlagsmithFlagDefaults()
-    );
+        flags, null, defaultConfig.getFlagsmithFlagDefaults());
   }
 }
