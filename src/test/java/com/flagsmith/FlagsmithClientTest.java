@@ -756,12 +756,12 @@ public class FlagsmithClientTest {
     @Test
     public void testClose() throws FlagsmithApiError, InterruptedException {
         // Given
-        int pollingInterval = 1;
+        int pollingIntervalSeconds = 1;
 
         FlagsmithConfig config = FlagsmithConfig
                 .newBuilder()
                 .withLocalEvaluation(true)
-                .withEnvironmentRefreshIntervalSeconds(pollingInterval)
+                .withEnvironmentRefreshIntervalSeconds(pollingIntervalSeconds)
                 .build();
 
         FlagsmithApiWrapper mockedApiWrapper = mock(FlagsmithApiWrapper.class);
@@ -781,7 +781,7 @@ public class FlagsmithClientTest {
         // Since the thread will only stop once it reads the interrupt signal correctly
         // on its next polling interval, we need to wait for the polling interval
         // to complete before checking the thread has been killed correctly.
-        Thread.sleep(pollingInterval);
+        Thread.sleep((pollingIntervalSeconds * 1000) + 100);
         assertFalse(client.getPollingManager().getIsThreadAlive());
     }
 
