@@ -2,7 +2,6 @@
 
 [![Download](https://img.shields.io/maven-central/v/com.flagsmith/flagsmith-java-client)](https://mvnrepository.com/artifact/com.flagsmith/flagsmith-java-client)
 ![build](https://github.com/Flagsmith/flagsmith-java-client/actions/workflows/maven.yml/badge.svg)
-![coverage](./.github/badges/jacoco.svg)
 
 # Flagsmith Java SDK
 
@@ -27,7 +26,7 @@ If you encounter a bug or feature request we would like to hear about it. Before
 If you have any questions about our projects you can email <a href="mailto:support@flagsmith.com">support@flagsmith.com</a>.
 
 ## Code Style formatting
-We are using Google Java Style for code formatting. To install one see instructions bellow 
+We are using Google Java Style for code formatting. To install one see instructions bellow
 
 ### VS Code
 
