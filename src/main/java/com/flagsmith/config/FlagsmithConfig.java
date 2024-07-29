@@ -1,6 +1,7 @@
 package com.flagsmith.config;
 
 import com.flagsmith.FlagsmithFlagDefaults;
+import com.flagsmith.interfaces.IOfflineHandler;
 import com.flagsmith.threads.AnalyticsProcessor;
 
 import java.net.Proxy;
@@ -42,6 +43,8 @@ public final class FlagsmithConfig {
   private AnalyticsProcessor analyticsProcessor;
   private FlagsmithFlagDefaults flagsmithFlagDefaults = null;
   private Boolean raiseUpdateEnvironmentErrorsOnStartup = true;
+  private Boolean offlineMode = false;
+  private IOfflineHandler offlineHandler = null;
 
   protected FlagsmithConfig(Builder builder) {
     this.baseUri = builder.baseUri;
@@ -75,6 +78,9 @@ public final class FlagsmithConfig {
         analyticsProcessor = new AnalyticsProcessor(httpClient);
       }
     }
+
+    this.offlineMode = builder.offlineMode;
+    this.offlineHandler = builder.offlineHandler;
   }
 
   public static FlagsmithConfig.Builder newBuilder() {
@@ -102,6 +108,9 @@ public final class FlagsmithConfig {
     private Boolean enableLocalEvaluation = Boolean.FALSE;
     private Integer environmentRefreshIntervalSeconds = DEFAULT_ENVIRONMENT_REFRESH_SECONDS;
     private Boolean enableAnalytics = Boolean.FALSE;
+
+    private Boolean offlineMode = Boolean.FALSE;
+    private IOfflineHandler offlineHandler;
 
     private Builder() {
     }
@@ -211,8 +220,8 @@ public final class FlagsmithConfig {
     }
 
     /**
-     * set environment refresh rate with polling manager. Only needed when local evaluation is
-     * true.
+     * set environment refresh rate with polling manager. Only needed when local
+     * evaluation is true.
      *
      * @param seconds seconds
      * @return
@@ -234,7 +243,6 @@ public final class FlagsmithConfig {
       return this;
     }
 
-
     /**
      * Enable Analytics Processor.
      *
@@ -243,6 +251,28 @@ public final class FlagsmithConfig {
      */
     public Builder withEnableAnalytics(Boolean enable) {
       this.enableAnalytics = enable;
+      return this;
+    }
+
+    /**
+     * Enable offline mode.
+     *
+     * @param offlineMode boolean to enable offline mode
+     * @return
+     */
+    public Builder withOfflineMode(Boolean offlineMode) {
+      this.offlineMode = offlineMode;
+      return this;
+    }
+
+    /**
+     * Set the offline handler (used as a fallback or with offlineMode).
+     *
+     * @param offlineHandler the offline handler
+     * @return
+     */
+    public Builder withOfflineHandler(IOfflineHandler offlineHandler) {
+      this.offlineHandler = offlineHandler;
       return this;
     }
 

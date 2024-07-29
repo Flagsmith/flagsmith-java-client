@@ -8,14 +8,23 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flagsmith.FlagsmithApiWrapper;
 import com.flagsmith.FlagsmithException;
 import com.flagsmith.FlagsmithLogger;
+import com.flagsmith.MapperFactory;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.config.Retry;
 import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.LongAccumulator;
+import java.util.concurrent.atomic.LongAdder;
+
+import lombok.SneakyThrows;
 import okhttp3.Response;
 import okhttp3.mock.MockInterceptor;
+import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -95,5 +104,16 @@ public class AnalyticsProcessorTest {
 
     // Then
     verify(requestProcessor, times(1)).close();
+  }
+
+  @Test
+  @SneakyThrows
+  public void AnalyticsProcessor_longAdderGetsSerializedCorrectly() {
+    analytics.trackFeature("foo");
+
+    ObjectMapper mapper = MapperFactory.getMapper();
+    String response = mapper.writeValueAsString(analytics.getAnalyticsData());
+
+    Assertions.assertEquals("{\"foo\":1}", response);
   }
 }

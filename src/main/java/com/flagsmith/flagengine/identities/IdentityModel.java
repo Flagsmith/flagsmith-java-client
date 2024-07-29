@@ -29,7 +29,7 @@ public class IdentityModel extends BaseModel {
   @JsonProperty("identity_traits")
   private List<TraitModel> identityTraits = new ArrayList<>();
   @JsonProperty("identity_features")
-  private Set<FeatureStateModel> identityFeatures = new HashSet<>();
+  private List<FeatureStateModel> identityFeatures = new ArrayList<>();
   @JsonProperty("composite_key")
   private String compositeKey;
 

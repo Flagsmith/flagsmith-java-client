@@ -26,11 +26,10 @@ If you encounter a bug or feature request we would like to hear about it. Before
 
 If you have any questions about our projects you can email <a href="mailto:support@flagsmith.com">support@flagsmith.com</a>.
 
-
 ## Code Style formatting
 We are using Google Java Style for code formatting. To install one see instructions bellow 
 
-### VS Code  
+### VS Code
 
 Install extension [Checkstyle for Java](https://marketplace.visualstudio.com/items?itemName=shengchen.vscode-checkstyle)
 Use `java-google-style.xml` file in docs folder to set as Checkstyle configuration file.
