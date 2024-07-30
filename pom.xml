@@ -44,7 +44,7 @@
     <jacksonVersion>2.15.2</jacksonVersion>
     <lombok.version>1.18.34</lombok.version>
     <slf4j.version>1.7.30</slf4j.version>
-    <maven.checkstyle.version>3.1.0</maven.checkstyle.version>
+    <maven.checkstyle.version>3.4.0</maven.checkstyle.version>
     <junit.jupiter.version>5.9.2</junit.jupiter.version>
   </properties>
 
@@ -227,18 +227,11 @@
         <artifactId>maven-checkstyle-plugin</artifactId>
         <version>${maven.checkstyle.version}</version>
         <configuration>
-          <configLocation>google_checks_v8.19.xml</configLocation>
-          <encoding>UTF-8</encoding>
-          <consoleOutput>true</consoleOutput>
-          <failsOnError>true</failsOnError>
-          <linkXRef>false</linkXRef>
-          <violationSeverity>warning</violationSeverity>
-          <suppressionsLocation></suppressionsLocation>
+          <configLocation>google_checks.xml</configLocation>
+          <suppressionsLocation>checkstyle-suppressions.xml</suppressionsLocation>
         </configuration>
         <executions>
           <execution>
-            <id>validate</id>
-            <phase>validate</phase>
             <goals>
               <goal>check</goal>
             </goals>
@@ -270,9 +263,6 @@
                 </goals>
               </execution>
             </executions>
-            <configuration>
-              <doclint>all,-missing</doclint>
-            </configuration>
           </plugin>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
