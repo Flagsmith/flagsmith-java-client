@@ -8,12 +8,12 @@ import com.flagsmith.MapperFactory;
 import com.flagsmith.config.Retry;
 import com.flagsmith.exceptions.FlagsmithApiError;
 import com.flagsmith.exceptions.FlagsmithRuntimeError;
-
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import lombok.Getter;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -22,7 +22,9 @@ import okhttp3.Response;
 public class RequestProcessor {
 
   private ExecutorService executor = Executors.newFixedThreadPool(3);
+  @Getter
   private OkHttpClient client;
+  @Getter
   private FlagsmithLogger logger;
   private Retry retries = new Retry(3);
 
@@ -32,6 +34,7 @@ public class RequestProcessor {
 
   /**
    * Instantiate with client, logger and retries.
+   *
    * @param client client instance
    * @param logger logger instance
    * @param retries retries
@@ -44,11 +47,11 @@ public class RequestProcessor {
 
   /**
    * Execute the request in async mode.
+   *
    * @param request request to invoke
    * @param clazz class type of response
    * @param doThrow should throw Exception (boolean)
    * @param <T> Type inference for the response
-   * @return
    */
   public <T> Future<T> executeAsync(Request request, TypeReference<T> clazz, Boolean doThrow) {
     return executeAsync(request, clazz, doThrow, retries);
@@ -56,9 +59,9 @@ public class RequestProcessor {
 
   /**
    * Execute the response in async mode and do not unmarshall.
+   *
    * @param request request to invoke
    * @param doThrow whether to throw exception or not
-   * @return
    */
   public Future<JsonNode> executeAsync(Request request, Boolean doThrow) {
     return executeAsync(request, new TypeReference<JsonNode>() {}, doThrow, retries);
@@ -66,12 +69,12 @@ public class RequestProcessor {
 
   /**
    * Execute the response in async mode.
+   *
    * @param request Request object
    * @param clazz class type of response
    * @param doThrow should throw Exception
    * @param retries no of retries before failing
    * @param <T> Type inference for the response
-   * @return
    */
   public <T> Future<T> executeAsync(
       Request request, TypeReference<T> clazz, Boolean doThrow, Retry retries) {
@@ -122,13 +125,5 @@ public class RequestProcessor {
 
   public void close() {
     this.executor.shutdown();
-  }
-
-  public FlagsmithLogger getLogger() {
-    return logger;
-  }
-
-  public OkHttpClient getClient() {
-    return client;
   }
 }

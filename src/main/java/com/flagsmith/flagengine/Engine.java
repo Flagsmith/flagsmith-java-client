@@ -8,7 +8,6 @@ import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.flagengine.segments.SegmentEvaluator;
 import com.flagsmith.flagengine.segments.SegmentModel;
 import com.flagsmith.flagengine.utils.exceptions.FeatureStateNotFound;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +19,6 @@ public class Engine {
    * Get a list of feature states for a given environment.
    *
    * @param environment Instance of the Environment.
-   * @return
    */
   public static List<FeatureStateModel> getEnvironmentFeatureStates(EnvironmentModel environment) {
     if (environment.getProject().getHideDisabledFlags()) {
@@ -37,7 +35,6 @@ public class Engine {
    *
    * @param environment Instance of the Environment.
    * @param featureName Feature name to search for.
-   * @return
    */
   public static FeatureStateModel getEnvironmentFeatureState(EnvironmentModel environment,
                                                              String featureName)
@@ -56,7 +53,6 @@ public class Engine {
    *
    * @param environmentModel Instance of the Environment.
    * @param identityModel Instance of Identity.
-   * @return
    */
   public static List<FeatureStateModel> getIdentityFeatureStates(EnvironmentModel environmentModel,
                                                                  IdentityModel identityModel) {
@@ -68,7 +64,6 @@ public class Engine {
    *
    * @param environmentModel Instance of the Environment.
    * @param identityModel Instance of Identity.
-   * @return
    */
   public static List<FeatureStateModel> getIdentityFeatureStates(EnvironmentModel environmentModel,
                                                                  IdentityModel identityModel,
@@ -116,7 +111,6 @@ public class Engine {
    * @param environmentModel Instance of the Environment.
    * @param identityModel Instance of identity.
    * @param overrideTraits Traits to override identity's traits.
-   * @return
    */
   private static Map<FeatureModel, FeatureStateModel> getIdentityFeatureMap(
       EnvironmentModel environmentModel,

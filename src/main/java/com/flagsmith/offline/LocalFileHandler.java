@@ -5,7 +5,6 @@ import com.flagsmith.MapperFactory;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.interfaces.IOfflineHandler;
-
 import java.io.File;
 import java.io.IOException;
 
@@ -17,8 +16,6 @@ public class LocalFileHandler implements IOfflineHandler {
    * Instantiate a LocalFileHandler for use as an OfflineHandler.
    *
    * @param filePath - path to a json file containing the environment data.
-   * @throws FlagsmithClientError
-   *
    */
   public LocalFileHandler(String filePath) throws FlagsmithClientError {
     File file = new File(filePath);

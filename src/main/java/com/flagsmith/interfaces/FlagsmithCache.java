@@ -1,10 +1,8 @@
 package com.flagsmith.interfaces;
 
-import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.models.Flags;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
-import java.util.List;
 
 /**
  * Here are the fields we expose from the cache to outside this library.
@@ -78,8 +76,6 @@ public interface FlagsmithCache {
 
   /**
    * Returns the Cache instance.
-   *
-   * @return
    */
   Cache<String, Flags> getCache();
 }

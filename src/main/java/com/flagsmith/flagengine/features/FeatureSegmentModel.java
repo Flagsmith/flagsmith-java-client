@@ -1,7 +1,6 @@
 package com.flagsmith.flagengine.features;
 
 import com.flagsmith.flagengine.utils.models.BaseModel;
-
 import lombok.Data;
 
 @Data

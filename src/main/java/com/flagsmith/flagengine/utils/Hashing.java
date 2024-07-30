@@ -19,7 +19,6 @@ public class Hashing {
 
   /**
    * Returns the hashing instance.
-   * @return
    */
   public static Hashing getInstance() {
     if (instance == null) {
@@ -31,6 +30,7 @@ public class Hashing {
 
   /**
    * Set the instance object.
+   *
    * @param instanceObj Instance obj of Hashing
    */
   public static void setInstance(Hashing instanceObj) {
@@ -39,8 +39,8 @@ public class Hashing {
 
   /**
    * Returns the percentage of hash of the list of object IDs.
+   *
    * @param ids List of string IDs
-   * @return
    */
   public Float getHashedPercentageForObjectIds(List<String> ids) {
     return getHashedPercentageForObjectIds(ids, 1);
@@ -48,9 +48,9 @@ public class Hashing {
 
   /**
    * Returns the percentage of hash of the list of object IDs with iteration.
+   *
    * @param ids List of string IDs.
    * @param iterations Number of iterations for the string to be repeated.
-   * @return
    */
   public Float getHashedPercentageForObjectIds(List<String> ids, Integer iterations) {
     String hashTo = ids.stream().collect(Collectors.joining(","));
@@ -73,8 +73,8 @@ public class Hashing {
 
   /**
    * returns the mdt of the string provided.
+   *
    * @param hash String to be hashed.
-   * @return
    */
   public String getMD5(String hash) {
     try {

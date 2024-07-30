@@ -24,7 +24,6 @@ public class Flags {
    *
    * @param featureStates list of feature states
    * @param analyticsProcessor instance of analytics processor
-   * @return
    */
   public static Flags fromFeatureStateModels(
       List<FeatureStateModel> featureStates,
@@ -38,7 +37,6 @@ public class Flags {
    * @param featureStates list of feature states
    * @param analyticsProcessor instance of analytics processor
    * @param identityId identity ID (optional)
-   * @return
    */
   public static Flags fromFeatureStateModels(
       List<FeatureStateModel> featureStates,
@@ -54,7 +52,6 @@ public class Flags {
    * @param analyticsProcessor instance of analytics processor
    * @param identityId identity ID (optional)
    * @param defaultFlagHandler default flags (optional)
-   * @return
    */
   public static Flags fromFeatureStateModels(
       List<FeatureStateModel> featureStates,
@@ -82,7 +79,6 @@ public class Flags {
    * @param apiFlags Dictionary with api flags
    * @param analyticsProcessor instance of analytics processor
    * @param defaultFlagHandler handler for default flags if present
-   * @return
    */
   public static Flags fromApiFlags(
       JsonNode apiFlags,
@@ -91,7 +87,7 @@ public class Flags {
 
     Map<String, BaseFlag> flagMap = new HashMap<>();
 
-    for (JsonNode node: apiFlags) {
+    for (JsonNode node : apiFlags) {
       flagMap.put(
           node.get("feature").get("name").asText(),
           Flag.fromApiFlag(node)
@@ -112,7 +108,6 @@ public class Flags {
    * @param apiFlags Dictionary with api flags
    * @param analyticsProcessor instance of analytics processor
    * @param defaultFlagHandler handler for default flags if present
-   * @return
    */
   public static Flags fromApiFlags(
       List<FeatureStateModel> apiFlags,
@@ -121,7 +116,7 @@ public class Flags {
 
     Map<String, BaseFlag> flagMap = new HashMap<>();
 
-    for (FeatureStateModel flag: apiFlags) {
+    for (FeatureStateModel flag : apiFlags) {
       flagMap.put(
           flag.getFeature().getName(),
           Flag.fromFeatureStateModel(flag, null)
@@ -138,8 +133,6 @@ public class Flags {
 
   /**
    * returns the list of all flags.
-   *
-   * @return
    */
   public List<BaseFlag> getAllFlags() {
     return flags.values().stream().collect(Collectors.toList());
@@ -149,7 +142,6 @@ public class Flags {
    * is feature enabled, null if not present.
    *
    * @param featureName Feature name
-   * @return
    */
   public boolean isFeatureEnabled(String featureName)
       throws FlagsmithClientError {
@@ -160,7 +152,6 @@ public class Flags {
    * Get the feature value, null if not present.
    *
    * @param featureName Feature name
-   * @return
    */
   public Object getFeatureValue(String featureName) throws FlagsmithClientError {
     return getFlag(featureName).getValue();
@@ -170,7 +161,6 @@ public class Flags {
    * Get the feature, null if not present.
    *
    * @param featureName feature name
-   * @return
    */
   public BaseFlag getFlag(String featureName) throws FlagsmithClientError {
     if (!flags.containsKey(featureName)) {

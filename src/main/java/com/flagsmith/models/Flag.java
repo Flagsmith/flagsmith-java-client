@@ -15,7 +15,6 @@ public class Flag extends BaseFlag {
    *
    * @param featureState feature state model
    * @param identityId identity id
-   * @return
    */
   public static Flag fromFeatureStateModel(FeatureStateModel featureState, Object identityId) {
     Flag flag = new Flag();
@@ -32,7 +31,6 @@ public class Flag extends BaseFlag {
    * Flag from api.
    *
    * @param node node object
-   * @return
    */
   public static Flag fromApiFlag(JsonNode node) {
     Flag flag = new Flag();

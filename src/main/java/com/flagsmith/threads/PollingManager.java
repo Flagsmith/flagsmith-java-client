@@ -17,6 +17,7 @@ public class PollingManager {
 
   /**
    * Instantiate the polling manager with client and interval for refresh.
+   *
    * @param client client object
    * @param interval interval seconds
    */
@@ -29,7 +30,6 @@ public class PollingManager {
 
   /**
    * Initialize a thread in which to run the polling for environment.
-   * @return
    */
   private Thread initializeThread() {
     Thread thread = new Thread() {

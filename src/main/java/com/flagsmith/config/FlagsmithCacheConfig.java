@@ -5,7 +5,6 @@ import com.flagsmith.models.Flags;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
-
 import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;

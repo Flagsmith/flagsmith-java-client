@@ -35,7 +35,6 @@ public class IdentityModel extends BaseModel {
 
   /**
    * Returns the composite key for the identity.
-   * @return
    */
   public String getCompositeKey() {
     if (compositeKey == null) {
@@ -46,6 +45,7 @@ public class IdentityModel extends BaseModel {
 
   /**
    * Update the identity traits.
+   *
    * @param traits traits to update
    */
   public void updateTraits(List<TraitModel> traits) {
@@ -56,7 +56,7 @@ public class IdentityModel extends BaseModel {
           .collect(Collectors.toMap(TraitModel::getTraitKey, (trait) -> trait));
     }
 
-    for (TraitModel trait: traits) {
+    for (TraitModel trait : traits) {
       if (trait.getTraitValue() == null) {
         existingTraits.remove(trait.getTraitKey());
       } else {

@@ -6,7 +6,6 @@ import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.flagengine.segments.constants.SegmentConditions;
 import com.flagsmith.flagengine.utils.Hashing;
 import com.flagsmith.flagengine.utils.types.TypeCasting;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -17,9 +16,9 @@ public class SegmentEvaluator {
 
   /**
    * Get segment identities from environment and identity.
+   *
    * @param environment Environment instance.
    * @param identity Identity Instance.
-   * @return
    */
   public static List<SegmentModel> getIdentitySegments(EnvironmentModel environment,
                                                        IdentityModel identity) {
@@ -28,10 +27,10 @@ public class SegmentEvaluator {
 
   /**
    * Get segment identities from environment and identity along with traits to override.
+   *
    * @param environment Environment Instance.
    * @param identity Identity Instance.
    * @param overrideTraits Traits to over ride.
-   * @return
    */
   public static List<SegmentModel> getIdentitySegments(EnvironmentModel environment,
                                                        IdentityModel identity,
@@ -46,10 +45,10 @@ public class SegmentEvaluator {
 
   /**
    * Evaluate the traits in identities and overrides with rules from segments.
+   *
    * @param identity Identity instance.
    * @param segment Segment Instance.
    * @param overrideTraits Overriden traits.
-   * @return
    */
   public static Boolean evaluateIdentityInSegment(IdentityModel identity, SegmentModel segment,
                                                   List<TraitModel> overrideTraits) {
@@ -78,11 +77,11 @@ public class SegmentEvaluator {
 
   /**
    * Evaluate whether the trait match the rule from segment.
+   *
    * @param identityTraits Traits to match against.
    * @param rule Rule from segments to evaluate with.
    * @param segmentId Segment ID (for hashing)
    * @param identityId Identity ID (for hashing)
-   * @return
    */
   private static Boolean traitsMatchSegmentRule(List<TraitModel> identityTraits,
                                                 SegmentRuleModel rule,
@@ -117,11 +116,11 @@ public class SegmentEvaluator {
 
   /**
    * Evaluate traits and compare them with condition.
+   *
    * @param identityTraits Traits to match against.
    * @param condition Condition to evaluate with.
    * @param segmentId Segment ID (for hashing)
    * @param identityId Identity ID (for hashing)
-   * @return
    */
   private static Boolean traitsMatchSegmentCondition(List<TraitModel> identityTraits,
                                                      SegmentConditionModel condition,
@@ -151,9 +150,9 @@ public class SegmentEvaluator {
 
   /**
    * Evaluate a single trait and compare it with condition.
+   *
    * @param trait Trait to match against.
    * @param condition Condition to evaluate with.
-   * @return
    */
   private static Boolean traitMatchesSegmentCondition(Optional<TraitModel> trait,
                                                       SegmentConditionModel condition) {
@@ -168,9 +167,9 @@ public class SegmentEvaluator {
 
   /**
    * Matches condition value with the trait value.
+   *
    * @param condition Condition to evaluate with.
    * @param value Trait value to compare with.
-   * @return
    */
   public static Boolean conditionMatchesTraitValue(SegmentConditionModel condition, Object value) {
     SegmentConditions operator = condition.getOperator();
