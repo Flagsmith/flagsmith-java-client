@@ -4,8 +4,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.flagsmith.config.FlagsmithConfig.Protocol;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
+import java.util.Collections;
 import okhttp3.mock.MockInterceptor;
 import org.junit.jupiter.api.Test;
 
@@ -49,5 +51,18 @@ public class FlagsmithConfigTest {
         .build();
 
     assertEquals(2, flagsmithConfig.getHttpClient().interceptors().size());
+  }
+
+  @Test
+  public void configTest_supportedProtocols() {
+    final FlagsmithConfig defaultFlagsmithConfig = FlagsmithConfig.newBuilder().build();
+
+    assertEquals(2, defaultFlagsmithConfig.getHttpClient().protocols().size());
+
+    final FlagsmithConfig customFlagsmithConfig = FlagsmithConfig.newBuilder().withSupportedProtocols(
+        Collections.singletonList(Protocol.HTTP_1_1)).build();
+
+    assertEquals(1, customFlagsmithConfig.getHttpClient().protocols().size());
+    assertEquals(okhttp3.Protocol.HTTP_1_1, customFlagsmithConfig.getHttpClient().protocols().get(0));
   }
 }
