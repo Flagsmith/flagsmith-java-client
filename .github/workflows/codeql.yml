@@ -44,9 +44,3 @@ jobs:
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
-
-      - uses: dbelyaev/action-checkstyle@v1
-        with:
-          github_token: ${{ secrets.GH_TOKEN }}
-          reporter: github-pr-review
-          level: warning
