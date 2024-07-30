@@ -64,6 +64,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
 
   /**
    * Instantiate with config, custom headers, logger and apikey.
+   *
    * @param defaultConfig config object
    * @param customHeaders custom headers list
    * @param logger logger instance
@@ -88,6 +89,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
 
   /**
    * Instantiate with config, custom headers, logger, apikey and request processor.
+   *
    * @param defaultConfig config object
    * @param customHeaders custom headers list
    * @param logger logger instance
@@ -112,7 +114,6 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
    * Get Feature Flags from API.
    *
    * @param doThrow - whether throw exception or not
-   * @return
    */
   public Flags getFeatureFlags(boolean doThrow) {
     Flags featureFlags = new Flags();
@@ -302,8 +303,8 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
 
   /**
    * Returns a build request with GET.
+   *
    * @param url - URL to invoke
-   * @return
    */
   @Override
   public Request newGetRequest(HttpUrl url) {
@@ -315,9 +316,9 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
 
   /**
    * Returns a build request with GET.
+   *
    * @param url - URL to invoke
    * @param body - body to post
-   * @return
    */
   @Override
   public Request newPostRequest(HttpUrl url, RequestBody body) {

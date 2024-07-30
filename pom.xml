@@ -233,6 +233,7 @@
           <failsOnError>true</failsOnError>
           <linkXRef>false</linkXRef>
           <violationSeverity>warning</violationSeverity>
+          <suppressionsLocation></suppressionsLocation>
         </configuration>
         <executions>
           <execution>

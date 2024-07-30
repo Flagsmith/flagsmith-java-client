@@ -1,14 +1,11 @@
 package com.flagsmith.interfaces;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.flagengine.environments.EnvironmentModel;
-import com.flagsmith.flagengine.features.FeatureStateModel;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.models.Flags;
 import com.flagsmith.threads.RequestProcessor;
 import java.util.List;
-import lombok.NonNull;
 import okhttp3.HttpUrl;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -41,6 +38,7 @@ public interface FlagsmithSdk {
 
   /**
    * validate user has a valid identifier.
+   *
    * @param identifier user identifier
    */
   default void assertValidUser(String identifier) {

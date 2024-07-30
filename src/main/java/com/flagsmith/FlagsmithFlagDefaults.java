@@ -22,7 +22,6 @@ public class FlagsmithFlagDefaults implements DefaultFlagHandler {
    * evaluate the default feature flag.
    *
    * @param flagName feature name
-   * @return
    */
   public BaseFlag evaluateDefaultFlag(String flagName) {
     return defaultFlagValueFunc.apply(flagName);

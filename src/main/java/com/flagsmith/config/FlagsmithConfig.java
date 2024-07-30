@@ -3,14 +3,12 @@ package com.flagsmith.config;
 import com.flagsmith.FlagsmithFlagDefaults;
 import com.flagsmith.interfaces.IOfflineHandler;
 import com.flagsmith.threads.AnalyticsProcessor;
-
 import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
-
 import lombok.Getter;
 import okhttp3.HttpUrl;
 import okhttp3.Interceptor;
@@ -201,7 +199,6 @@ public final class FlagsmithConfig {
      * Add retries for HTTP request to the builder.
      *
      * @param retries no of retries for requests
-     * @return
      */
     public Builder retries(Retry retries) {
       this.retries = retries;
@@ -212,7 +209,6 @@ public final class FlagsmithConfig {
      * Local evaluation config.
      *
      * @param localEvaluation boolean to enable
-     * @return
      */
     public Builder withLocalEvaluation(Boolean localEvaluation) {
       this.enableLocalEvaluation = localEvaluation;
@@ -224,7 +220,6 @@ public final class FlagsmithConfig {
      * evaluation is true.
      *
      * @param seconds seconds
-     * @return
      */
     public Builder withEnvironmentRefreshIntervalSeconds(Integer seconds) {
       this.environmentRefreshIntervalSeconds = seconds;
@@ -235,7 +230,6 @@ public final class FlagsmithConfig {
      * Set the analytics processor.
      *
      * @param processor analytics processor object
-     * @return
      */
     public Builder withAnalyticsProcessor(AnalyticsProcessor processor) {
       analyticsProcessor = processor;
@@ -247,7 +241,6 @@ public final class FlagsmithConfig {
      * Enable Analytics Processor.
      *
      * @param enable boolean to enable
-     * @return
      */
     public Builder withEnableAnalytics(Boolean enable) {
       this.enableAnalytics = enable;
@@ -258,7 +251,6 @@ public final class FlagsmithConfig {
      * Enable offline mode.
      *
      * @param offlineMode boolean to enable offline mode
-     * @return
      */
     public Builder withOfflineMode(Boolean offlineMode) {
       this.offlineMode = offlineMode;
@@ -269,7 +261,6 @@ public final class FlagsmithConfig {
      * Set the offline handler (used as a fallback or with offlineMode).
      *
      * @param offlineHandler the offline handler
-     * @return
      */
     public Builder withOfflineHandler(IOfflineHandler offlineHandler) {
       this.offlineHandler = offlineHandler;

@@ -10,8 +10,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.LongAdder;
-
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -25,15 +25,24 @@ public class AnalyticsProcessor {
   private final String analyticsEndpoint = "analytics/flags/";
   private Integer analyticsTimer = 10;
   private Map<String, LongAdder> analyticsData;
+  @Setter
   @ToString.Exclude private FlagsmithSdk api;
   private Long nextFlush;
   private AtomicBoolean isFlushing = new AtomicBoolean(false);
   private RequestProcessor requestProcessor;
   private HttpUrl analyticsUrl;
+  /**
+   * -- SETTER --
+   *  Set the logger object.
+   *
+   * @param logger logger instance
+   */
+  @Setter
   FlagsmithLogger logger;
 
   /**
    * instantiate with HTTP client.
+   *
    * @param client client instance
    */
   public AnalyticsProcessor(OkHttpClient client) {
@@ -42,6 +51,7 @@ public class AnalyticsProcessor {
 
   /**
    * instantiate with api and client.
+   *
    * @param api api instance
    * @param client client instance
    */
@@ -51,6 +61,7 @@ public class AnalyticsProcessor {
 
   /**
    * Instantiate with API wrapper, logger and HTTP client.
+   *
    * @param api Api instance
    * @param client client instance
    * @param logger logger instance
@@ -61,6 +72,7 @@ public class AnalyticsProcessor {
 
   /**
    * Instantiate with API wrapper, logger, HTTP client and timeout.
+   *
    * @param api API object
    * @param logger Logger instance
    * @param requestProcessor request processor instance
@@ -77,7 +89,7 @@ public class AnalyticsProcessor {
   /**
    * The requestor is private, by default uses FlagsmithSDK requestor.
    *
-   * @return
+   * @return requestProcessor
    */
   private RequestProcessor getRequestProcessor() {
     if (requestProcessor != null) {
@@ -85,20 +97,6 @@ public class AnalyticsProcessor {
     }
 
     return api.getRequestor();
-  }
-
-  /**
-   * Set the logger object.
-   *
-   * @param logger logger instance
-   */
-  public void setLogger(FlagsmithLogger logger) {
-    this.logger = logger;
-  }
-
-
-  public void setApi(FlagsmithSdk api) {
-    this.api = api;
   }
 
   /**
@@ -148,6 +146,7 @@ public class AnalyticsProcessor {
 
   /**
    * Track the feature usage for analytics.
+   *
    * @param featureName name of the feature to track evaluation for
    */
   public void trackFeature(String featureName) {

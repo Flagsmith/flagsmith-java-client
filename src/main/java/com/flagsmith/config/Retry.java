@@ -34,7 +34,6 @@ public class Retry {
    * Should Retry or not?.
    *
    * @param statusCode status code of last call
-   * @return
    */
   public Boolean isRetry(Integer statusCode) {
     if (statusForcelist != null && !statusForcelist.isEmpty()
@@ -47,16 +46,14 @@ public class Retry {
 
   /**
    * The sleep time based on back off factor.
-   *
-   * @return
    */
   public Long calculateSleepTime() {
-    Float holdTimeMS = ((backoffFactor) * (2 * attempts));
-    if (holdTimeMS >= backoffMax) {
-      holdTimeMS = backoffMax;
+    Float holdTimeMs = ((backoffFactor) * (2 * attempts));
+    if (holdTimeMs >= backoffMax) {
+      holdTimeMs = backoffMax;
     }
 
-    return Float.valueOf(holdTimeMS * 1000f).longValue();
+    return Float.valueOf(holdTimeMs * 1000f).longValue();
   }
 
   public void waitWithBackoff() throws InterruptedException {

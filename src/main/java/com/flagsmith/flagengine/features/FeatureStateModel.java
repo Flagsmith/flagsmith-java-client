@@ -3,7 +3,6 @@ package com.flagsmith.flagengine.features;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.flagsmith.flagengine.utils.Hashing;
 import com.flagsmith.utils.models.BaseModel;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -27,8 +26,8 @@ public class FeatureStateModel extends BaseModel {
 
   /**
    * Returns the value object.
+   *
    * @param identityId Identity ID
-   * @return
    */
   public Object getValue(Object identityId) {
 
@@ -42,8 +41,8 @@ public class FeatureStateModel extends BaseModel {
 
   /**
    * Determines the multi variate value.
+   *
    * @param identityId Identity ID
-   * @return
    */
   private Object getMultiVariateValue(Object identityId) {
 
@@ -88,8 +87,8 @@ public class FeatureStateModel extends BaseModel {
    * it has a FeatureSegment and either this.FeatureSegment is null or the 
    * value of other.FeatureSegment.priority is lower than that of 
    * this.FeatureSegment.priority.
-   * 
-   * @param other the other FeatureStateModel to compare priority wiht 
+   *
+   * @param other the other FeatureStateModel to compare priority with
    * @return true if `this` is higher priority than `other`
    */
   public boolean isHigherPriority(FeatureStateModel other) {
