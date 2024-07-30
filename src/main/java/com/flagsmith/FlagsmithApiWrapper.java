@@ -201,7 +201,6 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     MediaType json = MediaType.parse("application/json; charset=utf-8");
     RequestBody body = RequestBody.create(node.toString(), json);
 
-    // we are using identities endpoint to create bulk user Trait
     HttpUrl url = defaultConfig.getIdentitiesUri();
 
     final Request request = this.newPostRequest(url, body);
