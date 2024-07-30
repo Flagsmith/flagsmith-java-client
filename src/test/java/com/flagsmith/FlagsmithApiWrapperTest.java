@@ -131,7 +131,7 @@ public class FlagsmithApiWrapperTest {
 
     // Act
     final Flags actualFeatureFlags = sut.identifyUserWithTraits(
-        "user-w-traits", traits, true
+        "user-w-traits", traits, false, true
     );
 
     // Assert
@@ -154,7 +154,7 @@ public class FlagsmithApiWrapperTest {
         .respond(500, ResponseBody.create("error", MEDIATYPE_JSON));
 
     // Act
-    final Flags actualFeatureFlags = sut.identifyUserWithTraits("user-w-traits", traits, false);
+    final Flags actualFeatureFlags = sut.identifyUserWithTraits("user-w-traits", traits, false, false);
 
     // Assert
     assertEquals(newFlagsList(new ArrayList<>()), actualFeatureFlags);

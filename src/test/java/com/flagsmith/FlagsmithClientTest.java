@@ -28,7 +28,9 @@ import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.DefaultFlag;
 import com.flagsmith.models.Flags;
+import com.flagsmith.models.SdkTraitModel;
 import com.flagsmith.models.Segment;
+import com.flagsmith.models.TraitConfig;
 import com.flagsmith.responses.FlagsAndTraitsResponse;
 import com.flagsmith.threads.PollingManager;
 import com.flagsmith.threads.RequestProcessor;
@@ -39,12 +41,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import okhttp3.Request;
 import okhttp3.ResponseBody;
 import okhttp3.mock.MockInterceptor;
 import okio.Buffer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.invocation.Invocation;
@@ -294,21 +300,64 @@ public class FlagsmithClientTest {
         assertEquals(flags.get(0).getFeatureName(), "some_feature");
     }
 
-    @Test
-    public void testClient_identityFlagsApiWithTraits()
+    private static Stream<Arguments> dataProviderForIdentityFlagsApiWithTraitsTest() {
+        return Stream.of(
+            Arguments.of(
+                "identifier",
+                false,
+                new HashMap<String, Object>() {
+                {
+                    put("some_trait", "some_value");
+                    put("transient_trait", new TraitConfig("transient_value", true));
+                }
+            }, FlagsmithTestHelper.getIdentityRequest("identifier", new ArrayList<SdkTraitModel>() {
+                {
+                    add(
+                            SdkTraitModel.builder()
+                                    .traitKey("some_trait")
+                                    .traitValue("some_value")
+                                    .build()
+                    );
+                    add(
+                            SdkTraitModel.builder()
+                                    .traitKey("transient_trait")
+                                    .traitValue("transient_value")
+                                    .isTransient(true)
+                                    .build()
+                    );
+                }
+            })),
+            Arguments.of(
+                "transient-identifier",
+                true,
+                new HashMap<String, Object>() {
+                {
+                    put("some_trait", "some_value");
+                }
+            }, FlagsmithTestHelper.getIdentityRequest("transient-identifier", new ArrayList<TraitModel>() {
+                {
+                    add(
+                            TraitModel.builder()
+                                    .traitKey("some_trait")
+                                    .traitValue("some_value")
+                                    .build()
+                    );
+                }
+            }, true))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("dataProviderForIdentityFlagsApiWithTraitsTest")
+    public void testClient_identityFlagsApiWithTraits(
+        String identifier, boolean isTransient, Map<String, Object> traits, JsonNode expectedRequest)
             throws FlagsmithClientError, IOException {
         String baseUrl = "http://bad-url";
-        String identifier = "identifier";
-        Map<String, Object> traits = new HashMap<String, Object>() {
-            {
-                put("some_trait", "some_value");
-            }
-        };
         MockInterceptor interceptor = new MockInterceptor();
         RequestProcessor requestProcessor = mock(RequestProcessor.class);
         FlagsmithClient client = FlagsmithClient.newBuilder()
                 .withConfiguration(
-                        FlagsmithConfig.newBuilder()
+                        FlagsmithConfig.newBuilder() 
                                 .baseUri(baseUrl)
                                 .addHttpInterceptor(interceptor)
                                 .build())
@@ -324,19 +373,13 @@ public class FlagsmithClientTest {
                 .thenReturn(
                         FlagsmithTestHelper.futurableReturn(MapperFactory.getMapper().readValue(json, tr)));
 
-        List<BaseFlag> flags = client.getIdentityFlags(identifier, traits).getAllFlags();
+        List<BaseFlag> flags = client.getIdentityFlags(identifier, traits, isTransient).getAllFlags();
 
         ArgumentCaptor<Request> argument = ArgumentCaptor.forClass(Request.class);
         verify(requestProcessor, times(1)).executeAsync(argument.capture(), any(), any());
 
         Buffer buffer = new Buffer();
         argument.getValue().body().writeTo(buffer);
-
-        JsonNode expectedRequest = FlagsmithTestHelper.getIdentityRequest(identifier, new ArrayList<TraitModel>() {
-            {
-                add(new TraitModel("some_trait", "some_value"));
-            }
-        });
 
         assertEquals(expectedRequest.toString(), buffer.readUtf8());
         assertEquals(flags.get(0).getEnabled(), Boolean.TRUE);

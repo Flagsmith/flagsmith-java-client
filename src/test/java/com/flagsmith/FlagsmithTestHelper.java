@@ -464,10 +464,19 @@ public class FlagsmithTestHelper {
     return promise;
   }
 
-  public static JsonNode getIdentityRequest(String identifier, List<TraitModel> traits) {
+  public static JsonNode getIdentityRequest(String identifier, List<? extends TraitModel> traits) {
     final ObjectNode flagsAndTraits = MapperFactory.getMapper().createObjectNode();
     flagsAndTraits.putPOJO("identifier", identifier);
     flagsAndTraits.putPOJO("traits", traits != null ? traits : new ArrayList<>());
+    return flagsAndTraits;
+  }
+
+  public static JsonNode getIdentityRequest(
+    String identifier, List<? extends TraitModel> traits, boolean isTransient) {
+    final ObjectNode flagsAndTraits = MapperFactory.getMapper().createObjectNode();
+    flagsAndTraits.putPOJO("identifier", identifier);
+    flagsAndTraits.put("transient", isTransient);
+    flagsAndTraits.putPOJO("traits", traits != null ? traits : new ArrayList<>());  
     return flagsAndTraits;
   }
 
