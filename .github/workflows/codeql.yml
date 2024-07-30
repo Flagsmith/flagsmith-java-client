@@ -1,4 +1,4 @@
-name: "Analyze and test"
+name: "Analyze"
 
 on:
   push:
@@ -9,8 +9,8 @@ on:
     - cron: '0 0 * * 4'
 
 jobs:
-  analyze_and_test:
-    name: Analyze and test
+  analyze:
+    name: Analyze
     runs-on: ubuntu-latest
 
     strategy:
@@ -42,3 +42,9 @@ jobs:
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
+
+      - uses: dbelyaev/action-checkstyle@v1
+        with:
+          github_token: ${{ secrets.GH_TOKEN }}
+          reporter: github-pr-review
+          level: warning
