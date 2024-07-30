@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -22,7 +23,7 @@ public class ModelUtils {
    */
   public static List<TraitModel> getTraitModelsFromTraitMap(Map<String, Object> traits) {
     return ModelUtils.getTraitModelStreamFromTraitMap(
-      traits, () -> new TraitModel()).map(Pair::getLeft).toList();
+      traits, () -> new TraitModel()).map(Pair::getLeft).collect(Collectors.toList());
   }
 
   /**
@@ -40,7 +41,7 @@ public class ModelUtils {
         sdkTraitModel.setIsTransient(traitConfig.getIsTransient());
         return sdkTraitModel;
       }
-    ).toList();
+    ).collect(Collectors.toList());
   }
 
   private static Stream<Entry<String, TraitConfig>> getTraitConfigStreamFromTraitMap(
