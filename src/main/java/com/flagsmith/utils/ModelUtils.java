@@ -14,33 +14,6 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class ModelUtils {
-  private static Stream<Entry<String, TraitConfig>> getTraitConfigStreamFromTraitMap(
-      Map<String, Object> traits
-  ) {
-    return traits.entrySet().stream().map(
-        (row) -> {
-          return Map.entry(
-            row.getKey(),
-            TraitConfig.fromObject(row.getValue())
-          );
-        }
-    );
-  }
-
-  private static <T extends TraitModel> Stream<Pair<T, TraitConfig>>
-      getTraitModelStreamFromTraitMap(
-        Map<String, Object> traits, Supplier<T> traitSupplier
-  ) {
-    return ModelUtils.getTraitConfigStreamFromTraitMap(traits).map(
-        (row) -> {
-          T trait = traitSupplier.get();
-          TraitConfig traitConfig = row.getValue();
-          trait.setTraitKey(row.getKey());
-          trait.setTraitValue(traitConfig.getValue());
-          return new ImmutablePair<T, TraitConfig>(trait, traitConfig);
-        });
-  }  
-
   /**
    * Convert a user-provided trait map to a list of trait models.
    * 
@@ -68,5 +41,32 @@ public class ModelUtils {
         return sdkTraitModel;
       }
     ).toList();
+  }
+
+  private static Stream<Entry<String, TraitConfig>> getTraitConfigStreamFromTraitMap(
+      Map<String, Object> traits
+  ) {
+    return traits.entrySet().stream().map(
+        (row) -> {
+          return Map.entry(
+            row.getKey(),
+            TraitConfig.fromObject(row.getValue())
+          );
+        }
+    );
+  }
+
+  private static <T extends TraitModel> Stream<Pair<T, TraitConfig>>
+      getTraitModelStreamFromTraitMap(
+        Map<String, Object> traits, Supplier<T> traitSupplier
+  ) {
+    return ModelUtils.getTraitConfigStreamFromTraitMap(traits).map(
+        (row) -> {
+          T trait = traitSupplier.get();
+          TraitConfig traitConfig = row.getValue();
+          trait.setTraitKey(row.getKey());
+          trait.setTraitValue(traitConfig.getValue());
+          return new ImmutablePair<T, TraitConfig>(trait, traitConfig);
+        });
   }
 }
