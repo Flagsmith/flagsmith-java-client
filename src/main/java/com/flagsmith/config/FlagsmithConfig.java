@@ -57,7 +57,7 @@ public final class FlagsmithConfig {
     if (builder.sslSocketFactory != null && builder.trustManager != null) {
       httpBuilder = httpBuilder.sslSocketFactory(builder.sslSocketFactory, builder.trustManager);
     }
-    for (final Interceptor interceptor : builder.interceptors) {
+    for (final Interceptor interceptor: builder.interceptors) {
       httpBuilder = httpBuilder.addInterceptor(interceptor);
     }
     if (builder.proxy != null) {
