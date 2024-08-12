@@ -229,9 +229,14 @@
         <configuration>
           <configLocation>google_checks_v10.17.xml</configLocation>
           <suppressionsLocation>checkstyle-suppressions.xml</suppressionsLocation>
+          <consoleOutput>true</consoleOutput>
+          <failsOnError>true</failsOnError>
+          <violationSeverity>warning</violationSeverity>
         </configuration>
         <executions>
           <execution>
+            <id>validate</id>
+            <phase>validate</phase>
             <goals>
               <goal>check</goal>
             </goals>
