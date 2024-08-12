@@ -231,6 +231,7 @@
           <suppressionsLocation>checkstyle-suppressions.xml</suppressionsLocation>
           <consoleOutput>true</consoleOutput>
           <failsOnError>true</failsOnError>
+          <linkXRef>true</linkXRef>
           <violationSeverity>warning</violationSeverity>
         </configuration>
         <executions>
