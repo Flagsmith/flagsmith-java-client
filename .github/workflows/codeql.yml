@@ -1,4 +1,4 @@
-name: "Analyze and test"
+name: "Analyze"
 
 on:
   push:
@@ -9,8 +9,8 @@ on:
     - cron: '0 0 * * 4'
 
 jobs:
-  analyze_and_test:
-    name: Analyze and test
+  analyze:
+    name: Analyze
     runs-on: ubuntu-latest
 
     strategy:

@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import lombok.Data;
 import lombok.NonNull;
 import org.slf4j.Logger;
@@ -79,8 +78,6 @@ public class FlagsmithClient {
 
   /**
    * Get all the default for flags for the current environment.
-   *
-   * @return
    */
   public Flags getEnvironmentFlags() throws FlagsmithClientError {
     if (getShouldUseEnvironmentDocument()) {
@@ -97,7 +94,6 @@ public class FlagsmithClient {
    * exists.
    *
    * @param identifier identifier string
-   * @return
    */
   public Flags getIdentityFlags(String identifier)
       throws FlagsmithClientError {
@@ -112,7 +108,6 @@ public class FlagsmithClient {
    *
    * @param identifier identifier string
    * @param traits     list of key value traits
-   * @return
    */
   public Flags getIdentityFlags(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
@@ -128,7 +123,6 @@ public class FlagsmithClient {
    *
    * @param identifier a unique identifier for the identity in the current
    *                   environment, e.g. email address, username, uuid
-   * @return
    */
   public List<Segment> getIdentitySegments(String identifier)
       throws FlagsmithClientError {
@@ -142,7 +136,6 @@ public class FlagsmithClient {
    *                   environment, e.g. email address, username, uuid
    * @param traits     a dictionary of traits to add / update on the identity in
    *                   Flagsmith, e.g. {"num_orders": 10}
-   * @return
    */
   public List<Segment> getIdentitySegments(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
@@ -471,7 +464,6 @@ public class FlagsmithClient {
      * Set the polling manager.
      *
      * @param manager polling manager object
-     * @return
      */
     public Builder withPollingManager(PollingManager manager) {
       this.pollingManager = manager;

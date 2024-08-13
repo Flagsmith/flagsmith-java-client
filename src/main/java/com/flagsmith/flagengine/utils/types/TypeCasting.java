@@ -9,10 +9,10 @@ public class TypeCasting {
 
   /**
    * Compare the values value1 and value2 with the provided condition.
+   *
    * @param condition SegmentCondition criteria to compare values against.
    * @param value1 Value to compare.
    * @param value2 Value to compare against.
-   * @return
    */
   public static Boolean compare(SegmentConditions condition, Object value1, Object value2) {
 
@@ -37,10 +37,10 @@ public class TypeCasting {
 
   /**
    * Run comparison with condition of primitive type.
+   *
    * @param condition SegmentCondition criteria to compare values against.
    * @param value1 Value to compare.
    * @param value2 Value to compare against.
-   * @return
    */
   public static Boolean compare(SegmentConditions condition, Comparable value1, Comparable value2) {
     if (condition.equals(SegmentConditions.EQUAL)) {
@@ -64,8 +64,8 @@ public class TypeCasting {
 
   /**
    * Convert the object to Double.
+   *
    * @param number Object to convert to Double.
-   * @return
    */
   public static Double toDouble(Object number) {
     try {
@@ -78,8 +78,8 @@ public class TypeCasting {
 
   /**
    * Is the object of type Double?.
+   *
    * @param number Object to type check.
-   * @return
    */
   public static Boolean isDouble(Object number) {
     return number instanceof Float || toDouble(number) != null;
@@ -87,8 +87,8 @@ public class TypeCasting {
 
   /**
    * Convert the object to float.
+   *
    * @param number Object to convert to Float.
-   * @return
    */
   public static Float toFloat(Object number) {
     try {
@@ -100,8 +100,8 @@ public class TypeCasting {
 
   /**
    * Is the object of type Float?.
+   *
    * @param number Object to type check.
-   * @return
    */
   public static Boolean isFloat(Object number) {
     return number instanceof Float || toFloat(number) != null;
@@ -109,8 +109,8 @@ public class TypeCasting {
 
   /**
    * Convert to object to Integer.
+   *
    * @param number Object to convert to Integer.
-   * @return
    */
   public static Integer toInteger(Object number) {
     try {
@@ -123,8 +123,8 @@ public class TypeCasting {
 
   /**
    * Is the object of type Integer?.
+   *
    * @param number Object to type check.
-   * @return
    */
   public static Boolean isInteger(Object number) {
     return number instanceof Integer || toInteger(number) != null;
@@ -132,8 +132,8 @@ public class TypeCasting {
 
   /**
    * Convert the object to Boolean.
+   *
    * @param str Object to convert to Boolean.
-   * @return
    */
   public static Boolean toBoolean(Object str) {
     try {
@@ -146,8 +146,8 @@ public class TypeCasting {
 
   /**
    * Is the object of type Boolean?.
+   *
    * @param str Object to type check.
-   * @return
    */
   public static Boolean isBoolean(Object str) {
     return str instanceof Boolean
@@ -157,8 +157,8 @@ public class TypeCasting {
 
   /**
    * Convert the object to Semver.
+   *
    * @param str Object to convert to Semver.
-   * @return
    */
   public static ComparableVersion toSemver(Object str) {
     try {
@@ -172,8 +172,8 @@ public class TypeCasting {
 
   /**
    * Is the object of type Semver?.
+   *
    * @param str Object to type check.
-   * @return
    */
   public static Boolean isSemver(Object str) {
     return SemanticVersioning.isSemver((String) str);
