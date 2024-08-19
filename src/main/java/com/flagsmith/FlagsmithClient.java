@@ -16,8 +16,11 @@ import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.Flags;
+import com.flagsmith.models.SdkTraitModel;
 import com.flagsmith.models.Segment;
 import com.flagsmith.threads.PollingManager;
+import com.flagsmith.utils.ModelUtils;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +81,11 @@ public class FlagsmithClient {
 
   /**
    * Get all the default for flags for the current environment.
+   * <<<<<<< HEAD
+   * =======
+   *
+   * @return environment flags
+   *         >>>>>>> a7a9291 (feat: Support transient identities and traits)
    */
   public Flags getEnvironmentFlags() throws FlagsmithClientError {
     if (getShouldUseEnvironmentDocument()) {
@@ -88,12 +96,13 @@ public class FlagsmithClient {
   }
 
   /**
-   * Get all the flags for the current environment for a given identity. Will also
-   * upsert all traits to the Flagsmith API for future evaluations. Providing a
-   * trait with a value of None will remove the trait from the identity if it
-   * exists.
+   * Get all the flags for the current environment for a given identity.
    *
    * @param identifier identifier string
+   *                   <<<<<<< HEAD
+   *                   =======
+   * @return result of flag evaluation for given identity
+   *         >>>>>>> a7a9291 (feat: Support transient identities and traits)
    */
   public Flags getIdentityFlags(String identifier)
       throws FlagsmithClientError {
@@ -102,20 +111,58 @@ public class FlagsmithClient {
 
   /**
    * Get all the flags for the current environment for a given identity. Will also
-   * upsert all traits to the Flagsmith API for future evaluations. Providing a
-   * trait with a value of None will remove the trait from the identity if it
+   * upsert traits to the Flagsmith API for future evaluations.
+   * 
+   * <p>
+   * A trait with a value of null will remove the trait from the identity if it
    * exists.
+   * </p>
+   * <p>
+   * To specify a transient trait, use the TraitConfig class with isTransient set
+   * to true as the trait value.
+   * </p>
    *
+   * @see com.flagsmith.models.TraitConfig
+   * 
    * @param identifier identifier string
-   * @param traits     list of key value traits
+   * @param traits     a map of trait keys to trait values
    */
   public Flags getIdentityFlags(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
+    return getIdentityFlags(identifier, traits, false);
+  }
+
+  /**
+   * Get all the flags for the current environment for a given identity. Will also
+   * upsert traits to the Flagsmith API for future evaluations, if isTransient set
+   * to false.
+   * 
+   * <p>
+   * A trait with a value of null will remove the trait from the identity if it
+   * exists.
+   * </p>
+   * <p>
+   * To specify a transient trait, use the TraitConfig class with isTransient set
+   * to true as the trait value.
+   * </p>
+   *
+   * @see com.flagsmith.models.TraitConfig
+   * 
+   * @param identifier  identifier string
+   * @param traits      a map of trait keys to trait values
+   * @param isTransient set to true to prevent identity persistence
+   * @return result of flag evaluation for given identity
+   */
+  public Flags getIdentityFlags(String identifier, Map<String, Object> traits, boolean isTransient)
+      throws FlagsmithClientError {
     if (getShouldUseEnvironmentDocument()) {
-      return getIdentityFlagsFromDocument(identifier, traits);
+      return getIdentityFlagsFromDocument(
+          identifier,
+          ModelUtils.getTraitModelsFromTraitMap(traits));
     }
 
-    return getIdentityFlagsFromApi(identifier, traits);
+    return getIdentityFlagsFromApi(
+        identifier, ModelUtils.getSdkTraitModelsFromTraitMap(traits), isTransient);
   }
 
   /**
@@ -143,7 +190,10 @@ public class FlagsmithClient {
       throw new FlagsmithClientError("Local evaluation required to obtain identity segments.");
     }
     IdentityModel identityModel = getIdentityModel(
-        identifier, (traits != null ? traits : new HashMap<>()));
+        identifier,
+        (traits != null
+            ? ModelUtils.getTraitModelsFromTraitMap(traits)
+            : new ArrayList<TraitModel>()));
     List<SegmentModel> segmentModels = SegmentEvaluator.getIdentitySegments(
         environment, identityModel);
 
@@ -182,7 +232,8 @@ public class FlagsmithClient {
         getConfig().getFlagsmithFlagDefaults());
   }
 
-  private Flags getIdentityFlagsFromDocument(String identifier, Map<String, Object> traits)
+  private Flags getIdentityFlagsFromDocument(
+      String identifier, List<? extends TraitModel> traitModels)
       throws FlagsmithClientError {
     if (environment == null) {
       if (getConfig().getFlagsmithFlagDefaults() == null) {
@@ -191,7 +242,7 @@ public class FlagsmithClient {
       return getDefaultFlags();
     }
 
-    IdentityModel identity = getIdentityModel(identifier, traits);
+    IdentityModel identity = getIdentityModel(identifier, traitModels);
     List<FeatureStateModel> featureStates = Engine.getIdentityFeatureStates(environment, identity);
 
     return Flags.fromFeatureStateModels(
@@ -219,27 +270,21 @@ public class FlagsmithClient {
     }
   }
 
-  private Flags getIdentityFlagsFromApi(String identifier, Map<String, Object> traits)
+  private Flags getIdentityFlagsFromApi(
+      String identifier, List<SdkTraitModel> traitModels, boolean isTransient)
       throws FlagsmithApiError {
     try {
-      List<TraitModel> traitsList = traits.entrySet().stream().map((row) -> {
-        TraitModel trait = new TraitModel();
-        trait.setTraitValue(row.getValue());
-        trait.setTraitKey(row.getKey());
-
-        return trait;
-      }).collect(Collectors.toList());
-
       return flagsmithSdk.identifyUserWithTraits(
           identifier,
-          traitsList,
+          traitModels,
+          isTransient,
           Boolean.TRUE);
     } catch (Exception e) {
       if (getConfig().getFlagsmithFlagDefaults() != null) {
         return getDefaultFlags();
       } else if (environment != null) {
         try {
-          return getIdentityFlagsFromDocument(identifier, traits);
+          return getIdentityFlagsFromDocument(identifier, traitModels);
         } catch (FlagsmithClientError ce) {
           // Do nothing and fall through to FlagsmithApiError
         }
@@ -249,31 +294,23 @@ public class FlagsmithClient {
     }
   }
 
-  private IdentityModel getIdentityModel(String identifier, Map<String, Object> traits)
+  private IdentityModel getIdentityModel(String identifier, List<? extends TraitModel> traitModels)
       throws FlagsmithClientError {
     if (environment == null) {
       throw new FlagsmithClientError(
           "Unable to build identity model when no local environment present.");
     }
 
-    List<TraitModel> traitsList = traits.entrySet().stream().map((entry) -> {
-      TraitModel trait = new TraitModel();
-      trait.setTraitKey(entry.getKey());
-      trait.setTraitValue(entry.getValue());
-
-      return trait;
-    }).collect(Collectors.toList());
-
     if (identitiesWithOverridesByIdentifier != null) {
       IdentityModel identityOverride = identitiesWithOverridesByIdentifier.get(identifier);
       if (identityOverride != null) {
-        identityOverride.updateTraits(traitsList);
+        identityOverride.updateTraits(traitModels);
         return identityOverride;
       }
     }
 
     IdentityModel identity = new IdentityModel();
-    identity.setIdentityTraits(traitsList);
+    identity.setIdentityTraits(traitModels);
     identity.setEnvironmentApiKey(environment.getApiKey());
     identity.setIdentifier(identifier);
 
@@ -289,7 +326,7 @@ public class FlagsmithClient {
   private String getEnvironmentUpdateErrorMessage() {
     if (this.environment == null) {
       return "Unable to update environment from API. "
-        + "No environment configured - using defaultHandler if configured.";
+          + "No environment configured - using defaultHandler if configured.";
     } else {
       return "Unable to update environment from API. Continuing to use previous copy.";
     }
@@ -541,7 +578,7 @@ public class FlagsmithClient {
       if (configuration.getOfflineHandler() != null) {
         if (configuration.getFlagsmithFlagDefaults() != null) {
           throw new FlagsmithRuntimeError(
-            "Cannot use both default flag handler and offline handler.");
+              "Cannot use both default flag handler and offline handler.");
         }
         client.environment = configuration.getOfflineHandler().getEnvironment();
       }

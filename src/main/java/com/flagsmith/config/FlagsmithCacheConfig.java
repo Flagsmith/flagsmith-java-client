@@ -206,8 +206,8 @@ public final class FlagsmithCacheConfig {
     }
 
     @Override
-    public String getIdentityFlagsCacheKey(String identifier) {
-      return "identity" + identifier;
+    public String getIdentityFlagsCacheKey(String identifier, boolean isTransient) {
+      return "identity" + identifier + (isTransient ? "transient" : "");
     }
 
     @Override
