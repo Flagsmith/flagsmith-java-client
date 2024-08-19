@@ -83,7 +83,6 @@ public class FlagsmithClient {
    * Get all the default for flags for the current environment.
    *
    * @return environment flags
-   *         >>>>>>> a7a9291 (feat: Support transient identities and traits)
    */
   public Flags getEnvironmentFlags() throws FlagsmithClientError {
     if (getShouldUseEnvironmentDocument()) {
