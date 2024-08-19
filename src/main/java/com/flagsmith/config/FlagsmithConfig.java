@@ -277,8 +277,8 @@ public final class FlagsmithConfig {
 
     /**
      * Specify the list of protocols supported for calls to the server.
+     *
      * @param supportedProtocols the list of supported protocols
-     * @return
      */
     public Builder withSupportedProtocols(List<Protocol> supportedProtocols) {
       this.supportedProtocols.clear();
