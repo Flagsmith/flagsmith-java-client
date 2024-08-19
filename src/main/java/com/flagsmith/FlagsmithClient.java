@@ -20,7 +20,6 @@ import com.flagsmith.models.SdkTraitModel;
 import com.flagsmith.models.Segment;
 import com.flagsmith.threads.PollingManager;
 import com.flagsmith.utils.ModelUtils;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -122,7 +121,7 @@ public class FlagsmithClient {
    * To specify a transient trait, use the TraitConfig class with isTransient set
    * to true as the trait value.
    * </p>
-   * 
+   *
    * @see com.flagsmith.models.TraitConfig
    * 
    * @param identifier identifier string
@@ -146,7 +145,7 @@ public class FlagsmithClient {
    * To specify a transient trait, use the TraitConfig class with isTransient set
    * to true as the trait value.
    * </p>
-   * 
+   *
    * @see com.flagsmith.models.TraitConfig
    * 
    * @param identifier  identifier string
@@ -390,8 +389,7 @@ public class FlagsmithClient {
      * return null by
      * default.
      *
-     * <p>
-     * If you would like to override this default behaviour, you can use this
+     * <p>If you would like to override this default behaviour, you can use this
      * method. By default
      * it will return null for any flags that it does not recognise.
      *
@@ -488,8 +486,7 @@ public class FlagsmithClient {
     /**
      * Enable in-memory caching for the Flagsmith API.
      *
-     * <p>
-     * If no other cache configuration is set, the Caffeine defaults will be used,
+     * <p>If no other cache configuration is set, the Caffeine defaults will be used,
      * i.e. no limit
      *
      * @param cacheConfig an FlagsmithCacheConfig.
