@@ -81,8 +81,6 @@ public class FlagsmithClient {
 
   /**
    * Get all the default for flags for the current environment.
-   * <<<<<<< HEAD
-   * =======
    *
    * @return environment flags
    *         >>>>>>> a7a9291 (feat: Support transient identities and traits)
@@ -99,10 +97,7 @@ public class FlagsmithClient {
    * Get all the flags for the current environment for a given identity.
    *
    * @param identifier identifier string
-   *                   <<<<<<< HEAD
-   *                   =======
    * @return result of flag evaluation for given identity
-   *         >>>>>>> a7a9291 (feat: Support transient identities and traits)
    */
   public Flags getIdentityFlags(String identifier)
       throws FlagsmithClientError {
