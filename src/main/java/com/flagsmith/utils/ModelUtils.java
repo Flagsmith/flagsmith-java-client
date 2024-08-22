@@ -3,7 +3,6 @@ package com.flagsmith.utils;
 import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.models.SdkTraitModel;
 import com.flagsmith.models.TraitConfig;
-
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
