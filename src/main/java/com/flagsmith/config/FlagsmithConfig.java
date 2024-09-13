@@ -292,7 +292,7 @@ public final class FlagsmithConfig {
   }
 
   // This enum prevents leakage of the underlying HTTP client implementation details.
-  enum Protocol {
+  public enum Protocol {
     HTTP_1_1(okhttp3.Protocol.HTTP_1_1),
     HTTP_2(okhttp3.Protocol.HTTP_2);
 
