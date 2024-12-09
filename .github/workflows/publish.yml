@@ -9,6 +9,9 @@ on:
 
 jobs:
   publish-to-maven-central:
+    runs-on: ubuntu-latest
+    name: Publish to Maven Central
+
     steps:
       - id: install-secret-key
         name: Install gpg secret key
