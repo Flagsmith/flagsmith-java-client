@@ -1,0 +1,27 @@
+name: "Publish to Maven Central"
+
+on:
+  push:
+    tags: "*"
+
+jobs:
+  publish-to-maven-central:
+    steps:
+      - id: install-secret-key
+        name: Install gpg secret key
+        run: |
+          # Install gpg secret key
+          cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
+          # Verify gpg secret key
+          gpg --list-secret-keys --keyid-format LONG
+      - id: publish-to-central
+        name: Publish to Central Repository
+        env:
+          MAVEN_USERNAME: ${{ vars.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+        run: |
+          mvn \
+            --no-transfer-progress \
+            --batch-mode \
+            -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} \
+            clean deploy
