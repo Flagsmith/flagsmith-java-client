@@ -3,6 +3,8 @@ name: "Publish to Maven Central"
 on:
   push:
     tags: "*"
+    branches:
+      - "ci/publish-workflow"
 
 jobs:
   publish-to-maven-central:
