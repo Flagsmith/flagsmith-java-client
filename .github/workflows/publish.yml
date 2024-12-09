@@ -41,4 +41,4 @@ jobs:
             --no-transfer-progress \
             --batch-mode \
             -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} \
-            clean deploy
+            clean deploy -P release
