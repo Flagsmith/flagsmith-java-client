@@ -28,8 +28,8 @@ We use Google Java Style for code formatting. To install it, see the instruction
 
 ### VS Code
 
-1. Install the [Checkstyle for Java](https://marketplace.visualstudio.com/items?itemName=shengchen.vscode-checkstyle) extension.  
-2. Use the `java-google-style.xml` file in the `docs` folder as the Checkstyle configuration file.  
+1. Install the [Checkstyle for Java](https://marketplace.visualstudio.com/items?itemName=shengchen.vscode-checkstyle) extension.
+2. Use the `java-google-style.xml` file in the `docs` folder as the Checkstyle configuration file.
 
 ### IntelliJ
 
