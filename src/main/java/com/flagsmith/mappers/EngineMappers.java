@@ -1,10 +1,10 @@
 package com.flagsmith.mappers;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flagsmith.flagengine.EnvironmentContext;
 import com.flagsmith.flagengine.EvaluationContext;
 import com.flagsmith.flagengine.FeatureContext;
+import com.flagsmith.flagengine.FeatureValue;
 import com.flagsmith.flagengine.IdentityContext;
 import com.flagsmith.flagengine.SegmentCondition;
 import com.flagsmith.flagengine.SegmentContext;
@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 /**
  * EngineMappers
@@ -24,9 +24,6 @@ import java.util.stream.Collectors;
  * <p>Utility class for mapping JSON data to flag engine context objects.
  */
 public class EngineMappers {
-
-  private static final ObjectMapper objectMapper = new ObjectMapper();
-
   /**
    * Maps context and identity data to evaluation context.
    *
@@ -79,7 +76,7 @@ public class EngineMappers {
     // Create environment context
     final EnvironmentContext environmentContext = new EnvironmentContext()
         .withKey(environmentDocument.get("api_key").asText())
-        .withName("Test Environment");
+        .withName(environmentDocument.get("name").asText());
     
     // Map features
     Map<String, FeatureContext> features = new HashMap<>();
@@ -116,12 +113,24 @@ public class EngineMappers {
     }
     
     // Create evaluation context
-    return new EvaluationContext()
-        .withEnvironment(environmentContext)
-        .withFeatures(new com.flagsmith.flagengine.Features()
-            .withAdditionalProperty("features", features))
-        .withSegments(new Segments()
-            .withAdditionalProperty("segments", segments));
+    EvaluationContext evaluationContext = new EvaluationContext()
+        .withEnvironment(environmentContext);
+    
+    // Add features individually
+    com.flagsmith.flagengine.Features featuresObj = new com.flagsmith.flagengine.Features();
+    for (Map.Entry<String, FeatureContext> entry : features.entrySet()) {
+      featuresObj.withAdditionalProperty(entry.getKey(), entry.getValue());
+    }
+    evaluationContext.withFeatures(featuresObj);
+    
+    // Add segments individually
+    Segments segmentsObj = new Segments();
+    for (Map.Entry<String, SegmentContext> entry : segments.entrySet()) {
+      segmentsObj.withAdditionalProperty(entry.getKey(), entry.getValue());
+    }
+    evaluationContext.withSegments(segmentsObj);
+    
+    return evaluationContext;
   }
 
   /**
@@ -133,7 +142,8 @@ public class EngineMappers {
   private static Map<String, SegmentContext> mapIdentityOverridesToSegments(
       JsonNode identityOverrides) {
     
-    Map<List<Object>, List<String>> featuresToIdentifiers = new HashMap<>();
+    // Map from sorted list of feature contexts to identifiers
+    Map<List<FeatureContext>, List<String>> featuresToIdentifiers = new HashMap<>();
     
     for (JsonNode identityOverride : identityOverrides) {
       JsonNode identityFeatures = identityOverride.get("identity_features");
@@ -141,8 +151,8 @@ public class EngineMappers {
         continue;
       }
       
-      // Create overrides key
-      List<Object> overridesKey = new ArrayList<>();
+      // Create overrides key as a sorted list of FeatureContext objects
+      List<FeatureContext> overridesKey = new ArrayList<>();
       List<JsonNode> sortedFeatures = new ArrayList<>();
       identityFeatures.forEach(sortedFeatures::add);
       sortedFeatures.sort((a, b) -> a.get("feature").get("name").asText()
@@ -150,10 +160,15 @@ public class EngineMappers {
       
       for (JsonNode featureState : sortedFeatures) {
         JsonNode feature = featureState.get("feature");
-        overridesKey.add(feature.get("id").asText());
-        overridesKey.add(feature.get("name").asText());
-        overridesKey.add(featureState.get("enabled").asBoolean());
-        overridesKey.add(featureState.get("feature_state_value"));
+        FeatureContext featureContext = new FeatureContext()
+            .withKey("")
+            .withFeatureKey(feature.get("id").asText())
+            .withName(feature.get("name").asText())
+            .withEnabled(featureState.get("enabled").asBoolean())
+            .withValue(featureState.get("feature_state_value") != null 
+                ? featureState.get("feature_state_value").asText() : null)
+            .withPriority(Double.NEGATIVE_INFINITY);  // Highest possible priority
+        overridesKey.add(featureContext);
       }
       
       String identifier = identityOverride.get("identifier").asText();
@@ -161,8 +176,8 @@ public class EngineMappers {
     }
     
     Map<String, SegmentContext> segmentContexts = new HashMap<>();
-    for (Map.Entry<List<Object>, List<String>> entry : featuresToIdentifiers.entrySet()) {
-      List<Object> overridesKey = entry.getKey();
+    for (Map.Entry<List<FeatureContext>, List<String>> entry : featuresToIdentifiers.entrySet()) {
+      List<FeatureContext> overridesKey = entry.getKey();
       List<String> identifiers = entry.getValue();
       
       // Generate unique segment key
@@ -179,22 +194,12 @@ public class EngineMappers {
           .withType(SegmentRule.Type.ALL)
           .withConditions(List.of(identifierCondition));
       
-      // Create overrides
+      // Create overrides from FeatureContext objects (much cleaner now!)
       List<FeatureContext> overrides = new ArrayList<>();
-      for (int i = 0; i < overridesKey.size(); i += 4) {
-        String featureKey = overridesKey.get(i).toString();
-        String featureName = overridesKey.get(i + 1).toString();
-        boolean featureEnabled = (Boolean) overridesKey.get(i + 2);
-        Object featureValue = overridesKey.get(i + 3);
-        
-        FeatureContext override = new FeatureContext()
-            .withKey("")
-            .withFeatureKey(featureKey)
-            .withName(featureName)
-            .withEnabled(featureEnabled)
-            .withValue(featureValue)
-            .withPriority(Double.NEGATIVE_INFINITY);
-        
+      for (FeatureContext featureContext : overridesKey) {
+        // Copy the feature context for the override
+        FeatureContext override = new FeatureContext(featureContext)
+            .withKey(""); // Override the key for identity overrides
         overrides.add(override);
       }
       
@@ -286,16 +291,17 @@ public class EngineMappers {
         .withFeatureKey(feature.get("id").asText())
         .withName(feature.get("name").asText())
         .withEnabled(featureState.get("enabled").asBoolean())
-        .withValue(featureState.get("feature_state_value"));
+        .withValue(featureState.get("feature_state_value") != null 
+            ? featureState.get("feature_state_value").asText() : null);
     
     // Handle multivariate feature state values
     JsonNode multivariateValues = featureState.get("multivariate_feature_state_values");
     if (multivariateValues != null && multivariateValues.isArray()) {
-      List<Map<String, Object>> variants = new ArrayList<>();
+      List<FeatureValue> variants = new ArrayList<>();
       for (JsonNode multivariateValue : multivariateValues) {
-        Map<String, Object> variant = new HashMap<>();
-        variant.put("value", multivariateValue.get("multivariate_feature_option").get("value"));
-        variant.put("weight", multivariateValue.get("percentage_allocation").asDouble());
+        FeatureValue variant = new FeatureValue()
+            .withValue(multivariateValue.get("multivariate_feature_option").get("value").asText())
+            .withWeight(multivariateValue.get("percentage_allocation").asDouble());
         variants.add(variant);
       }
       featureContext.withVariants(variants);
