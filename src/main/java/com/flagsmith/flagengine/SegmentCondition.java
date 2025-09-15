@@ -2,17 +2,12 @@ package com.flagsmith.flagengine;
 
 import com.flagsmith.flagengine.segments.constants.SegmentConditions;
 import java.util.List;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
+@Data
 public class SegmentCondition {
-  @Getter
-  @Setter
   private SegmentConditions operator;
-  @Getter
   private Object value;
-  @Getter
-  @Setter
   private String property;
 
   /**
