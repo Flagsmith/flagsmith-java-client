@@ -1,153 +1,110 @@
 package com.flagsmith.flagengine;
 
-import com.flagsmith.flagengine.environments.EnvironmentModel;
-import com.flagsmith.flagengine.features.FeatureModel;
-import com.flagsmith.flagengine.features.FeatureStateModel;
-import com.flagsmith.flagengine.identities.IdentityModel;
-import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.flagengine.segments.SegmentEvaluator;
-import com.flagsmith.flagengine.segments.SegmentModel;
-import com.flagsmith.flagengine.utils.exceptions.FeatureStateNotFound;
+import com.flagsmith.flagengine.utils.Hashing;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 
 public class Engine {
-
   /**
-   * Get a list of feature states for a given environment.
+   * Evaluate if identity is in segment.
    *
-   * @param environment Instance of the Environment.
+   * @param context Identity Instance.
+   * @return True adsa.
    */
-  public static List<FeatureStateModel> getEnvironmentFeatureStates(EnvironmentModel environment) {
-    if (environment.getProject().getHideDisabledFlags()) {
-      return environment.getFeatureStates()
-          .stream()
-          .filter((featureState) -> featureState.getEnabled())
-          .collect(Collectors.toList());
-    }
-    return environment.getFeatureStates();
-  }
+  public static EvaluationResult getEvaluationResult(EvaluationContext context) {
+    List<SegmentResult> segments = new ArrayList<>();
+    HashMap<String, ImmutablePair<String, FeatureContext>> segmentFeatureContexts = new HashMap<>();
+    List<FlagResult> flags = new ArrayList<>();
 
-  /**
-   * Get a specific feature state for a given feature_name in a given environment.
-   *
-   * @param environment Instance of the Environment.
-   * @param featureName Feature name to search for.
-   */
-  public static FeatureStateModel getEnvironmentFeatureState(EnvironmentModel environment,
-                                                             String featureName)
-      throws FeatureStateNotFound {
-    return environment.getFeatureStates()
-        .stream()
-        .filter((featureState) -> featureState
-            .getFeature()
-            .getName()
-            .equals(featureName))
-        .findFirst().orElseThrow(() -> new FeatureStateNotFound());
-  }
+    for (SegmentContext segmentContext : context.getSegments().getAdditionalProperties().values()) {
+      if (SegmentEvaluator.isContextInSegment(context, segmentContext)) {
+        SegmentResult segmentResult = new SegmentResult().withKey(segmentContext.getKey())
+            .withName(segmentContext.getName());
+        segments.add(segmentResult);
 
-  /**
-   * Get a list of feature states for a given identity in a given environment.
-   *
-   * @param environmentModel Instance of the Environment.
-   * @param identityModel Instance of Identity.
-   */
-  public static List<FeatureStateModel> getIdentityFeatureStates(EnvironmentModel environmentModel,
-                                                                 IdentityModel identityModel) {
-    return getIdentityFeatureStates(environmentModel, identityModel, null);
-  }
+        if (segmentContext.getOverrides() != null) {
+          for (FeatureContext featureContext : segmentContext.getOverrides()) {
+            String featureKey = featureContext.getFeatureKey();
 
-  /**
-   * Get a list of feature states for a given identity in a given environment.
-   *
-   * @param environmentModel Instance of the Environment.
-   * @param identityModel Instance of Identity.
-   */
-  public static List<FeatureStateModel> getIdentityFeatureStates(EnvironmentModel environmentModel,
-                                                                 IdentityModel identityModel,
-                                                                 List<TraitModel> overrideTraits) {
-    List<FeatureStateModel> featureStates =
-        getIdentityFeatureMap(environmentModel, identityModel, overrideTraits)
-            .values().stream().collect(Collectors.toList());
+            if (segmentFeatureContexts.containsKey(featureKey)) {
+              ImmutablePair<String, FeatureContext> existing = segmentFeatureContexts
+                  .get(featureKey);
+              FeatureContext existingFeatureContext = existing.getRight();
 
-    if (environmentModel.getProject().getHideDisabledFlags()) {
-      return featureStates
-          .stream()
-          .filter((featureState) -> featureState.getEnabled())
-          .collect(Collectors.toList());
-    }
-    return featureStates;
-  }
+              Double existingPriority = existingFeatureContext.getPriority() == null
+                  ? Double.POSITIVE_INFINITY
+                  : existingFeatureContext.getPriority();
+              Double featurePriority = featureContext.getPriority() == null
+                  ? Double.POSITIVE_INFINITY
+                  : featureContext.getPriority();
 
-  /**
-   * Get a specific feature state for a given identity in a given environment.
-   *
-   * @param environmentModel Instance of the Environment.
-   * @param identityModel Instance of identity.
-   * @param featureName Feature Name to search for.
-   * @param overrideTraits Traits to override identity's traits.
-   */
-  public static FeatureStateModel getIdentityFeatureState(EnvironmentModel environmentModel,
-                                                          IdentityModel identityModel,
-                                                          String featureName,
-                                                          List<TraitModel> overrideTraits)
-      throws FeatureStateNotFound {
-    Map<FeatureModel, FeatureStateModel> featureStates =
-        getIdentityFeatureMap(environmentModel, identityModel, overrideTraits);
-
-    FeatureModel feature = featureStates.keySet()
-        .stream()
-        .filter((featureModel) -> featureModel.getName().equals(featureName))
-        .findFirst().orElseThrow(() -> new FeatureStateNotFound());
-
-    return featureStates.get(feature);
-  }
-
-  /**
-   * Build a feature map with feature as key and feature state as value.
-   *
-   * @param environmentModel Instance of the Environment.
-   * @param identityModel Instance of identity.
-   * @param overrideTraits Traits to override identity's traits.
-   */
-  private static Map<FeatureModel, FeatureStateModel> getIdentityFeatureMap(
-      EnvironmentModel environmentModel,
-      IdentityModel identityModel, List<TraitModel> overrideTraits) {
-
-    Map<FeatureModel, FeatureStateModel> featureStates = new HashMap<>();
-
-    if (environmentModel.getFeatureStates() != null) {
-      featureStates = environmentModel.getFeatureStates()
-          .stream()
-          .collect(Collectors.toMap(
-              FeatureStateModel::getFeature,
-              (featureState) -> featureState)
-          );
-    }
-
-    List<SegmentModel> identitySegments =
-        SegmentEvaluator.getIdentitySegments(environmentModel, identityModel, overrideTraits);
-
-    for (SegmentModel segmentModel : identitySegments) {
-      for (FeatureStateModel featureState : segmentModel.getFeatureStates()) {
-        FeatureModel feature = featureState.getFeature();
-        FeatureStateModel existing = featureStates.get(feature);
-        if (existing != null && existing.isHigherPriority(featureState)) {
-          continue;
+              if (existingPriority > featurePriority) {
+                continue;
+              }
+            }
+            segmentFeatureContexts.put(featureKey,
+                new ImmutablePair<String, FeatureContext>(
+                    segmentContext.getName(), featureContext));
+          }
         }
-        
-        featureStates.put(featureState.getFeature(), featureState);
       }
     }
 
-    for (FeatureStateModel featureState : identityModel.getIdentityFeatures()) {
-      if (featureStates.containsKey(featureState.getFeature())) {
-        featureStates.put(featureState.getFeature(), featureState);
+    String identityKey = context.getIdentity() != null
+        ? context.getIdentity().getKey()
+        : null;
+
+    for (FeatureContext featureContext : context.getFeatures().getAdditionalProperties().values()) {
+      if (segmentFeatureContexts.containsKey(featureContext.getFeatureKey())) {
+        ImmutablePair<String, FeatureContext> segmentNameWithFeatureContext = segmentFeatureContexts
+            .get(featureContext.getFeatureKey());
+        featureContext = segmentNameWithFeatureContext.getRight();
+        flags.add(new FlagResult().withEnabled(featureContext.getEnabled())
+            .withFeatureKey(featureContext.getFeatureKey())
+            .withName(featureContext.getName())
+            .withValue(featureContext.getValue())
+            .withReason("TARGETING MATCH; segment=" + segmentNameWithFeatureContext.getLeft()));
+      } else {
+        flags.add(getFlagResultFromFeatureContext(featureContext, identityKey));
       }
     }
 
-    return featureStates;
+    return new EvaluationResult().withContext(context).withFlags(flags).withSegments(segments);
+  }
+
+  private static FlagResult getFlagResultFromFeatureContext(
+      FeatureContext featureContext,
+      String identityKey) {
+    if (identityKey != null) {
+      List<FeatureValue> variants = featureContext.getVariants();
+      if (variants != null) {
+        Float percentageValue = Hashing.getInstance()
+            .getHashedPercentageForObjectIds(List.of(featureContext.getKey(), identityKey));
+
+        Float startPercentage = 0.0f;
+
+        for (FeatureValue variant : variants) {
+          Double weight = variant.getWeight();
+          Float limit = startPercentage + weight.floatValue();
+          if (startPercentage <= percentageValue && percentageValue < limit) {
+            return new FlagResult().withEnabled(featureContext.getEnabled())
+                .withFeatureKey(featureContext.getFeatureKey())
+                .withName(featureContext.getName())
+                .withValue(variant.getValue())
+                .withReason("SPLIT; weight=" + weight);
+          }
+          startPercentage = limit;
+        }
+      }
+    }
+
+    return new FlagResult().withEnabled(featureContext.getEnabled())
+        .withFeatureKey(featureContext.getFeatureKey())
+        .withName(featureContext.getName())
+        .withValue(featureContext.getValue())
+        .withReason("DEFAULT");
   }
 }
