@@ -1,0 +1,131 @@
+package com.flagsmith.models;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.flagsmith.flagengine.utils.Hashing;
+import com.flagsmith.utils.models.BaseModel;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import lombok.Data;
+
+@Data
+public class FeatureStateModel extends BaseModel {
+  @Data
+  public class FeatureModel {
+    @JsonProperty("id")
+    private Integer id;
+    @JsonProperty("name")
+    private String name;
+    @JsonProperty("type")
+    private String type;
+  }
+
+  @Data
+  public class MultivariateFeatureOptionModel {
+    @JsonProperty("id")
+    private Integer id;
+    @JsonProperty("value")
+    private String value;
+  }
+
+  @Data
+  public class FeatureSegmentModel {
+    @JsonProperty("id")
+    private Integer id;
+    @JsonProperty("priority")
+    private Integer priority;
+  }
+
+  @Data
+  public class MultivariateFeatureStateValueModel {
+    @JsonProperty("multivariate_feature_option")
+    private MultivariateFeatureOptionModel multivariateFeatureOption;
+    @JsonProperty("percentage_allocation")
+    private Float percentageAllocation;
+    @JsonProperty("id")
+    private Integer id;
+
+    public Float getSortValue() {
+      return percentageAllocation != null ? percentageAllocation : 0f;
+    }
+  }
+
+  private FeatureModel feature;
+  private Boolean enabled;
+  @JsonProperty("django_id")
+  private Integer djangoId;
+  @JsonProperty("featurestate_uuid")
+  private String featurestateUuid = UUID.randomUUID().toString();
+  @JsonProperty("multivariate_feature_state_values")
+  private List<MultivariateFeatureStateValueModel> multivariateFeatureStateValues;
+  @JsonProperty("feature_state_value")
+  private Object value;
+  @JsonProperty("feature_segment")
+  private FeatureSegmentModel featureSegment;
+
+  /**
+   * Returns the value object.
+   *
+   * @param identityId Identity ID
+   */
+  public Object getValue(Object identityId) {
+
+    if (identityId != null && multivariateFeatureStateValues != null
+        && multivariateFeatureStateValues.size() > 0) {
+      return getMultiVariateValue(identityId);
+    }
+
+    return value;
+  }
+
+  /**
+   * Determines the multi variate value.
+   *
+   * @param identityId Identity ID
+   */
+  private Object getMultiVariateValue(Object identityId) {
+
+    List<String> objectIds = Arrays.asList(
+        (djangoId != null && djangoId != 0 ? djangoId.toString() : featurestateUuid),
+        identityId.toString());
+
+    Float percentageValue = Hashing.getInstance().getHashedPercentageForObjectIds(objectIds);
+    Float startPercentage = 0f;
+
+    List<MultivariateFeatureStateValueModel> sortedMultiVariateFeatureStates = 
+        multivariateFeatureStateValues
+            .stream()
+            .sorted((smvfs1, smvfs2) -> smvfs1.getSortValue().compareTo(smvfs2.getSortValue()))
+        .collect(Collectors.toList());
+
+    for (MultivariateFeatureStateValueModel multiVariate : sortedMultiVariateFeatureStates) {
+      Float limit = multiVariate.getPercentageAllocation() + startPercentage;
+
+      if (startPercentage <= percentageValue && percentageValue < limit) {
+        return multiVariate.getMultivariateFeatureOption().getValue();
+      }
+
+      startPercentage = limit;
+    }
+
+    return value;
+  }
+
+  /**
+   * Another FeatureStateModel is deemed to be higher priority if and only if
+   * it has a FeatureSegment and either this.FeatureSegment is null or the
+   * value of other.FeatureSegment.priority is lower than that of
+   * this.FeatureSegment.priority.
+   *
+   * @param other the other FeatureStateModel to compare priority with
+   * @return true if `this` is higher priority than `other`
+   */
+  public boolean isHigherPriority(FeatureStateModel other) {
+    if (this.featureSegment == null || other.featureSegment == null) {
+      return this.featureSegment != null && other.featureSegment == null;
+    }
+
+    return this.featureSegment.getPriority() < other.featureSegment.getPriority();
+  }
+}

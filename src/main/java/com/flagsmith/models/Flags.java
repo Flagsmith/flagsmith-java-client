@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.FlagsmithFlagDefaults;
 import com.flagsmith.exceptions.FeatureNotFoundError;
 import com.flagsmith.exceptions.FlagsmithClientError;
-import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.flagengine.EvaluationResult;
 import com.flagsmith.interfaces.DefaultFlagHandler;
 import com.flagsmith.threads.AnalyticsProcessor;
 import java.util.HashMap;
@@ -22,7 +22,7 @@ public class Flags {
   /**
    * Build flags object from list of feature states.
    *
-   * @param featureStates list of feature states
+   * @param featureStates      list of feature states
    * @param analyticsProcessor instance of analytics processor
    */
   public static Flags fromFeatureStateModels(
@@ -34,9 +34,9 @@ public class Flags {
   /**
    * Build flags object from list of feature states.
    *
-   * @param featureStates list of feature states
+   * @param featureStates      list of feature states
    * @param analyticsProcessor instance of analytics processor
-   * @param identityId identity ID (optional)
+   * @param identityId         identity ID (optional)
    */
   public static Flags fromFeatureStateModels(
       List<FeatureStateModel> featureStates,
@@ -48,9 +48,9 @@ public class Flags {
   /**
    * Build flags object from list of feature states.
    *
-   * @param featureStates list of feature states
+   * @param featureStates      list of feature states
    * @param analyticsProcessor instance of analytics processor
-   * @param identityId identity ID (optional)
+   * @param identityId         identity ID (optional)
    * @param defaultFlagHandler default flags (optional)
    */
   public static Flags fromFeatureStateModels(
@@ -62,8 +62,7 @@ public class Flags {
         .collect(
             Collectors.toMap(
                 (fs) -> fs.getFeature().getName(),
-                (fs) -> Flag.fromFeatureStateModel(fs, identityId)
-            ));
+                (fs) -> Flag.fromFeatureStateModel(fs, identityId)));
 
     Flags flags = new Flags();
     flags.setFlags(flagMap);
@@ -76,7 +75,7 @@ public class Flags {
   /**
    * Return the flags instance.
    *
-   * @param apiFlags Dictionary with api flags
+   * @param apiFlags           Dictionary with api flags
    * @param analyticsProcessor instance of analytics processor
    * @param defaultFlagHandler handler for default flags if present
    */
@@ -90,8 +89,7 @@ public class Flags {
     for (JsonNode node : apiFlags) {
       flagMap.put(
           node.get("feature").get("name").asText(),
-          Flag.fromApiFlag(node)
-      );
+          Flag.fromApiFlag(node));
     }
 
     Flags flags = new Flags();
@@ -105,7 +103,7 @@ public class Flags {
   /**
    * Return the flags instance.
    *
-   * @param apiFlags Dictionary with api flags
+   * @param apiFlags           Dictionary with api flags
    * @param analyticsProcessor instance of analytics processor
    * @param defaultFlagHandler handler for default flags if present
    */
@@ -119,9 +117,39 @@ public class Flags {
     for (FeatureStateModel flag : apiFlags) {
       flagMap.put(
           flag.getFeature().getName(),
-          Flag.fromFeatureStateModel(flag, null)
-      );
+          Flag.fromFeatureStateModel(flag, null));
     }
+
+    Flags flags = new Flags();
+    flags.setFlags(flagMap);
+    flags.setAnalyticsProcessor(analyticsProcessor);
+    flags.setDefaultFlagHandler(defaultFlagHandler);
+
+    return flags;
+  }
+
+  /**
+   * Build flags object from evaluation result.
+   *
+   * @param evaluationResult   evaluation result
+   * @param analyticsProcessor instance of analytics processor
+   * @param defaultFlagHandler handler for default flags if present
+   */
+  public static Flags fromEvaluationResult(
+      EvaluationResult evaluationResult,
+      AnalyticsProcessor analyticsProcessor,
+      DefaultFlagHandler defaultFlagHandler) {
+    Map<String, BaseFlag> flagMap = evaluationResult.getFlags().stream()
+        .collect(
+            Collectors.toMap(
+                (fs) -> fs.getFeatureKey(),
+                (fs) -> {
+                  Flag flag = new Flag();
+                  flag.setFeatureName(fs.getName());
+                  flag.setValue(fs.getValue());
+                  flag.setEnabled(fs.getEnabled());
+                  return flag;
+                }));
 
     Flags flags = new Flags();
     flags.setFlags(flagMap);

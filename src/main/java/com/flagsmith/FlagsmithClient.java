@@ -6,18 +6,17 @@ import com.flagsmith.exceptions.FlagsmithApiError;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.exceptions.FlagsmithRuntimeError;
 import com.flagsmith.flagengine.Engine;
-import com.flagsmith.flagengine.environments.EnvironmentModel;
-import com.flagsmith.flagengine.features.FeatureStateModel;
-import com.flagsmith.flagengine.identities.IdentityModel;
-import com.flagsmith.flagengine.identities.traits.TraitModel;
-import com.flagsmith.flagengine.segments.SegmentEvaluator;
-import com.flagsmith.flagengine.segments.SegmentModel;
+import com.flagsmith.flagengine.EvaluationContext;
+import com.flagsmith.flagengine.EvaluationResult;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.interfaces.FlagsmithSdk;
+import com.flagsmith.mappers.EngineMappers;
 import com.flagsmith.models.BaseFlag;
+import com.flagsmith.models.FeatureStateModel;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.SdkTraitModel;
 import com.flagsmith.models.Segment;
+import com.flagsmith.models.TraitModel;
 import com.flagsmith.threads.PollingManager;
 import com.flagsmith.utils.ModelUtils;
 import java.util.ArrayList;
@@ -39,9 +38,8 @@ public class FlagsmithClient {
 
   private final FlagsmithLogger logger = new FlagsmithLogger();
   private FlagsmithSdk flagsmithSdk;
-  private EnvironmentModel environment;
+  private EvaluationContext evaluationContext;
   private PollingManager pollingManager;
-  private Map<String, IdentityModel> identitiesWithOverridesByIdentifier;
 
   private FlagsmithClient() {
   }
@@ -55,22 +53,12 @@ public class FlagsmithClient {
    */
   public void updateEnvironment() {
     try {
-      EnvironmentModel updatedEnvironment = flagsmithSdk.getEnvironment();
+      EvaluationContext updatedEvaluationContext = flagsmithSdk.getEvaluationContext();
 
       // if we didn't get an environment from the API,
       // then don't overwrite the copy we already have.
-      if (updatedEnvironment != null) {
-        List<IdentityModel> identityOverrides = updatedEnvironment.getIdentityOverrides();
-
-        if (identityOverrides != null) {
-          Map<String, IdentityModel> identitiesWithOverridesByIdentifier = new HashMap<>();
-          for (IdentityModel identity : identityOverrides) {
-            identitiesWithOverridesByIdentifier.put(identity.getIdentifier(), identity);
-          }
-          this.identitiesWithOverridesByIdentifier = identitiesWithOverridesByIdentifier;
-        }
-
-        this.environment = updatedEnvironment;
+      if (updatedEvaluationContext != null) {
+        this.evaluationContext = updatedEvaluationContext;
       } else {
         logger.error(getEnvironmentUpdateErrorMessage());
       }
@@ -150,13 +138,10 @@ public class FlagsmithClient {
   public Flags getIdentityFlags(String identifier, Map<String, Object> traits, boolean isTransient)
       throws FlagsmithClientError {
     if (getShouldUseEnvironmentDocument()) {
-      return getIdentityFlagsFromDocument(
-          identifier,
-          ModelUtils.getTraitModelsFromTraitMap(traits));
+      return getIdentityFlagsFromDocument(identifier, traits);
     }
 
-    return getIdentityFlagsFromApi(
-        identifier, ModelUtils.getSdkTraitModelsFromTraitMap(traits), isTransient);
+    return getIdentityFlagsFromApi(identifier, traits, isTransient);
   }
 
   /**
@@ -180,20 +165,18 @@ public class FlagsmithClient {
    */
   public List<Segment> getIdentitySegments(String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
-    if (environment == null) {
+    if (evaluationContext == null) {
       throw new FlagsmithClientError("Local evaluation required to obtain identity segments.");
     }
-    IdentityModel identityModel = getIdentityModel(
-        identifier,
-        (traits != null
-            ? ModelUtils.getTraitModelsFromTraitMap(traits)
-            : new ArrayList<TraitModel>()));
-    List<SegmentModel> segmentModels = SegmentEvaluator.getIdentitySegments(
-        environment, identityModel);
 
-    return segmentModels.stream().map((segmentModel) -> {
+    final EvaluationContext context = EngineMappers.mapContextAndIdentityDataToContext(
+        evaluationContext, identifier, traits);
+
+    final EvaluationResult result = Engine.getEvaluationResult(context);
+
+    return result.getSegments().stream().map((segmentModel) -> {
       Segment segment = new Segment();
-      segment.setId(segmentModel.getId());
+      segment.setId(Integer.valueOf(segmentModel.getKey()));
       segment.setName(segmentModel.getName());
 
       return segment;
@@ -212,37 +195,39 @@ public class FlagsmithClient {
   }
 
   private Flags getEnvironmentFlagsFromDocument() throws FlagsmithClientError {
-    if (environment == null) {
+    if (evaluationContext == null) {
       if (getConfig().getFlagsmithFlagDefaults() == null) {
         throw new FlagsmithClientError("Unable to get flags. No environment present.");
       }
       return getDefaultFlags();
     }
 
-    return Flags.fromFeatureStateModels(
-        Engine.getEnvironmentFeatureStates(environment),
+    final EvaluationResult result = Engine.getEvaluationResult(evaluationContext);
+
+    return Flags.fromEvaluationResult(
+        result,
         getConfig().getAnalyticsProcessor(),
-        null,
         getConfig().getFlagsmithFlagDefaults());
   }
 
   private Flags getIdentityFlagsFromDocument(
-      String identifier, List<? extends TraitModel> traitModels)
+      String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
-    if (environment == null) {
+    if (evaluationContext == null) {
       if (getConfig().getFlagsmithFlagDefaults() == null) {
         throw new FlagsmithClientError("Unable to get flags. No environment present.");
       }
       return getDefaultFlags();
     }
 
-    IdentityModel identity = getIdentityModel(identifier, traitModels);
-    List<FeatureStateModel> featureStates = Engine.getIdentityFeatureStates(environment, identity);
+    final EvaluationContext context = EngineMappers.mapContextAndIdentityDataToContext(
+        evaluationContext, identifier, traits);
 
-    return Flags.fromFeatureStateModels(
-        featureStates,
+    final EvaluationResult result = Engine.getEvaluationResult(context);
+
+    return Flags.fromEvaluationResult(
+        result,
         getConfig().getAnalyticsProcessor(),
-        identity.getCompositeKey(),
         getConfig().getFlagsmithFlagDefaults());
   }
 
@@ -252,7 +237,7 @@ public class FlagsmithClient {
     } catch (Exception e) {
       if (getConfig().getFlagsmithFlagDefaults() != null) {
         return getDefaultFlags();
-      } else if (environment != null) {
+      } else if (evaluationContext != null) {
         try {
           return getEnvironmentFlagsFromDocument();
         } catch (FlagsmithClientError ce) {
@@ -265,20 +250,20 @@ public class FlagsmithClient {
   }
 
   private Flags getIdentityFlagsFromApi(
-      String identifier, List<SdkTraitModel> traitModels, boolean isTransient)
+      String identifier, Map<String, Object> traits, boolean isTransient)
       throws FlagsmithApiError {
     try {
       return flagsmithSdk.identifyUserWithTraits(
           identifier,
-          traitModels,
+          ModelUtils.getSdkTraitModelsFromTraitMap(traits),
           isTransient,
           Boolean.TRUE);
     } catch (Exception e) {
       if (getConfig().getFlagsmithFlagDefaults() != null) {
         return getDefaultFlags();
-      } else if (environment != null) {
+      } else if (evaluationContext != null) {
         try {
-          return getIdentityFlagsFromDocument(identifier, traitModels);
+          return getIdentityFlagsFromDocument(identifier, traits);
         } catch (FlagsmithClientError ce) {
           // Do nothing and fall through to FlagsmithApiError
         }
@@ -288,29 +273,6 @@ public class FlagsmithClient {
     }
   }
 
-  private IdentityModel getIdentityModel(String identifier, List<? extends TraitModel> traitModels)
-      throws FlagsmithClientError {
-    if (environment == null) {
-      throw new FlagsmithClientError(
-          "Unable to build identity model when no local environment present.");
-    }
-
-    if (identitiesWithOverridesByIdentifier != null) {
-      IdentityModel identityOverride = identitiesWithOverridesByIdentifier.get(identifier);
-      if (identityOverride != null) {
-        identityOverride.updateTraits(traitModels);
-        return identityOverride;
-      }
-    }
-
-    IdentityModel identity = new IdentityModel();
-    identity.setIdentityTraits(traitModels);
-    identity.setEnvironmentApiKey(environment.getApiKey());
-    identity.setIdentifier(identifier);
-
-    return identity;
-  }
-
   private Flags getDefaultFlags() {
     Flags flags = new Flags();
     flags.setDefaultFlagHandler(getConfig().getFlagsmithFlagDefaults());
@@ -318,7 +280,7 @@ public class FlagsmithClient {
   }
 
   private String getEnvironmentUpdateErrorMessage() {
-    if (this.environment == null) {
+    if (this.evaluationContext == null) {
       return "Unable to update environment from API. "
           + "No environment configured - using defaultHandler if configured.";
     } else {

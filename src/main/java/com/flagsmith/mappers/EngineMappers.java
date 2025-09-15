@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * EngineMappers
@@ -27,21 +26,21 @@ public class EngineMappers {
   /**
    * Maps context and identity data to evaluation context.
    *
-   * @param context     the base evaluation context
-   * @param identifier  the identity identifier
-   * @param traits      optional traits mapping
+   * @param context    the base evaluation context
+   * @param identifier the identity identifier
+   * @param traits     optional traits mapping
    * @return the updated evaluation context with identity information
    */
   public static EvaluationContext mapContextAndIdentityDataToContext(
       EvaluationContext context,
       String identifier,
       Map<String, Object> traits) {
-    
+
     // Create identity context
     IdentityContext identityContext = new IdentityContext()
         .withIdentifier(identifier)
         .withKey(context.getEnvironment().getKey() + "_" + identifier);
-    
+
     // Map traits if provided
     if (traits != null && !traits.isEmpty()) {
       Traits identityTraits = new Traits();
@@ -58,7 +57,7 @@ public class EngineMappers {
       }
       identityContext.withTraits(identityTraits);
     }
-    
+
     // Create new evaluation context with identity
     return new EvaluationContext(context)
         .withIdentity(identityContext);
@@ -72,12 +71,12 @@ public class EngineMappers {
    */
   public static EvaluationContext mapEnvironmentDocumentToContext(
       JsonNode environmentDocument) {
-    
+
     // Create environment context
     final EnvironmentContext environmentContext = new EnvironmentContext()
-        .withKey(environmentDocument.get("api_key").asText())
-        .withName(environmentDocument.get("name").asText());
-    
+        .withKey(environmentDocument.get("api_key").require().asText())
+        .withName(environmentDocument.get("name").require().asText());
+
     // Map features
     Map<String, FeatureContext> features = new HashMap<>();
     JsonNode featureStates = environmentDocument.get("feature_states");
@@ -87,10 +86,10 @@ public class EngineMappers {
         features.put(featureContext.getName(), featureContext);
       }
     }
-    
+
     // Map segments
     Map<String, SegmentContext> segments = new HashMap<>();
-    
+
     // Map project segments
     JsonNode project = environmentDocument.get("project");
     if (project != null) {
@@ -103,33 +102,33 @@ public class EngineMappers {
         }
       }
     }
-    
+
     // Map identity overrides
     JsonNode identityOverrides = environmentDocument.get("identity_overrides");
     if (identityOverrides != null && identityOverrides.isArray()) {
-      Map<String, SegmentContext> identityOverrideSegments =
+      Map<String, SegmentContext> identityOverrideSegments = 
           mapIdentityOverridesToSegments(identityOverrides);
       segments.putAll(identityOverrideSegments);
     }
-    
+
     // Create evaluation context
     EvaluationContext evaluationContext = new EvaluationContext()
         .withEnvironment(environmentContext);
-    
+
     // Add features individually
     com.flagsmith.flagengine.Features featuresObj = new com.flagsmith.flagengine.Features();
     for (Map.Entry<String, FeatureContext> entry : features.entrySet()) {
       featuresObj.withAdditionalProperty(entry.getKey(), entry.getValue());
     }
     evaluationContext.withFeatures(featuresObj);
-    
+
     // Add segments individually
     Segments segmentsObj = new Segments();
     for (Map.Entry<String, SegmentContext> entry : segments.entrySet()) {
       segmentsObj.withAdditionalProperty(entry.getKey(), entry.getValue());
     }
     evaluationContext.withSegments(segmentsObj);
-    
+
     return evaluationContext;
   }
 
@@ -141,23 +140,23 @@ public class EngineMappers {
    */
   private static Map<String, SegmentContext> mapIdentityOverridesToSegments(
       JsonNode identityOverrides) {
-    
+
     // Map from sorted list of feature contexts to identifiers
     Map<List<FeatureContext>, List<String>> featuresToIdentifiers = new HashMap<>();
-    
+
     for (JsonNode identityOverride : identityOverrides) {
       JsonNode identityFeatures = identityOverride.get("identity_features");
       if (identityFeatures == null || !identityFeatures.isArray() || identityFeatures.size() == 0) {
         continue;
       }
-      
+
       // Create overrides key as a sorted list of FeatureContext objects
       List<FeatureContext> overridesKey = new ArrayList<>();
       List<JsonNode> sortedFeatures = new ArrayList<>();
       identityFeatures.forEach(sortedFeatures::add);
       sortedFeatures.sort((a, b) -> a.get("feature").get("name").asText()
           .compareTo(b.get("feature").get("name").asText()));
-      
+
       for (JsonNode featureState : sortedFeatures) {
         JsonNode feature = featureState.get("feature");
         FeatureContext featureContext = new FeatureContext()
@@ -165,35 +164,36 @@ public class EngineMappers {
             .withFeatureKey(feature.get("id").asText())
             .withName(feature.get("name").asText())
             .withEnabled(featureState.get("enabled").asBoolean())
-            .withValue(featureState.get("feature_state_value") != null 
-                ? featureState.get("feature_state_value").asText() : null)
-            .withPriority(Double.NEGATIVE_INFINITY);  // Highest possible priority
+            .withValue(featureState.get("feature_state_value") != null
+                ? featureState.get("feature_state_value").asText()
+                : null)
+            .withPriority(Double.NEGATIVE_INFINITY); // Highest possible priority
         overridesKey.add(featureContext);
       }
-      
+
       String identifier = identityOverride.get("identifier").asText();
       featuresToIdentifiers.computeIfAbsent(overridesKey, k -> new ArrayList<>()).add(identifier);
     }
-    
+
     Map<String, SegmentContext> segmentContexts = new HashMap<>();
     for (Map.Entry<List<FeatureContext>, List<String>> entry : featuresToIdentifiers.entrySet()) {
       List<FeatureContext> overridesKey = entry.getKey();
       List<String> identifiers = entry.getValue();
-      
+
       // Generate unique segment key
       String segmentKey = String.valueOf(overridesKey.hashCode());
-      
+
       // Create segment condition for identifier check
       SegmentCondition identifierCondition = new SegmentCondition()
           .withProperty("$.identity.identifier")
           .withOperator(SegmentConditions.IN)
           .withValue(identifiers);
-      
+
       // Create segment rule
       SegmentRule segmentRule = new SegmentRule()
           .withType(SegmentRule.Type.ALL)
           .withConditions(List.of(identifierCondition));
-      
+
       // Create overrides from FeatureContext objects (much cleaner now!)
       List<FeatureContext> overrides = new ArrayList<>();
       for (FeatureContext featureContext : overridesKey) {
@@ -202,16 +202,16 @@ public class EngineMappers {
             .withKey(""); // Override the key for identity overrides
         overrides.add(override);
       }
-      
+
       SegmentContext segmentContext = new SegmentContext()
           .withKey("")
           .withName("identity_overrides")
           .withRules(List.of(segmentRule))
           .withOverrides(overrides);
-      
+
       segmentContexts.put(segmentKey, segmentContext);
     }
-    
+
     return segmentContexts;
   }
 
@@ -223,9 +223,9 @@ public class EngineMappers {
    */
   private static List<SegmentRule> mapEnvironmentDocumentRulesToContextRules(
       JsonNode rules) {
-    
+
     List<SegmentRule> segmentRules = new ArrayList<>();
-    
+
     for (JsonNode rule : rules) {
       // Map conditions
       List<SegmentCondition> conditions = new ArrayList<>();
@@ -239,22 +239,22 @@ public class EngineMappers {
           conditions.add(segmentCondition);
         }
       }
-      
+
       // Map sub-rules recursively
       List<SegmentRule> subRules = new ArrayList<>();
       JsonNode ruleRules = rule.get("rules");
       if (ruleRules != null && ruleRules.isArray()) {
         subRules = mapEnvironmentDocumentRulesToContextRules(ruleRules);
       }
-      
+
       SegmentRule segmentRule = new SegmentRule()
           .withType(SegmentRule.Type.valueOf(rule.get("type").asText()))
           .withConditions(conditions)
           .withRules(subRules);
-      
+
       segmentRules.add(segmentRule);
     }
-    
+
     return segmentRules;
   }
 
@@ -266,14 +266,14 @@ public class EngineMappers {
    */
   private static List<FeatureContext> mapEnvironmentDocumentFeatureStatesToFeatureContexts(
       JsonNode featureStates) {
-    
+
     List<FeatureContext> featureContexts = new ArrayList<>();
-    
+
     for (JsonNode featureState : featureStates) {
       FeatureContext featureContext = mapFeatureStateToFeatureContext(featureState);
       featureContexts.add(featureContext);
     }
-    
+
     return featureContexts;
   }
 
@@ -285,20 +285,24 @@ public class EngineMappers {
    */
   private static FeatureContext mapFeatureStateToFeatureContext(JsonNode featureState) {
     JsonNode feature = featureState.get("feature");
-    
+
     FeatureContext featureContext = new FeatureContext()
         .withKey(featureState.get("id").asText())
         .withFeatureKey(feature.get("id").asText())
         .withName(feature.get("name").asText())
         .withEnabled(featureState.get("enabled").asBoolean())
-        .withValue(featureState.get("feature_state_value") != null 
-            ? featureState.get("feature_state_value").asText() : null);
-    
+        .withValue(featureState.get("feature_state_value") != null
+            ? featureState.get("feature_state_value").asText()
+            : null);
+
     // Handle multivariate feature state values
     JsonNode multivariateValues = featureState.get("multivariate_feature_state_values");
     if (multivariateValues != null && multivariateValues.isArray()) {
       List<FeatureValue> variants = new ArrayList<>();
-      for (JsonNode multivariateValue : multivariateValues) {
+      List<JsonNode> sortedMultivariate = new ArrayList<>();
+      multivariateValues.forEach(sortedMultivariate::add);
+      sortedMultivariate.sort((a, b) -> a.get("id").asText().compareTo(b.get("id").asText()));
+      for (JsonNode multivariateValue : sortedMultivariate) {
         FeatureValue variant = new FeatureValue()
             .withValue(multivariateValue.get("multivariate_feature_option").get("value").asText())
             .withWeight(multivariateValue.get("percentage_allocation").asDouble());
@@ -306,7 +310,7 @@ public class EngineMappers {
       }
       featureContext.withVariants(variants);
     }
-    
+
     // Handle priority from feature segment
     JsonNode featureSegment = featureState.get("feature_segment");
     if (featureSegment != null && !featureSegment.isNull()) {
@@ -315,7 +319,7 @@ public class EngineMappers {
         featureContext.withPriority(priority.asDouble());
       }
     }
-    
+
     return featureContext;
   }
 
@@ -327,21 +331,21 @@ public class EngineMappers {
    */
   private static SegmentContext mapSegmentToSegmentContext(JsonNode segment) {
     String segmentKey = segment.get("id").asText();
-    
+
     // Map rules
     List<SegmentRule> rules = new ArrayList<>();
     JsonNode segmentRules = segment.get("rules");
     if (segmentRules != null && segmentRules.isArray()) {
       rules = mapEnvironmentDocumentRulesToContextRules(segmentRules);
     }
-    
+
     // Map overrides
     List<FeatureContext> overrides = new ArrayList<>();
     JsonNode segmentFeatureStates = segment.get("feature_states");
     if (segmentFeatureStates != null && segmentFeatureStates.isArray()) {
       overrides = mapEnvironmentDocumentFeatureStatesToFeatureContexts(segmentFeatureStates);
     }
-    
+
     return new SegmentContext()
         .withKey(segmentKey)
         .withName(segment.get("name").asText())
