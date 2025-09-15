@@ -277,6 +277,24 @@ public class EngineMappers {
   }
 
   /**
+   * Gets the feature state key from either django_id or featurestate_uuid.
+   *
+   * @param featureState the feature state JSON
+   * @return the feature state key as string
+   */
+  private static String getFeatureStateKey(JsonNode featureState) {
+    JsonNode node = featureState.get("django_id");
+    if (node != null && !node.isNull()) {
+      return node.asText();
+    }
+    node = featureState.get("featurestate_uuid");
+    if (node != null && !node.isNull()) {
+      return node.asText();
+    }
+    return "";
+  }
+
+  /**
    * Maps a single feature state to feature context.
    *
    * @param featureState the feature state JSON
@@ -286,7 +304,7 @@ public class EngineMappers {
     JsonNode feature = featureState.get("feature");
 
     FeatureContext featureContext = new FeatureContext()
-        .withKey(featureState.get("id").asText())
+        .withKey(getFeatureStateKey(featureState))
         .withFeatureKey(feature.get("id").asText())
         .withName(feature.get("name").asText())
         .withEnabled(featureState.get("enabled").asBoolean())
