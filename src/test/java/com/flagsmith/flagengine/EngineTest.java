@@ -1,52 +1,65 @@
 package com.flagsmith.flagengine;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.MapperFactory;
-import com.flagsmith.flagengine.environments.EnvironmentModel;
-import com.flagsmith.flagengine.features.FeatureStateModel;
-import com.flagsmith.flagengine.identities.IdentityModel;
-import com.flagsmith.flagengine.models.ResponseJSON;
+import com.flagsmith.mappers.EngineMappers;
+import com.flagsmith.models.FeatureStateModel;
+import com.flagsmith.models.Flags;
+
+import groovy.util.Eval;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.BeforeClass;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
+import java.util.stream.StreamSupport;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-
 public class EngineTest {
-  private static final String ENVIRONMENT_JSON_FILE_LOCATION =
-      "src/test/java/com/flagsmith/flagengine/enginetestdata/" +
-          "data/environment_n9fbf9h3v4fFgH3U3ngWhb.json";
+  private static final String ENVIRONMENT_JSON_FILE_LOCATION = "src/test/java/com/flagsmith/flagengine/enginetestdata/"
+      +
+      "data/environment_n9fbf9h3v4fFgH3U3ngWhb.json";
+  private static ObjectMapper objectMapper = MapperFactory.getMapper();
 
   private static Stream<Arguments> engineTestData() {
     try {
-      ObjectMapper objectMapper = MapperFactory.getMapper();
-      JsonNode engineTestData = objectMapper.
-          readTree(new File(ENVIRONMENT_JSON_FILE_LOCATION));
+      JsonNode engineTestData = objectMapper.readTree(new File(ENVIRONMENT_JSON_FILE_LOCATION));
 
-      JsonNode environmentNode = engineTestData.get("environment");
-      EnvironmentModel environmentModel = EnvironmentModel.load(environmentNode, EnvironmentModel.class);
-
+      JsonNode environmentDocument = engineTestData.get("environment");
       JsonNode identitiesAndResponses = engineTestData.get("identities_and_responses");
+
+      EvaluationContext baseEvaluationContext = EngineMappers
+          .mapEnvironmentDocumentToContext(environmentDocument);
 
       List<Arguments> returnValues = new ArrayList<>();
 
       if (identitiesAndResponses.isArray()) {
         for (JsonNode identityAndResponse : identitiesAndResponses) {
-          IdentityModel identityModel =
-              IdentityModel.load(identityAndResponse.get("identity"), IdentityModel.class);
-          ResponseJSON expectedResponse =
-              objectMapper.treeToValue(identityAndResponse.get("response"), ResponseJSON.class);
+          JsonNode identity = identityAndResponse.get("identity");
+          Map<String, Object> traits = Optional.ofNullable(identity.get("identity_traits"))
+              .filter(JsonNode::isArray)
+              .map(node -> StreamSupport.stream(node.spliterator(), false)
+                  .filter(trait -> trait.hasNonNull("trait_key"))
+                  .collect(Collectors.toMap(
+                      trait -> trait.get("trait_key").asText(),
+                      trait -> objectMapper.convertValue(trait.get("trait_value"), Object.class))))
+              .orElseGet(HashMap::new);
 
-          returnValues.add(Arguments.of(identityModel, environmentModel, expectedResponse));
+          EvaluationContext evaluationContext = EngineMappers.mapContextAndIdentityDataToContext(
+              baseEvaluationContext, identity.get("identifier").asText(), traits);
+
+          JsonNode expectedResponse = identityAndResponse.get("response");
+
+          returnValues.add(Arguments.of(evaluationContext, expectedResponse));
 
         }
       }
@@ -61,34 +74,27 @@ public class EngineTest {
 
   @ParameterizedTest()
   @MethodSource("engineTestData")
-  public void testEngine(IdentityModel identity, EnvironmentModel environmentModel, ResponseJSON expectedResponse) {
-    List<FeatureStateModel> featureStates =
-        Engine.getIdentityFeatureStates(environmentModel, identity);
+  public void testEngine(EvaluationContext evaluationContext, JsonNode expectedResponse) {
+    EvaluationResult evaluationResult = Engine.getEvaluationResult(evaluationContext);
 
-    List<FeatureStateModel> sortedFeatureStates = featureStates
-        .stream()
-        .sorted((featureState1, t1)
-            -> featureState1.getFeature().getName()
-            .compareTo(t1.getFeature().getName()))
+    List<FeatureStateModel> flags = objectMapper.convertValue(
+        expectedResponse.get("flags"),
+        new TypeReference<List<FeatureStateModel>>() {
+        });
+
+    flags.sort((fsm1, fsm2) -> fsm1.getFeature().getName().compareTo(fsm2.getFeature().getName()));
+    List<FlagResult> sortedResults = evaluationResult.getFlags().stream()
+        .sorted((fr1, fr2) -> fr1.getName().compareTo(fr2.getName()))
         .collect(Collectors.toList());
 
-    List<FeatureStateModel> sortedResponse = expectedResponse.getFlags()
-        .stream()
-        .sorted((featureState1, t1)
-            -> featureState1.getFeature().getName()
-            .compareTo(t1.getFeature().getName()))
-        .collect(Collectors.toList());
+    assertEquals(flags.size(), sortedResults.size());
+    for (int i = 0; i < flags.size(); i++) {
+      FeatureStateModel fsm = flags.get(i);
+      FlagResult fr = sortedResults.get(i);
 
-    assert (sortedResponse.size() == sortedFeatureStates.size());
-
-    int index = 0;
-    for (FeatureStateModel featureState : sortedFeatureStates) {
-      Object featureStateValue = featureState.getValue(identity.getDjangoId());
-      Object expectedResponseValue = sortedResponse.get(index).getValue(identity.getDjangoId());
-
-      assertEquals(featureStateValue, expectedResponseValue);
-      assertEquals(featureState.getEnabled(), sortedResponse.get(index).getEnabled());
-      index++;
+      assertEquals(fr.getName(), fsm.getFeature().getName());
+      assertEquals(fr.getEnabled(), fsm.getEnabled());
+      assertEquals(fr.getValue(), fsm.getValue());
     }
   }
 }

@@ -7,13 +7,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.flagsmith.config.FlagsmithCacheConfig;
-import com.flagsmith.flagengine.environments.EnvironmentModel;
-import com.flagsmith.flagengine.features.FeatureModel;
-import com.flagsmith.flagengine.features.FeatureStateModel;
-import com.flagsmith.flagengine.identities.IdentityModel;
-import com.flagsmith.flagengine.identities.traits.TraitModel;
+import com.flagsmith.flagengine.EvaluationContext;
+import com.flagsmith.mappers.EngineMappers;
 import com.flagsmith.models.BaseFlag;
+import com.flagsmith.models.FeatureStateModel;
 import com.flagsmith.models.Flag;
+import com.flagsmith.models.TraitModel;
 import com.google.common.collect.ImmutableMap;
 import io.restassured.RestAssured;
 import io.restassured.http.Header;
@@ -84,8 +83,7 @@ public class FlagsmithTestHelper {
     return RestAssured.given()
         .body(ImmutableMap.of(
             "identifier", userIdentity,
-            "environment", environmentApiKey
-        ))
+            "environment", environmentApiKey))
         .headers(defaultHeaders())
         .post("/api/v1/environments/{apiKey}/identities/", environmentApiKey)
         .then()
@@ -99,8 +97,7 @@ public class FlagsmithTestHelper {
     return RestAssured.given()
         .body(ImmutableMap.of(
             "name", name,
-            "project", projectId
-        ))
+            "project", projectId))
         .headers(defaultHeaders())
         .post("/api/v1/environments/")
         .then()
@@ -124,8 +121,7 @@ public class FlagsmithTestHelper {
       RestAssured.given()
           .body(ImmutableMap.of(
               "enabled", enabled,
-              "feature", featureId
-          ))
+              "feature", featureId))
           .headers(defaultHeaders())
           .post("/api/v1/environments/{apiKey}/featurestates/", apiKey)
           .then()
@@ -141,8 +137,7 @@ public class FlagsmithTestHelper {
         RestAssured.given()
             .body(ImmutableMap.of(
                 "enabled", enabled,
-                "feature", featureId
-            ))
+                "feature", featureId))
             .headers(defaultHeaders())
             .put("/api/v1/environments/{apiKey}/featurestates/{featureStateId}/",
                 apiKey, featureStateId)
@@ -171,8 +166,7 @@ public class FlagsmithTestHelper {
       RestAssured.given()
           .body(ImmutableMap.of(
               "enabled", enabled,
-              "feature", featureId
-          ))
+              "feature", featureId))
           .headers(defaultHeaders())
           .post("/api/v1/environments/{apiKey}/identities/{identityId}/featurestates/", apiKey,
               userIdentityId)
@@ -193,8 +187,7 @@ public class FlagsmithTestHelper {
         RestAssured.given()
             .body(ImmutableMap.of(
                 "enabled", enabled,
-                "feature", featureId
-            ))
+                "feature", featureId))
             .headers(defaultHeaders())
             .put(
                 "/api/v1/environments/{apiKey}/identities/{identityId}/featurestates/{featureStateId}/",
@@ -214,8 +207,7 @@ public class FlagsmithTestHelper {
         .body(ImmutableMap.of(
             "identity", ImmutableMap.of("identifier", userIdentifier),
             "trait_key", traitKey,
-            "trait_value", traitValue
-        ))
+            "trait_value", traitValue))
         .headers(defaultHeaders())
         .header("x-environment-key", apiKey)
         .post("/api/v1/traits/")
@@ -227,8 +219,7 @@ public class FlagsmithTestHelper {
     return RestAssured.given()
         .body(ImmutableMap.of(
             "name", name,
-            "organisation", organisationId
-        ))
+            "organisation", organisationId))
         .headers(defaultHeaders())
         .post("/api/v1/projects/")
         .then()
@@ -239,16 +230,15 @@ public class FlagsmithTestHelper {
   }
 
   public static BaseFlag flag(
-      String name, String description, String type, boolean enabled, String value
-  ) {
-    final FeatureModel feature = new FeatureModel();
+      String name, String description, String type, boolean enabled, String value) {
+    final FeatureStateModel result = new FeatureStateModel();
+    result.setEnabled(enabled);
+    result.setValue(value);
+
+    final FeatureStateModel.FeatureModel feature = result.new FeatureModel();
     feature.setName(name);
     feature.setType(type);
 
-    final FeatureStateModel result = new FeatureStateModel();
-    result.setFeature(feature);
-    result.setEnabled(enabled);
-    result.setValue(value);
     return Flag.fromFeatureStateModel(result, null);
   }
 
@@ -267,121 +257,90 @@ public class FlagsmithTestHelper {
     return result;
   }
 
-  public static IdentityModel featureUser(String identifier) {
-    final IdentityModel user = new IdentityModel();
-    user.setIdentifier(identifier);
-    return user;
-  }
-
-  public static IdentityModel identityOverride() {
-    final FeatureModel overriddenFeature = new FeatureModel();
-    overriddenFeature.setId(1);
-    overriddenFeature.setName("some_feature");
-    overriddenFeature.setType("STANDARD");
-
-    final FeatureStateModel overriddenFeatureState = new FeatureStateModel();
-    overriddenFeatureState.setFeature(overriddenFeature);
-    overriddenFeatureState.setFeaturestateUuid("d5d0767b-6287-4bb4-9d53-8b87e5458642");
-    overriddenFeatureState.setValue("overridden-value");
-    overriddenFeatureState.setEnabled(true);
-    overriddenFeatureState.setMultivariateFeatureStateValues(new ArrayList<>());
-
-    List<FeatureStateModel> identityFeatures = new ArrayList<>();
-    identityFeatures.add(overriddenFeatureState);
-
-    final IdentityModel identity = new IdentityModel();
-    identity.setIdentifier("overridden-identity");
-    identity.setIdentityUuid("65bc5ac6-5859-4cfe-97e6-d5ec2e80c1fb");
-    identity.setCompositeKey("B62qaMZNwfiqT76p38ggrQ_identity_overridden_identity");
-    identity.setEnvironmentApiKey("B62qaMZNwfiqT76p38ggrQ");
-    identity.setIdentityFeatures(identityFeatures);
-    return identity;
-  }
-
   public static String environmentString() {
     return "{\n" +
-            "  \"api_key\": \"B62qaMZNwfiqT76p38ggrQ\",\n" +
-            "  \"project\": {\n" +
-            "    \"name\": \"Test project\",\n" +
-            "    \"organisation\": {\n" +
-            "      \"feature_analytics\": false,\n" +
-            "      \"name\": \"Test Org\",\n" +
-            "      \"id\": 1,\n" +
-            "      \"persist_trait_data\": true,\n" +
-            "      \"stop_serving_flags\": false\n" +
-            "    },\n" +
-            "    \"id\": 1,\n" +
-            "    \"hide_disabled_flags\": false,\n" +
-            "    \"segments\": [\n" +
-            "      {\n" +
-            "        \"id\": 1,\n" +
-            "        \"name\": \"Test segment\",\n" +
-            "        \"rules\": [\n" +
-            "          {\n" +
-            "            \"type\": \"ALL\",\n" +
-            "            \"rules\": [\n" +
-            "              {\n" +
-            "                \"type\": \"ALL\",\n" +
-            "                \"rules\": [],\n" +
-            "                \"conditions\": [\n" +
-            "                  {\n" +
-            "                    \"operator\": \"EQUAL\",\n" +
-            "                    \"property_\": \"foo\",\n" +
-            "                    \"value\": \"bar\"\n" +
-            "                  }\n" +
-            "                ]\n" +
-            "              }\n" +
-            "            ]\n" +
-            "          }\n" +
-            "        ]\n" +
-            "      }\n" +
-            "    ]\n" +
-            "  },\n" +
-            "  \"segment_overrides\": [],\n" +
-            "  \"id\": 1,\n" +
-            "  \"feature_states\": [\n" +
-            "    {\n" +
-            "      \"multivariate_feature_state_values\": [],\n" +
-            "      \"feature_state_value\": \"some-value\",\n" +
-            "      \"id\": 1,\n" +
-            "      \"featurestate_uuid\": \"40eb539d-3713-4720-bbd4-829dbef10d51\",\n" +
-            "      \"feature\": {\n" +
-            "        \"name\": \"some_feature\",\n" +
-            "        \"type\": \"STANDARD\",\n" +
-            "        \"id\": 1\n" +
-            "      },\n" +
-            "      \"segment_id\": null,\n" +
-            "      \"enabled\": true\n" +
-            "    }\n" +
-            "  ],\n" +
-            "  \"identity_overrides\": [\n" +
-            "    {\n" +
-            "      \"identity_uuid\": \"65bc5ac6-5859-4cfe-97e6-d5ec2e80c1fb\",\n" +
-            "      \"identifier\": \"overridden-identity\",\n" +
-            "      \"composite_key\": \"B62qaMZNwfiqT76p38ggrQ_identity_overridden_identity\",\n" +
-            "      \"identity_features\": [\n" +
-            "        {\n" +
-            "          \"feature_state_value\": \"overridden-value\",\n" +
-            "          \"multivariate_feature_state_values\": [],\n" +
-            "          \"featurestate_uuid\": \"d5d0767b-6287-4bb4-9d53-8b87e5458642\",\n" +
-            "          \"feature\": {\n" +
-            "            \"name\": \"some_feature\",\n" +
-            "            \"type\": \"STANDARD\",\n" +
-            "            \"id\": 1\n" +
-            "          },\n" +
-            "          \"enabled\": true\n" +
-            "        }\n" +
-            "      ],\n" +
-            "      \"identity_traits\": [],\n" +
-            "      \"environment_api_key\": \"B62qaMZNwfiqT76p38ggrQ\"\n" +
-            "    }\n" +
-            "  ]\n" +
-            "}";
+        "  \"api_key\": \"B62qaMZNwfiqT76p38ggrQ\",\n" +
+        "  \"project\": {\n" +
+        "    \"name\": \"Test project\",\n" +
+        "    \"organisation\": {\n" +
+        "      \"feature_analytics\": false,\n" +
+        "      \"name\": \"Test Org\",\n" +
+        "      \"id\": 1,\n" +
+        "      \"persist_trait_data\": true,\n" +
+        "      \"stop_serving_flags\": false\n" +
+        "    },\n" +
+        "    \"id\": 1,\n" +
+        "    \"hide_disabled_flags\": false,\n" +
+        "    \"segments\": [\n" +
+        "      {\n" +
+        "        \"id\": 1,\n" +
+        "        \"name\": \"Test segment\",\n" +
+        "        \"rules\": [\n" +
+        "          {\n" +
+        "            \"type\": \"ALL\",\n" +
+        "            \"rules\": [\n" +
+        "              {\n" +
+        "                \"type\": \"ALL\",\n" +
+        "                \"rules\": [],\n" +
+        "                \"conditions\": [\n" +
+        "                  {\n" +
+        "                    \"operator\": \"EQUAL\",\n" +
+        "                    \"property_\": \"foo\",\n" +
+        "                    \"value\": \"bar\"\n" +
+        "                  }\n" +
+        "                ]\n" +
+        "              }\n" +
+        "            ]\n" +
+        "          }\n" +
+        "        ]\n" +
+        "      }\n" +
+        "    ]\n" +
+        "  },\n" +
+        "  \"segment_overrides\": [],\n" +
+        "  \"id\": 1,\n" +
+        "  \"feature_states\": [\n" +
+        "    {\n" +
+        "      \"multivariate_feature_state_values\": [],\n" +
+        "      \"feature_state_value\": \"some-value\",\n" +
+        "      \"id\": 1,\n" +
+        "      \"featurestate_uuid\": \"40eb539d-3713-4720-bbd4-829dbef10d51\",\n" +
+        "      \"feature\": {\n" +
+        "        \"name\": \"some_feature\",\n" +
+        "        \"type\": \"STANDARD\",\n" +
+        "        \"id\": 1\n" +
+        "      },\n" +
+        "      \"segment_id\": null,\n" +
+        "      \"enabled\": true\n" +
+        "    }\n" +
+        "  ],\n" +
+        "  \"identity_overrides\": [\n" +
+        "    {\n" +
+        "      \"identity_uuid\": \"65bc5ac6-5859-4cfe-97e6-d5ec2e80c1fb\",\n" +
+        "      \"identifier\": \"overridden-identity\",\n" +
+        "      \"composite_key\": \"B62qaMZNwfiqT76p38ggrQ_identity_overridden_identity\",\n" +
+        "      \"identity_features\": [\n" +
+        "        {\n" +
+        "          \"feature_state_value\": \"overridden-value\",\n" +
+        "          \"multivariate_feature_state_values\": [],\n" +
+        "          \"featurestate_uuid\": \"d5d0767b-6287-4bb4-9d53-8b87e5458642\",\n" +
+        "          \"feature\": {\n" +
+        "            \"name\": \"some_feature\",\n" +
+        "            \"type\": \"STANDARD\",\n" +
+        "            \"id\": 1\n" +
+        "          },\n" +
+        "          \"enabled\": true\n" +
+        "        }\n" +
+        "      ],\n" +
+        "      \"identity_traits\": [],\n" +
+        "      \"environment_api_key\": \"B62qaMZNwfiqT76p38ggrQ\"\n" +
+        "    }\n" +
+        "  ]\n" +
+        "}";
   }
 
-  public static EnvironmentModel environmentModel() {
+  public static EvaluationContext evaluationContext() {
     try {
-      return EnvironmentModel.load(MapperFactory.getMapper().readTree(environmentString()), EnvironmentModel.class);
+      return EngineMappers.mapEnvironmentDocumentToContext(MapperFactory.getMapper().readTree(environmentString()));
     } catch (JsonProcessingException e) {
       // environment model json
     }
@@ -414,8 +373,8 @@ public class FlagsmithTestHelper {
     try {
       return MapperFactory.getMapper().readValue(
           featureJson,
-          new TypeReference<List<FeatureStateModel>>() {}
-      );
+          new TypeReference<List<FeatureStateModel>>() {
+          });
     } catch (JsonProcessingException e) {
       e.printStackTrace();
       // environment model json
@@ -472,11 +431,11 @@ public class FlagsmithTestHelper {
   }
 
   public static JsonNode getIdentityRequest(
-    String identifier, List<? extends TraitModel> traits, boolean isTransient) {
+      String identifier, List<? extends TraitModel> traits, boolean isTransient) {
     final ObjectNode flagsAndTraits = MapperFactory.getMapper().createObjectNode();
     flagsAndTraits.putPOJO("identifier", identifier);
     flagsAndTraits.put("transient", isTransient);
-    flagsAndTraits.putPOJO("traits", traits != null ? traits : new ArrayList<>());  
+    flagsAndTraits.putPOJO("traits", traits != null ? traits : new ArrayList<>());
     return flagsAndTraits;
   }
 

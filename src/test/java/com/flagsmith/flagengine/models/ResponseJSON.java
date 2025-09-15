@@ -1,10 +1,9 @@
 package com.flagsmith.flagengine.models;
 
-import com.flagsmith.flagengine.features.FeatureStateModel;
-import com.flagsmith.flagengine.identities.traits.TraitModel;
-import lombok.Data;
-
+import com.flagsmith.models.FeatureStateModel;
+import com.flagsmith.models.TraitModel;
 import java.util.List;
+import lombok.Data;
 
 @Data
 public class ResponseJSON {

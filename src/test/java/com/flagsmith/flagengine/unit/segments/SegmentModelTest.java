@@ -1,6 +1,11 @@
 package com.flagsmith.flagengine.unit.segments;
 
-import com.flagsmith.flagengine.segments.SegmentConditionModel;
+import com.flagsmith.flagengine.EvaluationContext;
+import com.flagsmith.flagengine.IdentityContext;
+import com.flagsmith.flagengine.SegmentCondition;
+import com.flagsmith.flagengine.SegmentContext;
+import com.flagsmith.flagengine.SegmentRule;
+import com.flagsmith.flagengine.Traits;
 import com.flagsmith.flagengine.segments.SegmentEvaluator;
 import com.flagsmith.flagengine.segments.constants.SegmentConditions;
 
@@ -10,6 +15,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.Arrays;
 import java.util.stream.Stream;
 
 public class SegmentModelTest {
@@ -86,11 +92,11 @@ public class SegmentModelTest {
         Arguments.of(SegmentConditions.IN, 1, "1,2,3,4", true),
         Arguments.of(SegmentConditions.IN, 1, "", false),
         Arguments.of(SegmentConditions.IN, 1, "1", true),
-        // Flagsmith's engine does not evaluate `IN` condition for floats/doubles and booleans
+        // Flagsmith's engine does not evaluate `IN` condition for floats/doubles and
+        // booleans
         // due to ambiguous serialization across supported platforms.
         Arguments.of(SegmentConditions.IN, 1.5, "1.5", false),
-        Arguments.of(SegmentConditions.IN, false, "false", false)
-    );
+        Arguments.of(SegmentConditions.IN, false, "false", false));
   }
 
   @ParameterizedTest
@@ -101,12 +107,23 @@ public class SegmentModelTest {
       String conditionValue,
       Boolean expectedResponse) {
 
-    SegmentConditionModel conditionModel = new SegmentConditionModel();
-    conditionModel.setValue(conditionValue);
-    conditionModel.setOperator(condition);
-    conditionModel.setProperty_("foo");
+    final EvaluationContext context = new EvaluationContext()
+        .withIdentity(
+            new IdentityContext().withTraits(
+                new Traits().withAdditionalProperty("foo", conditionValue)));
 
-    Boolean actualResult = SegmentEvaluator.conditionMatchesTraitValue(conditionModel, traitValue);
+    SegmentContext segmentContext = new SegmentContext().withKey(conditionValue).withRules(
+        Arrays.asList(new SegmentRule().withType(SegmentRule.Type.ALL).withConditions(
+            Arrays.asList(new SegmentCondition()
+                .withOperator(condition).withProperty("foo")
+                .withValue(conditionValue)))));
+
+    new SegmentCondition()
+        .withOperator(condition).withProperty("foo")
+        .withValue(conditionValue);
+
+    Boolean actualResult = SegmentEvaluator.isContextInSegment(
+        context, segmentContext);
 
     assertTrue(actualResult.equals(expectedResponse));
   }
@@ -119,12 +136,19 @@ public class SegmentModelTest {
       String conditionValue,
       Boolean expectedResponse) {
 
-    SegmentConditionModel conditionModel = new SegmentConditionModel();
-    conditionModel.setValue(conditionValue);
-    conditionModel.setOperator(condition);
-    conditionModel.setProperty_("foo");
+    final EvaluationContext context = new EvaluationContext()
+        .withIdentity(
+            new IdentityContext().withTraits(
+                new Traits().withAdditionalProperty("foo", conditionValue)));
 
-    Boolean actualResult = SegmentEvaluator.conditionMatchesTraitValue(conditionModel, traitValue);
+    SegmentContext segmentContext = new SegmentContext().withKey(conditionValue).withRules(
+        Arrays.asList(new SegmentRule().withType(SegmentRule.Type.ALL).withConditions(
+            Arrays.asList(new SegmentCondition()
+                .withOperator(condition).withProperty("foo")
+                .withValue(conditionValue)))));
+
+    Boolean actualResult = SegmentEvaluator.isContextInSegment(
+        context, segmentContext);
 
     assertTrue(actualResult.equals(expectedResponse));
   }

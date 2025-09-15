@@ -345,8 +345,7 @@ public class FlagsmithClient {
      * return null by
      * default.
      *
-     * <p>
-     * If you would like to override this default behaviour, you can use this
+     * <p>If you would like to override this default behaviour, you can use this
      * method. By default
      * it will return null for any flags that it does not recognise.
      *
@@ -443,8 +442,7 @@ public class FlagsmithClient {
     /**
      * Enable in-memory caching for the Flagsmith API.
      *
-     * <p>
-     * If no other cache configuration is set, the Caffeine defaults will be used,
+     * <p>If no other cache configuration is set, the Caffeine defaults will be used,
      * i.e. no limit
      *
      * @param cacheConfig an FlagsmithCacheConfig.
