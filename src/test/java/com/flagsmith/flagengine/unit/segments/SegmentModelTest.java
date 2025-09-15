@@ -11,7 +11,7 @@ import com.flagsmith.flagengine.segments.constants.SegmentConditions;
 import com.flagsmith.mappers.EngineMappers;
 import com.flagsmith.FlagsmithTestHelper;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -123,7 +123,7 @@ public class SegmentModelTest {
     Boolean actualResult = SegmentEvaluator.isContextInSegment(
         context, segmentContext);
 
-    assertTrue(actualResult.equals(expectedResponse));
+    assertEquals(expectedResponse, actualResult);
   }
 
   @ParameterizedTest
@@ -147,7 +147,7 @@ public class SegmentModelTest {
     Boolean actualResult = SegmentEvaluator.isContextInSegment(
         context, segmentContext);
 
-    assertTrue(actualResult.equals(expectedResponse));
+    assertEquals(expectedResponse, actualResult);
   }
 
   private static Stream<Arguments> semverTestData() {

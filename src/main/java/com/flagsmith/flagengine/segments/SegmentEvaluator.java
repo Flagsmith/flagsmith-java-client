@@ -156,6 +156,9 @@ public class SegmentEvaluator {
         return false;
 
       default:
+        if (contextValue == null) {
+          return false;
+        }
         return TypeCasting.compare(operator, contextValue, conditionValue);
     }
   }
