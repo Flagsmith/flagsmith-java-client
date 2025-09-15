@@ -8,6 +8,8 @@ import com.flagsmith.flagengine.SegmentRule;
 import com.flagsmith.flagengine.Traits;
 import com.flagsmith.flagengine.segments.SegmentEvaluator;
 import com.flagsmith.flagengine.segments.constants.SegmentConditions;
+import com.flagsmith.mappers.EngineMappers;
+import com.flagsmith.FlagsmithTestHelper;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -16,6 +18,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.stream.Stream;
 
 public class SegmentModelTest {
@@ -107,20 +110,15 @@ public class SegmentModelTest {
       String conditionValue,
       Boolean expectedResponse) {
 
-    final EvaluationContext context = new EvaluationContext()
-        .withIdentity(
-            new IdentityContext().withTraits(
-                new Traits().withAdditionalProperty("foo", conditionValue)));
+    final EvaluationContext context = EngineMappers.mapContextAndIdentityDataToContext(
+        FlagsmithTestHelper.evaluationContext(), "foo",
+        Collections.singletonMap("foo", traitValue));
 
     SegmentContext segmentContext = new SegmentContext().withKey(conditionValue).withRules(
         Arrays.asList(new SegmentRule().withType(SegmentRule.Type.ALL).withConditions(
             Arrays.asList(new SegmentCondition()
                 .withOperator(condition).withProperty("foo")
                 .withValue(conditionValue)))));
-
-    new SegmentCondition()
-        .withOperator(condition).withProperty("foo")
-        .withValue(conditionValue);
 
     Boolean actualResult = SegmentEvaluator.isContextInSegment(
         context, segmentContext);
@@ -136,10 +134,9 @@ public class SegmentModelTest {
       String conditionValue,
       Boolean expectedResponse) {
 
-    final EvaluationContext context = new EvaluationContext()
-        .withIdentity(
-            new IdentityContext().withTraits(
-                new Traits().withAdditionalProperty("foo", conditionValue)));
+    final EvaluationContext context = EngineMappers.mapContextAndIdentityDataToContext(
+        FlagsmithTestHelper.evaluationContext(), "foo",
+        Collections.singletonMap("foo", traitValue));
 
     SegmentContext segmentContext = new SegmentContext().withKey(conditionValue).withRules(
         Arrays.asList(new SegmentRule().withType(SegmentRule.Type.ALL).withConditions(

@@ -260,6 +260,7 @@ public class FlagsmithTestHelper {
   public static String environmentString() {
     return "{\n" +
         "  \"api_key\": \"B62qaMZNwfiqT76p38ggrQ\",\n" +
+        "  \"name\": \"Test Environment\",\n" +
         "  \"project\": {\n" +
         "    \"name\": \"Test project\",\n" +
         "    \"organisation\": {\n" +
@@ -342,10 +343,8 @@ public class FlagsmithTestHelper {
     try {
       return EngineMappers.mapEnvironmentDocumentToContext(MapperFactory.getMapper().readTree(environmentString()));
     } catch (JsonProcessingException e) {
-      // environment model json
+      throw new RuntimeException("Failed to parse environment JSON", e);
     }
-
-    return null;
   }
 
   public static List<FeatureStateModel> getFlags() {

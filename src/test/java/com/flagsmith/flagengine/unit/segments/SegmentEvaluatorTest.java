@@ -10,6 +10,7 @@ import com.flagsmith.mappers.EngineMappers;
 import com.flagsmith.models.TraitModel;
 
 import static com.flagsmith.flagengine.unit.segments.IdentitySegmentFixtures.*;
+import com.flagsmith.FlagsmithTestHelper;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -51,7 +52,7 @@ public class SegmentEvaluatorTest {
       Boolean expectedResponse) {
 
     final EvaluationContext context = EngineMappers.mapContextAndIdentityDataToContext(
-        new EvaluationContext(), "foo",
+        FlagsmithTestHelper.evaluationContext(), "foo",
         identityTraits.stream().collect(
             java.util.stream.Collectors.toMap(TraitModel::getTraitKey, TraitModel::getTraitValue)));
 
@@ -77,7 +78,7 @@ public class SegmentEvaluatorTest {
     // Given
     // An identity to test with which has the traits as defined in the DataProvider
     final EvaluationContext context = EngineMappers.mapContextAndIdentityDataToContext(
-        new EvaluationContext(), "foo",
+        FlagsmithTestHelper.evaluationContext(), "foo",
         traitModels.stream().collect(
             java.util.stream.Collectors.toMap(TraitModel::getTraitKey, TraitModel::getTraitValue)));
 

@@ -39,11 +39,11 @@ public class EngineMappers {
     // Create identity context
     IdentityContext identityContext = new IdentityContext()
         .withIdentifier(identifier)
-        .withKey(context.getEnvironment().getKey() + "_" + identifier);
+        .withKey(context.getEnvironment().getKey() + "_" + identifier)
+        .withTraits(new Traits());
 
     // Map traits if provided
     if (traits != null && !traits.isEmpty()) {
-      Traits identityTraits = new Traits();
       for (Map.Entry<String, Object> entry : traits.entrySet()) {
         Object traitValue = entry.getValue();
         // Handle TraitConfig-like objects (maps with "value" key)
@@ -53,9 +53,8 @@ public class EngineMappers {
             traitValue = traitMap.get("value");
           }
         }
-        identityTraits.withAdditionalProperty(entry.getKey(), traitValue);
+        identityContext.getTraits().setAdditionalProperty(entry.getKey(), traitValue);
       }
-      identityContext.withTraits(identityTraits);
     }
 
     // Create new evaluation context with identity
