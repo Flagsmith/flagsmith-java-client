@@ -38,87 +38,125 @@ public class IdentitySegmentFixtures {
   }
 
   public static SegmentContext segmentMultipleConditionsAll() {
-    return new SegmentContext().withKey("3").withName("segment_multiple_conditions_all")
-        .withRules(
-            Arrays.asList(
-                new SegmentRule().withType(SegmentRule.Type.ALL).withConditions(
-                    Arrays.asList(
-                        new SegmentCondition()
-                            .withOperator(SegmentConditions.EQUAL)
-                            .withProperty(traitKey1)
-                            .withValue(traitValue1),
-                        new SegmentCondition()
-                            .withOperator(SegmentConditions.EQUAL)
-                            .withProperty(traitKey2)
-                            .withValue(traitValue2)))));
+    SegmentCondition segmentCondition = new SegmentCondition();
+    segmentCondition.setOperator(SegmentConditions.EQUAL);
+    segmentCondition.setProperty(traitKey1);
+    segmentCondition.setValue(traitValue1);
+
+    SegmentCondition segmentCondition2 = new SegmentCondition();
+    segmentCondition2.setOperator(SegmentConditions.EQUAL);
+    segmentCondition2.setProperty(traitKey2);
+    segmentCondition2.setValue(traitValue2);
+
+    SegmentRule segmentRule = new SegmentRule();
+    segmentRule.setType(SegmentRule.Type.ALL);
+    segmentRule.setConditions(Arrays.asList(segmentCondition, segmentCondition2));
+
+    SegmentContext segment = new SegmentContext();
+    segment.setKey("3");
+    segment.setName("segment_multiple_conditions_all");
+    segment.setRules(Arrays.asList(segmentRule));
+
+    return segment;
   }
 
   public static SegmentContext segmentMultipleConditionsAny() {
-    return new SegmentContext().withKey("4").withName("segment_multiple_conditions_any")
-        .withRules(
-            Arrays.asList(
-                new SegmentRule().withType(SegmentRule.Type.ANY).withConditions(
-                    Arrays.asList(
-                        new SegmentCondition()
-                            .withOperator(SegmentConditions.EQUAL)
-                            .withProperty(traitKey1)
-                            .withValue(traitValue1),
-                        new SegmentCondition()
-                            .withOperator(SegmentConditions.EQUAL)
-                            .withProperty(traitKey2)
-                            .withValue(traitValue2)))));
+    SegmentCondition segmentCondition = new SegmentCondition();
+    segmentCondition.setOperator(SegmentConditions.EQUAL);
+    segmentCondition.setProperty(traitKey1);
+    segmentCondition.setValue(traitValue1);
+
+    SegmentCondition segmentCondition2 = new SegmentCondition();
+    segmentCondition2.setOperator(SegmentConditions.EQUAL);
+    segmentCondition2.setProperty(traitKey2);
+    segmentCondition2.setValue(traitValue2);
+
+    SegmentRule segmentRule = new SegmentRule();
+    segmentRule.setType(SegmentRule.Type.ANY);
+    segmentRule.setConditions(Arrays.asList(segmentCondition, segmentCondition2));
+
+    SegmentContext segment = new SegmentContext();
+    segment.setKey("4");
+    segment.setName("segment_multiple_conditions_any");
+    segment.setRules(Arrays.asList(segmentRule));
+
+    return segment;
   }
 
   public static SegmentContext segmentNestedRules() {
-    return new SegmentContext().withKey("5").withName("segment_nested_rules_all")
-        .withRules(
-            Arrays.asList(
-                new SegmentRule().withType(SegmentRule.Type.ALL).withRules(
-                    Arrays.asList(
-                        new SegmentRule().withType(SegmentRule.Type.ANY).withConditions(
-                            Arrays.asList(
-                                new SegmentCondition()
-                                    .withOperator(SegmentConditions.EQUAL)
-                                    .withProperty(traitKey1)
-                                    .withValue(traitValue1),
-                                new SegmentCondition()
-                                    .withOperator(SegmentConditions.EQUAL)
-                                    .withProperty(traitKey2)
-                                    .withValue(traitValue2))),
-                        new SegmentRule().withType(SegmentRule.Type.ANY).withConditions(
-                            Arrays.asList(
-                                new SegmentCondition()
-                                    .withOperator(SegmentConditions.EQUAL)
-                                    .withProperty(traitKey3)
-                                    .withValue(traitValue3)))))));
+    SegmentCondition segmentCondition = new SegmentCondition();
+    segmentCondition.setOperator(SegmentConditions.EQUAL);
+    segmentCondition.setProperty(traitKey1);
+    segmentCondition.setValue(traitValue1);
+
+    SegmentCondition segmentCondition2 = new SegmentCondition();
+    segmentCondition2.setOperator(SegmentConditions.EQUAL);
+    segmentCondition2.setProperty(traitKey2);
+    segmentCondition2.setValue(traitValue2);
+
+    SegmentCondition segmentCondition3 = new SegmentCondition();
+    segmentCondition3.setOperator(SegmentConditions.EQUAL);
+    segmentCondition3.setProperty(traitKey3);
+    segmentCondition3.setValue(traitValue3);
+
+    SegmentRule segmentRule = new SegmentRule();
+    segmentRule.setType(SegmentRule.Type.ANY);
+    segmentRule.setConditions(Arrays.asList(segmentCondition, segmentCondition2));
+
+    SegmentRule segmentRule2 = new SegmentRule();
+    segmentRule2.setType(SegmentRule.Type.ANY);
+    segmentRule2.setConditions(Arrays.asList(segmentCondition3));
+
+    SegmentRule segmentRule3 = new SegmentRule();
+    segmentRule3.setType(SegmentRule.Type.ANY);
+    segmentRule3.setRules(Arrays.asList(segmentRule, segmentRule2));
+
+    SegmentContext segment = new SegmentContext();
+    segment.setKey("5");
+    segment.setName("segment_nested_rules_all");
+    segment.setRules(Arrays.asList(segmentRule3));
+
+    return segment;
   }
 
   public static SegmentContext segmentConditionsAndNestedRules() {
-    return new SegmentContext().withKey("6")
-        .withName("segment_multiple_conditions_all_and_nested_rules")
-        .withRules(
-            Arrays.asList(
-                new SegmentRule().withType(SegmentRule.Type.ALL).withConditions(
-                    Arrays.asList(
-                        new SegmentCondition()
-                            .withOperator(SegmentConditions.EQUAL)
-                            .withProperty(traitKey1)
-                            .withValue(traitValue1)))
-                    .withRules(
-                        Arrays.asList(
-                            new SegmentRule().withType(SegmentRule.Type.ANY).withConditions(
-                                Arrays.asList(
-                                    new SegmentCondition()
-                                        .withOperator(SegmentConditions.EQUAL)
-                                        .withProperty(traitKey2)
-                                        .withValue(traitValue2))),
-                            new SegmentRule().withType(SegmentRule.Type.ANY).withConditions(
-                                Arrays.asList(
-                                    new SegmentCondition()
-                                        .withOperator(SegmentConditions.EQUAL)
-                                        .withProperty(traitKey3)
-                                        .withValue(traitValue3)))))));
+    SegmentCondition segmentCondition = new SegmentCondition();
+    segmentCondition.setOperator(SegmentConditions.EQUAL);
+    segmentCondition.setProperty(traitKey1);
+    segmentCondition.setValue(traitValue1);
+
+    SegmentCondition segmentCondition2 = new SegmentCondition();
+    segmentCondition2.setOperator(SegmentConditions.EQUAL);
+    segmentCondition2.setProperty(traitKey2);
+    segmentCondition2.setValue(traitValue2);
+
+    SegmentCondition segmentCondition3 = new SegmentCondition();
+    segmentCondition3.setOperator(SegmentConditions.EQUAL);
+    segmentCondition3.setProperty(traitKey3);
+    segmentCondition3.setValue(traitValue3);
+
+    SegmentRule segmentRule = new SegmentRule();
+    segmentRule.setType(SegmentRule.Type.ANY);
+    segmentRule.setConditions(Arrays.asList(segmentCondition));
+
+    SegmentRule segmentRule2 = new SegmentRule();
+    segmentRule2.setType(SegmentRule.Type.ANY);
+    segmentRule2.setConditions(Arrays.asList(segmentCondition2));
+
+    SegmentRule segmentRule3 = new SegmentRule();
+    segmentRule3.setType(SegmentRule.Type.ANY);
+    segmentRule3.setConditions(Arrays.asList(segmentCondition3));
+
+    segmentRule.setRules(Arrays.asList(segmentRule2, segmentRule3));
+
+    SegmentContext segment = new SegmentContext();
+    segment.setKey("6");
+    segment.setName("segment_multiple_conditions_all_and_nested_rules");
+    segment.setRules(Arrays.asList(segmentRule3));
+
+    return segment;
   }
+
 
   public static TraitModel firstIdentityTrait() {
     TraitModel trait = new TraitModel();

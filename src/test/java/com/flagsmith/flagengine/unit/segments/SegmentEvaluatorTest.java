@@ -58,7 +58,7 @@ public class SegmentEvaluatorTest {
 
     Boolean actualResult = SegmentEvaluator.isContextInSegment(context, segment);
 
-    Assertions.assertEquals(actualResult, expectedResponse);
+    Assertions.assertEquals(expectedResponse, actualResult);
   }
 
   private static Stream<Arguments> traitExistenceChecks() {

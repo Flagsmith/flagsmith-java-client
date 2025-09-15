@@ -18,17 +18,19 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SegmentEvaluator {
   private static ObjectMapper mapper = new ObjectMapper();
   private static Configuration jacksonNodeConf = Configuration.builder()
-          .jsonProvider(new JacksonJsonNodeJsonProvider())
-          .mappingProvider(new JacksonMappingProvider(mapper))
-          .options(Option.DEFAULT_PATH_LEAF_TO_NULL)
-          .build();
+      .jsonProvider(new JacksonJsonNodeJsonProvider())
+      .mappingProvider(new JacksonMappingProvider(mapper))
+      .options(Option.DEFAULT_PATH_LEAF_TO_NULL)
+      .build();
 
   /**
    * Check if context is in segment.
@@ -39,24 +41,38 @@ public class SegmentEvaluator {
    */
   public static Boolean isContextInSegment(EvaluationContext context, SegmentContext segment) {
     List<SegmentRule> rules = segment.getRules();
-    return rules.stream().allMatch((rule) -> contextMatchesRule(context, rule, segment.getKey()));
+    return !rules.isEmpty() && rules.stream()
+        .allMatch((rule) -> contextMatchesRule(context, rule, segment.getKey()));
   }
 
   private static Boolean contextMatchesRule(EvaluationContext context, SegmentRule rule,
       String segmentKey) {
-    switch (rule.getType()) {
-      case ALL:
-        return rule.getConditions().stream()
-            .allMatch((condition) -> contextMatchesCondition(context, condition, segmentKey));
-      case ANY:
-        return rule.getConditions().stream()
-            .anyMatch((condition) -> contextMatchesCondition(context, condition, segmentKey));
-      case NONE:
-        return rule.getConditions().stream()
-            .noneMatch((condition) -> contextMatchesCondition(context, condition, segmentKey));
-      default:
-        return false;
+    Predicate<SegmentCondition> conditionPredicate = (condition) -> contextMatchesCondition(
+        context, condition, segmentKey);
+
+    Boolean isMatch;
+    List<SegmentCondition> conditions = rule.getConditions();
+
+    if (conditions.isEmpty()) {
+      isMatch = true;
+    } else {
+      switch (rule.getType()) {
+        case ALL:
+          isMatch = conditions.stream().allMatch(conditionPredicate);
+          break;
+        case ANY:
+          isMatch = conditions.stream().anyMatch(conditionPredicate);
+          break;
+        case NONE:
+          isMatch = conditions.stream().noneMatch(conditionPredicate);
+          break;
+        default:
+          return false;
+      }
     }
+
+    return isMatch && rule.getRules().stream()
+        .allMatch((subRule) -> contextMatchesRule(context, subRule, segmentKey));
   }
 
   private static Boolean contextMatchesCondition(
