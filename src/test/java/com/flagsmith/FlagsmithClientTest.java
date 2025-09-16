@@ -624,12 +624,17 @@ public class FlagsmithClientTest {
                 // Given
                 EvaluationContext evaluationContext = FlagsmithTestHelper.evaluationContext();
 
+                FlagsmithConfig config = FlagsmithConfig.newBuilder()
+                                .withLocalEvaluation(true)
+                                .build();
+
                 FlagsmithApiWrapper mockApiWrapper = mock(FlagsmithApiWrapper.class);
                 when(mockApiWrapper.getEvaluationContext()).thenReturn(evaluationContext);
+                when(mockApiWrapper.getConfig()).thenReturn(config);
 
                 FlagsmithClient client = FlagsmithClient.newBuilder()
                                 .withFlagsmithApiWrapper(mockApiWrapper)
-                                .withConfiguration(FlagsmithConfig.newBuilder().withLocalEvaluation(true).build())
+                                .withConfiguration(config)
                                 .setApiKey("ser.dummy-key")
                                 .build();
 

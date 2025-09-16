@@ -127,7 +127,7 @@ public class Flags {
     Map<String, BaseFlag> flagMap = evaluationResult.getFlags().stream()
         .collect(
             Collectors.toMap(
-                (fs) -> fs.getFeatureKey(),
+                (fs) -> fs.getName(),
                 (fs) -> {
                   Flag flag = new Flag();
                   flag.setFeatureName(fs.getName());

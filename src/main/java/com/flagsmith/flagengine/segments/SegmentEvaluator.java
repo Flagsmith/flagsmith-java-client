@@ -12,25 +12,21 @@ import com.flagsmith.flagengine.utils.types.TypeCasting;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
-import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
-import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class SegmentEvaluator {
   private static ObjectMapper mapper = new ObjectMapper();
-  private static Configuration jacksonNodeConf = Configuration.builder()
-      .jsonProvider(new JacksonJsonNodeJsonProvider())
-      .mappingProvider(new JacksonMappingProvider(mapper))
-      .options(Option.DEFAULT_PATH_LEAF_TO_NULL)
-      .build();
+  private static Configuration jsonPathConfiguration = Configuration
+      .defaultConfiguration()
+      .setOptions(Option.SUPPRESS_EXCEPTIONS);
 
   /**
    * Check if context is in segment.
@@ -107,7 +103,7 @@ public class SegmentEvaluator {
         }
 
         if (!(contextValue instanceof Boolean)) {
-          contextValue = contextValue.toString();
+          contextValue = String.valueOf(contextValue);
         }
 
         return conditionList.contains(contextValue);
@@ -198,7 +194,10 @@ public class SegmentEvaluator {
    */
   private static Object getContextValue(EvaluationContext context, String property) {
     if (property.startsWith("$.")) {
-      return JsonPath.using(jacksonNodeConf).parse(mapper.valueToTree(context)).read(property);
+      return JsonPath
+          .using(jsonPathConfiguration)
+          .parse(mapper.convertValue(context, Map.class))
+          .read(property);
     }
     if (context.getIdentity() != null) {
       return context.getIdentity().getTraits().getAdditionalProperties().get(property);

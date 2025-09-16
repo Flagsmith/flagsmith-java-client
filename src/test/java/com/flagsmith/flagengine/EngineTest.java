@@ -97,9 +97,9 @@ public class EngineTest {
       FeatureStateModel fsm = flags.get(i);
       FlagResult fr = sortedResults.get(i);
 
-      assertEquals(fr.getName(), fsm.getFeature().getName());
-      assertEquals(fr.getEnabled(), fsm.getEnabled());
-      assertEquals(fr.getValue(), fsm.getValue());
+      assertEquals(fsm.getFeature().getName(), fr.getName());
+      assertEquals(fsm.getEnabled(), fr.getEnabled());
+      assertEquals(fsm.getValue(), fr.getValue());
     }
   }
 }
