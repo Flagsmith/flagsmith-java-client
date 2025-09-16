@@ -193,7 +193,7 @@ public class FlagsmithTestHelper {
             .body(ImmutableMap.of(
                 "enabled", enabled,
                 "feature", featureId
-          ))
+            ))
             .headers(defaultHeaders())
             .put(
                 "/api/v1/environments/{apiKey}/identities/{identityId}/featurestates/{featureStateId}/",
@@ -268,84 +268,84 @@ public class FlagsmithTestHelper {
 
   public static String environmentString() {
     return "{\n" +
-        "  \"api_key\": \"B62qaMZNwfiqT76p38ggrQ\",\n" +
-        "  \"name\": \"Test Environment\",\n" +
-        "  \"project\": {\n" +
-        "    \"name\": \"Test project\",\n" +
-        "    \"organisation\": {\n" +
-        "      \"feature_analytics\": false,\n" +
-        "      \"name\": \"Test Org\",\n" +
-        "      \"id\": 1,\n" +
-        "      \"persist_trait_data\": true,\n" +
-        "      \"stop_serving_flags\": false\n" +
-        "    },\n" +
-        "    \"id\": 1,\n" +
-        "    \"hide_disabled_flags\": false,\n" +
-        "    \"segments\": [\n" +
-        "      {\n" +
-        "        \"id\": 1,\n" +
-        "        \"name\": \"Test segment\",\n" +
-        "        \"rules\": [\n" +
-        "          {\n" +
-        "            \"type\": \"ALL\",\n" +
-        "            \"rules\": [\n" +
-        "              {\n" +
-        "                \"type\": \"ALL\",\n" +
-        "                \"rules\": [],\n" +
-        "                \"conditions\": [\n" +
-        "                  {\n" +
-        "                    \"operator\": \"EQUAL\",\n" +
-        "                    \"property_\": \"foo\",\n" +
-        "                    \"value\": \"bar\"\n" +
-        "                  }\n" +
-        "                ]\n" +
-        "              }\n" +
-        "            ]\n" +
-        "          }\n" +
-        "        ]\n" +
-        "      }\n" +
-        "    ]\n" +
-        "  },\n" +
-        "  \"segment_overrides\": [],\n" +
-        "  \"id\": 1,\n" +
-        "  \"feature_states\": [\n" +
-        "    {\n" +
-        "      \"multivariate_feature_state_values\": [],\n" +
-        "      \"feature_state_value\": \"some-value\",\n" +
-        "      \"id\": 1,\n" +
-        "      \"featurestate_uuid\": \"40eb539d-3713-4720-bbd4-829dbef10d51\",\n" +
-        "      \"feature\": {\n" +
-        "        \"name\": \"some_feature\",\n" +
-        "        \"type\": \"STANDARD\",\n" +
-        "        \"id\": 1\n" +
-        "      },\n" +
-        "      \"segment_id\": null,\n" +
-        "      \"enabled\": true\n" +
-        "    }\n" +
-        "  ],\n" +
-        "  \"identity_overrides\": [\n" +
-        "    {\n" +
-        "      \"identity_uuid\": \"65bc5ac6-5859-4cfe-97e6-d5ec2e80c1fb\",\n" +
-        "      \"identifier\": \"overridden-identity\",\n" +
-        "      \"composite_key\": \"B62qaMZNwfiqT76p38ggrQ_identity_overridden_identity\",\n" +
-        "      \"identity_features\": [\n" +
-        "        {\n" +
-        "          \"feature_state_value\": \"overridden-value\",\n" +
-        "          \"multivariate_feature_state_values\": [],\n" +
-        "          \"featurestate_uuid\": \"d5d0767b-6287-4bb4-9d53-8b87e5458642\",\n" +
-        "          \"feature\": {\n" +
-        "            \"name\": \"some_feature\",\n" +
-        "            \"type\": \"STANDARD\",\n" +
-        "            \"id\": 1\n" +
-        "          },\n" +
-        "          \"enabled\": true\n" +
-        "        }\n" +
-        "      ],\n" +
-        "      \"identity_traits\": [],\n" +
-        "      \"environment_api_key\": \"B62qaMZNwfiqT76p38ggrQ\"\n" +
-        "    }\n" +
-        "  ]\n" +
-        "}";
+            "  \"api_key\": \"B62qaMZNwfiqT76p38ggrQ\",\n" +
+            "  \"name\": \"Test Environment\",\n" +
+            "  \"project\": {\n" +
+            "    \"name\": \"Test project\",\n" +
+            "    \"organisation\": {\n" +
+            "      \"feature_analytics\": false,\n" +
+            "      \"name\": \"Test Org\",\n" +
+            "      \"id\": 1,\n" +
+            "      \"persist_trait_data\": true,\n" +
+            "      \"stop_serving_flags\": false\n" +
+            "    },\n" +
+            "    \"id\": 1,\n" +
+            "    \"hide_disabled_flags\": false,\n" +
+            "    \"segments\": [\n" +
+            "      {\n" +
+            "        \"id\": 1,\n" +
+            "        \"name\": \"Test segment\",\n" +
+            "        \"rules\": [\n" +
+            "          {\n" +
+            "            \"type\": \"ALL\",\n" +
+            "            \"rules\": [\n" +
+            "              {\n" +
+            "                \"type\": \"ALL\",\n" +
+            "                \"rules\": [],\n" +
+            "                \"conditions\": [\n" +
+            "                  {\n" +
+            "                    \"operator\": \"EQUAL\",\n" +
+            "                    \"property_\": \"foo\",\n" +
+            "                    \"value\": \"bar\"\n" +
+            "                  }\n" +
+            "                ]\n" +
+            "              }\n" +
+            "            ]\n" +
+            "          }\n" +
+            "        ]\n" +
+            "      }\n" +
+            "    ]\n" +
+            "  },\n" +
+            "  \"segment_overrides\": [],\n" +
+            "  \"id\": 1,\n" +
+            "  \"feature_states\": [\n" +
+            "    {\n" +
+            "      \"multivariate_feature_state_values\": [],\n" +
+            "      \"feature_state_value\": \"some-value\",\n" +
+            "      \"id\": 1,\n" +
+            "      \"featurestate_uuid\": \"40eb539d-3713-4720-bbd4-829dbef10d51\",\n" +
+            "      \"feature\": {\n" +
+            "        \"name\": \"some_feature\",\n" +
+            "        \"type\": \"STANDARD\",\n" +
+            "        \"id\": 1\n" +
+            "      },\n" +
+            "      \"segment_id\": null,\n" +
+            "      \"enabled\": true\n" +
+            "    }\n" +
+            "  ],\n" +
+            "  \"identity_overrides\": [\n" +
+            "    {\n" +
+            "      \"identity_uuid\": \"65bc5ac6-5859-4cfe-97e6-d5ec2e80c1fb\",\n" +
+            "      \"identifier\": \"overridden-identity\",\n" +
+            "      \"composite_key\": \"B62qaMZNwfiqT76p38ggrQ_identity_overridden_identity\",\n" +
+            "      \"identity_features\": [\n" +
+            "        {\n" +
+            "          \"feature_state_value\": \"overridden-value\",\n" +
+            "          \"multivariate_feature_state_values\": [],\n" +
+            "          \"featurestate_uuid\": \"d5d0767b-6287-4bb4-9d53-8b87e5458642\",\n" +
+            "          \"feature\": {\n" +
+            "            \"name\": \"some_feature\",\n" +
+            "            \"type\": \"STANDARD\",\n" +
+            "            \"id\": 1\n" +
+            "          },\n" +
+            "          \"enabled\": true\n" +
+            "        }\n" +
+            "      ],\n" +
+            "      \"identity_traits\": [],\n" +
+            "      \"environment_api_key\": \"B62qaMZNwfiqT76p38ggrQ\"\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
   }
 
   public static EvaluationContext evaluationContext() {
