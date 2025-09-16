@@ -105,8 +105,8 @@ public class EngineMappers {
     // Map identity overrides
     JsonNode identityOverrides = environmentDocument.get("identity_overrides");
     if (identityOverrides != null && identityOverrides.isArray()) {
-      Map<String, SegmentContext> identityOverrideSegments = 
-          mapIdentityOverridesToSegments(identityOverrides);
+      Map<String, SegmentContext> identityOverrideSegments = mapIdentityOverridesToSegments(
+          identityOverrides);
       segments.putAll(identityOverrideSegments);
     }
 
@@ -163,9 +163,7 @@ public class EngineMappers {
             .withFeatureKey(feature.get("id").asText())
             .withName(feature.get("name").asText())
             .withEnabled(featureState.get("enabled").asBoolean())
-            .withValue(featureState.get("feature_state_value") != null
-                ? featureState.get("feature_state_value").asText()
-                : null)
+            .withValue(getFeatureStateValue(featureState, "feature_state_value"))
             .withPriority(Double.NEGATIVE_INFINITY); // Highest possible priority
         overridesKey.add(featureContext);
       }
@@ -234,7 +232,7 @@ public class EngineMappers {
           SegmentCondition segmentCondition = new SegmentCondition()
               .withProperty(condition.get("property_").asText())
               .withOperator(SegmentConditions.valueOf(condition.get("operator").asText()))
-              .withValue(condition.get("value"));
+              .withValue(condition.get("value").asText());
           conditions.add(segmentCondition);
         }
       }
@@ -294,6 +292,24 @@ public class EngineMappers {
     return "";
   }
 
+  private static Object getFeatureStateValue(JsonNode featureState, String fieldName) {
+    JsonNode valueNode = featureState.get(fieldName);
+    if (valueNode.isTextual() || valueNode.isLong()) {
+      return valueNode.asText();
+    } else if (valueNode.isNumber()) {
+      if (valueNode.isInt()) {
+        return valueNode.asInt();
+      } else {
+        return valueNode.asDouble();
+      }
+    } else if (valueNode.isBoolean()) {
+      return valueNode.asBoolean();
+    } else if (valueNode.isArray() || valueNode.isObject()) {
+      return valueNode;
+    }
+    return null;
+  }
+
   /**
    * Maps a single feature state to feature context.
    *
@@ -308,9 +324,7 @@ public class EngineMappers {
         .withFeatureKey(feature.get("id").asText())
         .withName(feature.get("name").asText())
         .withEnabled(featureState.get("enabled").asBoolean())
-        .withValue(featureState.get("feature_state_value") != null
-            ? featureState.get("feature_state_value").asText()
-            : null);
+        .withValue(getFeatureStateValue(featureState, "feature_state_value"));
 
     // Handle multivariate feature state values
     JsonNode multivariateValues = featureState.get("multivariate_feature_state_values");
@@ -321,7 +335,8 @@ public class EngineMappers {
       sortedMultivariate.sort((a, b) -> a.get("id").asText().compareTo(b.get("id").asText()));
       for (JsonNode multivariateValue : sortedMultivariate) {
         FeatureValue variant = new FeatureValue()
-            .withValue(multivariateValue.get("multivariate_feature_option").get("value").asText())
+            .withValue(getFeatureStateValue(
+              multivariateValue.get("multivariate_feature_option"), "value"))
             .withWeight(multivariateValue.get("percentage_allocation").asDouble());
         variants.add(variant);
       }

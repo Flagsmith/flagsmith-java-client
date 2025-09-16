@@ -11,8 +11,8 @@ public class TypeCasting {
    * Compare the values value1 and value2 with the provided condition.
    *
    * @param condition SegmentCondition criteria to compare values against.
-   * @param value1 Value to compare.
-   * @param value2 Value to compare against.
+   * @param value1    Value to compare.
+   * @param value2    Value to compare against.
    */
   public static Boolean compare(SegmentConditions condition, Object value1, Object value2) {
 
@@ -39,8 +39,8 @@ public class TypeCasting {
    * Run comparison with condition of primitive type.
    *
    * @param condition SegmentCondition criteria to compare values against.
-   * @param value1 Value to compare.
-   * @param value2 Value to compare against.
+   * @param value1    Value to compare.
+   * @param value2    Value to compare against.
    */
   public static Boolean compare(SegmentConditions condition, Comparable value1, Comparable value2) {
     if (condition.equals(SegmentConditions.EQUAL)) {
@@ -163,7 +163,8 @@ public class TypeCasting {
   public static ComparableVersion toSemver(Object str) {
     try {
       String value = SemanticVersioning.isSemver((String) str)
-          ? SemanticVersioning.removeSemver((String) str) : ((String) str);
+          ? SemanticVersioning.removeSemver((String) str)
+          : ((String) str);
       return new ComparableVersion(value);
     } catch (Exception nfe) {
       return null;
@@ -180,14 +181,17 @@ public class TypeCasting {
   }
 
   /**
-   * Modulo is a special case as the condition value holds both the divisor and remainder.
-   * This method compares the conditionValue and the traitValue by dividing the traitValue
+   * Modulo is a special case as the condition value holds both the divisor and
+   * remainder.
+   * This method compares the conditionValue and the traitValue by dividing the
+   * traitValue
    * by the divisor and verifying that it correctly equals the remainder.
    *
    * @param conditionValue conditionValue in the format 'divisor|remainder'
-   * @param traitValue the value of the matched trait
-   * @return true if expression evaluates to true, false if unable to evaluate expression or
-   *     it evaluates to false
+   * @param traitValue     the value of the matched trait
+   * @return true if expression evaluates to true, false if unable to evaluate
+   *         expression or
+   *         it evaluates to false
    */
   public static Boolean compareModulo(String conditionValue, Object traitValue) {
     try {

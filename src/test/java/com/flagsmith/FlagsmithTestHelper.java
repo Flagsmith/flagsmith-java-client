@@ -239,7 +239,7 @@ public class FlagsmithTestHelper {
     feature.setName(name);
     feature.setType(type);
 
-    return Flag.fromFeatureStateModel(result, null);
+    return Flag.fromFeatureStateModel(result);
   }
 
   public static BaseFlag flag(String name, String description, boolean enabled) {

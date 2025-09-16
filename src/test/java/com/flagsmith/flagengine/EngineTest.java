@@ -57,6 +57,10 @@ public class EngineTest {
           EvaluationContext evaluationContext = EngineMappers.mapContextAndIdentityDataToContext(
               baseEvaluationContext, identity.get("identifier").asText(), traits);
 
+          if (identity.hasNonNull("django_id")) {
+            evaluationContext.getIdentity().setKey(identity.get("django_id").asText());
+          }
+
           JsonNode expectedResponse = identityAndResponse.get("response");
 
           returnValues.add(Arguments.of(evaluationContext, expectedResponse));
@@ -67,7 +71,8 @@ public class EngineTest {
       return returnValues.stream();
 
     } catch (Exception e) {
-      System.out.println(e.getMessage());
+      System.out.println("Exception in engineTestData: " + e.getMessage());
+      e.printStackTrace();
     }
     return null;
   }

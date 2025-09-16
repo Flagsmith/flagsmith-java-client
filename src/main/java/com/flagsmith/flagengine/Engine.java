@@ -21,12 +21,13 @@ public class Engine {
 
     for (SegmentContext segmentContext : context.getSegments().getAdditionalProperties().values()) {
       if (SegmentEvaluator.isContextInSegment(context, segmentContext)) {
-        SegmentResult segmentResult = new SegmentResult().withKey(segmentContext.getKey())
-            .withName(segmentContext.getName());
-        segments.add(segmentResult);
+        segments.add(new SegmentResult().withKey(segmentContext.getKey())
+            .withName(segmentContext.getName()));
 
-        if (segmentContext.getOverrides() != null) {
-          for (FeatureContext featureContext : segmentContext.getOverrides()) {
+        List<FeatureContext> segmentOverrides = segmentContext.getOverrides();
+
+        if (segmentOverrides != null) {
+          for (FeatureContext featureContext : segmentOverrides) {
             String featureKey = featureContext.getFeatureKey();
 
             if (segmentFeatureContexts.containsKey(featureKey)) {
@@ -41,7 +42,7 @@ public class Engine {
                   ? Double.POSITIVE_INFINITY
                   : featureContext.getPriority();
 
-              if (existingPriority > featurePriority) {
+              if (existingPriority < featurePriority) {
                 continue;
               }
             }
@@ -66,7 +67,7 @@ public class Engine {
             .withFeatureKey(featureContext.getFeatureKey())
             .withName(featureContext.getName())
             .withValue(featureContext.getValue())
-            .withReason("TARGETING MATCH; segment=" + segmentNameWithFeatureContext.getLeft()));
+            .withReason("TARGETING_MATCH; segment=" + segmentNameWithFeatureContext.getLeft()));
       } else {
         flags.add(getFlagResultFromFeatureContext(featureContext, identityKey));
       }

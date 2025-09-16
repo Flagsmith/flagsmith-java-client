@@ -28,7 +28,7 @@ public class Flags {
   public static Flags fromFeatureStateModels(
       List<FeatureStateModel> featureStates,
       AnalyticsProcessor analyticsProcessor) {
-    return fromFeatureStateModels(featureStates, analyticsProcessor, null, null);
+    return fromFeatureStateModels(featureStates, analyticsProcessor, null);
   }
 
   /**
@@ -36,33 +36,18 @@ public class Flags {
    *
    * @param featureStates      list of feature states
    * @param analyticsProcessor instance of analytics processor
-   * @param identityId         identity ID (optional)
-   */
-  public static Flags fromFeatureStateModels(
-      List<FeatureStateModel> featureStates,
-      AnalyticsProcessor analyticsProcessor,
-      Object identityId) {
-    return fromFeatureStateModels(featureStates, analyticsProcessor, identityId, null);
-  }
-
-  /**
-   * Build flags object from list of feature states.
-   *
-   * @param featureStates      list of feature states
-   * @param analyticsProcessor instance of analytics processor
-   * @param identityId         identity ID (optional)
    * @param defaultFlagHandler default flags (optional)
    */
   public static Flags fromFeatureStateModels(
       List<FeatureStateModel> featureStates,
       AnalyticsProcessor analyticsProcessor,
-      Object identityId, DefaultFlagHandler defaultFlagHandler) {
+      DefaultFlagHandler defaultFlagHandler) {
 
     Map<String, BaseFlag> flagMap = featureStates.stream()
         .collect(
             Collectors.toMap(
                 (fs) -> fs.getFeature().getName(),
-                (fs) -> Flag.fromFeatureStateModel(fs, identityId)));
+                (fs) -> Flag.fromFeatureStateModel(fs)));
 
     Flags flags = new Flags();
     flags.setFlags(flagMap);
@@ -117,7 +102,7 @@ public class Flags {
     for (FeatureStateModel flag : apiFlags) {
       flagMap.put(
           flag.getFeature().getName(),
-          Flag.fromFeatureStateModel(flag, null));
+          Flag.fromFeatureStateModel(flag));
     }
 
     Flags flags = new Flags();

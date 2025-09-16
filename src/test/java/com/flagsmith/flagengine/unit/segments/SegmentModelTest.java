@@ -95,10 +95,13 @@ public class SegmentModelTest {
         Arguments.of(SegmentConditions.IN, 1, "1,2,3,4", true),
         Arguments.of(SegmentConditions.IN, 1, "", false),
         Arguments.of(SegmentConditions.IN, 1, "1", true),
-        // Flagsmith's engine does not evaluate `IN` condition for floats/doubles and
-        // booleans
+        Arguments.of(SegmentConditions.IN, 1, "[1]", true),
+        Arguments.of(SegmentConditions.IN, 1, "[\"1\"]", true),
+        Arguments.of(SegmentConditions.IN, "bar", "[\"bar\"]", true),
+        Arguments.of(SegmentConditions.IN, "bar", Arrays.asList("bar", "foo"), true),
+        Arguments.of(SegmentConditions.IN, 1.5, "1.5", true),
+        // Flagsmith's engine does not evaluate `IN` condition for booleans
         // due to ambiguous serialization across supported platforms.
-        Arguments.of(SegmentConditions.IN, 1.5, "1.5", false),
         Arguments.of(SegmentConditions.IN, false, "false", false));
   }
 
@@ -107,18 +110,19 @@ public class SegmentModelTest {
   public void testSegmentConditionMatchesTraitValue(
       SegmentConditions condition,
       Object traitValue,
-      String conditionValue,
+      Object conditionValue,
       Boolean expectedResponse) {
 
     final EvaluationContext context = EngineMappers.mapContextAndIdentityDataToContext(
         FlagsmithTestHelper.evaluationContext(), "foo",
         Collections.singletonMap("foo", traitValue));
 
-    SegmentContext segmentContext = new SegmentContext().withKey(conditionValue).withRules(
-        Arrays.asList(new SegmentRule().withType(SegmentRule.Type.ALL).withConditions(
-            Arrays.asList(new SegmentCondition()
-                .withOperator(condition).withProperty("foo")
-                .withValue(conditionValue)))));
+    SegmentContext segmentContext = new SegmentContext().withKey(
+        conditionValue.toString()).withRules(
+            Arrays.asList(new SegmentRule().withType(SegmentRule.Type.ALL).withConditions(
+                Arrays.asList(new SegmentCondition()
+                    .withOperator(condition).withProperty("foo")
+                    .withValue(conditionValue)))));
 
     Boolean actualResult = SegmentEvaluator.isContextInSegment(
         context, segmentContext);

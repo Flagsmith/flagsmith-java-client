@@ -91,7 +91,7 @@ public class SegmentEvaluator {
           List<?> maybeConditionList = (List<?>) conditionValue;
           conditionList = maybeConditionList.stream()
               .filter(String.class::isInstance)
-              .map(String.class::cast)
+              .map(Object::toString)
               .collect(Collectors.toList());
         } else if (conditionValue instanceof String) {
           String stringConditionValue = (String) conditionValue;
@@ -106,7 +106,11 @@ public class SegmentEvaluator {
           }
         }
 
-        return conditionList.contains(contextValue.toString());
+        if (!(contextValue instanceof Boolean)) {
+          contextValue = contextValue.toString();
+        }
+
+        return conditionList.contains(contextValue);
 
       case PERCENTAGE_SPLIT:
         String key = (contextValue != null) ? contextValue.toString()
@@ -175,7 +179,13 @@ public class SegmentEvaluator {
         if (contextValue == null) {
           return false;
         }
-        return TypeCasting.compare(operator, contextValue, conditionValue);
+        try {
+          return TypeCasting.compare(operator, contextValue, conditionValue);
+        } catch (Exception e) {
+          throw new RuntimeException(
+              "Error comparing values: "
+                  + String.valueOf(contextValue) + " and " + String.valueOf(conditionValue));
+        }
     }
   }
 
