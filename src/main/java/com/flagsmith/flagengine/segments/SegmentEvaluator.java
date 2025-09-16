@@ -175,13 +175,7 @@ public class SegmentEvaluator {
         if (contextValue == null) {
           return false;
         }
-        try {
-          return TypeCasting.compare(operator, contextValue, conditionValue);
-        } catch (Exception e) {
-          throw new RuntimeException(
-              "Error comparing values: "
-                  + String.valueOf(contextValue) + " and " + String.valueOf(conditionValue));
-        }
+        return TypeCasting.compare(operator, contextValue, conditionValue);
     }
   }
 
