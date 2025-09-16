@@ -1,4 +1,4 @@
 [submodule "src/test/java/com/flagsmith/flagengine/enginetestdata"]
 	path = src/test/java/com/flagsmith/flagengine/enginetestdata
-	url = https://github.com/flagsmith/engine-test-data.git
+	url = git@github.com:Flagsmith/engine-test-data.git
 	branch = feat/context-values
