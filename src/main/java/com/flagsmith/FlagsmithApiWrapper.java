@@ -46,18 +46,19 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   /**
    * Instantiate with cache.
    *
-   * @param cache         cache object
+   * @param cache cache object
    * @param defaultConfig config object
    * @param customHeaders custom headers list
-   * @param logger        logger object
-   * @param apiKey        api key
+   * @param logger logger object
+   * @param apiKey api key
    */
   public FlagsmithApiWrapper(
       final FlagsmithCache cache,
       final FlagsmithConfig defaultConfig,
       final HashMap<String, String> customHeaders,
       final FlagsmithLogger logger,
-      final String apiKey) {
+      final String apiKey
+  ) {
     this(defaultConfig, customHeaders, logger, apiKey);
     this.cache = cache;
   }
@@ -67,14 +68,15 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
    *
    * @param defaultConfig config object
    * @param customHeaders custom headers list
-   * @param logger        logger instance
-   * @param apiKey        api key
+   * @param logger logger instance
+   * @param apiKey api key
    */
   public FlagsmithApiWrapper(
       final FlagsmithConfig defaultConfig,
       final HashMap<String, String> customHeaders,
       final FlagsmithLogger logger,
-      final String apiKey) {
+      final String apiKey
+  ) {
     this.defaultConfig = defaultConfig;
     this.customHeaders = customHeaders;
     this.logger = logger;
@@ -82,25 +84,27 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     requestor = new RequestProcessor(
         defaultConfig.getHttpClient(),
         logger,
-        defaultConfig.getRetries());
+        defaultConfig.getRetries()
+    );
   }
 
   /**
    * Instantiate with config, custom headers, logger, apikey and request
    * processor.
    *
-   * @param defaultConfig    config object
-   * @param customHeaders    custom headers list
-   * @param logger           logger instance
-   * @param apiKey           api key
+   * @param defaultConfig config object
+   * @param customHeaders custom headers list
+   * @param logger logger instance
+   * @param apiKey api key
    * @param requestProcessor request processor
    */
   public FlagsmithApiWrapper(
-      final FlagsmithConfig defaultConfig,
-      final HashMap<String, String> customHeaders,
-      final FlagsmithLogger logger,
-      final String apiKey,
-      final RequestProcessor requestProcessor) {
+          final FlagsmithConfig defaultConfig,
+          final HashMap<String, String> customHeaders,
+          final FlagsmithLogger logger,
+          final String apiKey,
+          final RequestProcessor requestProcessor
+  ) {
     this.defaultConfig = defaultConfig;
     this.customHeaders = customHeaders;
     this.logger = logger;
@@ -129,13 +133,14 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
 
     Future<List<FeatureStateModel>> featureFlagsFuture = requestor.executeAsync(
         request,
-        new TypeReference<List<FeatureStateModel>>() {
-        },
-        doThrow);
+        new TypeReference<List<FeatureStateModel>>() {},
+        doThrow
+    );
 
     try {
       List<FeatureStateModel> featureFlagsResponse = featureFlagsFuture.get(
-          TIMEOUT, TimeUnit.MILLISECONDS);
+          TIMEOUT, TimeUnit.MILLISECONDS
+      );
 
       if (featureFlagsResponse == null) {
         featureFlagsResponse = new ArrayList<>();
@@ -202,17 +207,17 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
 
     Future<FlagsAndTraitsResponse> featureFlagsFuture = requestor.executeAsync(
         request,
-        new TypeReference<FlagsAndTraitsResponse>() {
-        },
-        doThrow);
+        new TypeReference<FlagsAndTraitsResponse>() {},
+        doThrow
+    );
 
     try {
       FlagsAndTraitsResponse flagsAndTraitsResponse = featureFlagsFuture.get(
-          TIMEOUT, TimeUnit.MILLISECONDS);
+          TIMEOUT, TimeUnit.MILLISECONDS
+      );
       List<FeatureStateModel> flagsArray = flagsAndTraitsResponse != null
           && flagsAndTraitsResponse.getFlags() != null
-              ? flagsAndTraitsResponse.getFlags()
-              : new ArrayList<>();
+          ? flagsAndTraitsResponse.getFlags() : new ArrayList<>();
 
       flags = Flags.fromApiFlags(
           flagsArray,
@@ -246,8 +251,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     final Request request = newGetRequest(defaultConfig.getEnvironmentUri());
 
     Future<JsonNode> environmentFuture = requestor.executeAsync(request,
-        new TypeReference<JsonNode>() {
-        },
+        new TypeReference<JsonNode>() {},
         Boolean.TRUE);
 
     try {
