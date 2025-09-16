@@ -125,8 +125,7 @@ public class SegmentModelTest {
                     .withOperator(condition).withProperty("foo")
                     .withValue(conditionValue)))));
 
-    Boolean actualResult = SegmentEvaluator.isContextInSegment(
-        context, segmentContext);
+    Boolean actualResult = SegmentEvaluator.isContextInSegment(context, segmentContext);
 
     assertEquals(expectedResponse, actualResult);
   }
@@ -149,8 +148,7 @@ public class SegmentModelTest {
                 .withOperator(condition).withProperty("foo")
                 .withValue(conditionValue)))));
 
-    Boolean actualResult = SegmentEvaluator.isContextInSegment(
-        context, segmentContext);
+    Boolean actualResult = SegmentEvaluator.isContextInSegment(context, segmentContext);
 
     assertEquals(expectedResponse, actualResult);
   }

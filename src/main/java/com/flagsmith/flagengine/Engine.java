@@ -9,10 +9,10 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 
 public class Engine {
   /**
-   * Evaluate if identity is in segment.
+   * Get evaluation result for a given evaluation context.
    *
-   * @param context Identity Instance.
-   * @return True adsa.
+   * @param context Evaluation context.
+   * @return Evaluation result.
    */
   public static EvaluationResult getEvaluationResult(EvaluationContext context) {
     List<SegmentResult> segments = new ArrayList<>();
