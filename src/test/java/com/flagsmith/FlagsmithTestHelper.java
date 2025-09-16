@@ -83,7 +83,8 @@ public class FlagsmithTestHelper {
     return RestAssured.given()
         .body(ImmutableMap.of(
             "identifier", userIdentity,
-            "environment", environmentApiKey))
+            "environment", environmentApiKey
+        ))
         .headers(defaultHeaders())
         .post("/api/v1/environments/{apiKey}/identities/", environmentApiKey)
         .then()
@@ -97,7 +98,8 @@ public class FlagsmithTestHelper {
     return RestAssured.given()
         .body(ImmutableMap.of(
             "name", name,
-            "project", projectId))
+            "project", projectId
+        ))
         .headers(defaultHeaders())
         .post("/api/v1/environments/")
         .then()
@@ -121,7 +123,8 @@ public class FlagsmithTestHelper {
       RestAssured.given()
           .body(ImmutableMap.of(
               "enabled", enabled,
-              "feature", featureId))
+              "feature", featureId
+          ))
           .headers(defaultHeaders())
           .post("/api/v1/environments/{apiKey}/featurestates/", apiKey)
           .then()
@@ -137,7 +140,8 @@ public class FlagsmithTestHelper {
         RestAssured.given()
             .body(ImmutableMap.of(
                 "enabled", enabled,
-                "feature", featureId))
+                "feature", featureId
+            ))
             .headers(defaultHeaders())
             .put("/api/v1/environments/{apiKey}/featurestates/{featureStateId}/",
                 apiKey, featureStateId)
@@ -166,7 +170,8 @@ public class FlagsmithTestHelper {
       RestAssured.given()
           .body(ImmutableMap.of(
               "enabled", enabled,
-              "feature", featureId))
+              "feature", featureId
+          ))
           .headers(defaultHeaders())
           .post("/api/v1/environments/{apiKey}/identities/{identityId}/featurestates/", apiKey,
               userIdentityId)
@@ -187,7 +192,8 @@ public class FlagsmithTestHelper {
         RestAssured.given()
             .body(ImmutableMap.of(
                 "enabled", enabled,
-                "feature", featureId))
+                "feature", featureId
+          ))
             .headers(defaultHeaders())
             .put(
                 "/api/v1/environments/{apiKey}/identities/{identityId}/featurestates/{featureStateId}/",
@@ -207,7 +213,8 @@ public class FlagsmithTestHelper {
         .body(ImmutableMap.of(
             "identity", ImmutableMap.of("identifier", userIdentifier),
             "trait_key", traitKey,
-            "trait_value", traitValue))
+            "trait_value", traitValue
+        ))
         .headers(defaultHeaders())
         .header("x-environment-key", apiKey)
         .post("/api/v1/traits/")
@@ -219,7 +226,8 @@ public class FlagsmithTestHelper {
     return RestAssured.given()
         .body(ImmutableMap.of(
             "name", name,
-            "organisation", organisationId))
+            "organisation", organisationId
+        ))
         .headers(defaultHeaders())
         .post("/api/v1/projects/")
         .then()
@@ -230,7 +238,8 @@ public class FlagsmithTestHelper {
   }
 
   public static BaseFlag flag(
-      String name, String description, String type, boolean enabled, String value) {
+      String name, String description, String type, boolean enabled, String value
+  ) {
     final FeatureStateModel result = new FeatureStateModel();
     result.setEnabled(enabled);
     result.setValue(value);
@@ -372,8 +381,8 @@ public class FlagsmithTestHelper {
     try {
       return MapperFactory.getMapper().readValue(
           featureJson,
-          new TypeReference<List<FeatureStateModel>>() {
-          });
+          new TypeReference<List<FeatureStateModel>>() {}
+      );
     } catch (JsonProcessingException e) {
       e.printStackTrace();
       // environment model json
@@ -430,7 +439,7 @@ public class FlagsmithTestHelper {
   }
 
   public static JsonNode getIdentityRequest(
-      String identifier, List<? extends TraitModel> traits, boolean isTransient) {
+    String identifier, List<? extends TraitModel> traits, boolean isTransient) {
     final ObjectNode flagsAndTraits = MapperFactory.getMapper().createObjectNode();
     flagsAndTraits.putPOJO("identifier", identifier);
     flagsAndTraits.put("transient", isTransient);

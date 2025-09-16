@@ -40,6 +40,7 @@ import org.bouncycastle.ocsp.Req;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+
 public class FlagsmithApiWrapperTest {
 
   private final String API_KEY = "OUR_API_KEY";
@@ -80,8 +81,7 @@ public class FlagsmithApiWrapperTest {
     }
 
     // Assert
-    // Since the Retry object is local to the call, the only external behaviour we
-    // can watch
+    // Since the Retry object is local to the call, the only external behaviour we can watch
     // is the logger
     verify(flagsmithLogger, times(2)).httpError(any(), any(Response.class), anyBoolean());
   }
@@ -124,21 +124,22 @@ public class FlagsmithApiWrapperTest {
   public void identifyUserWithTraits_success() throws JsonProcessingException {
     // Arrange
     final List<TraitModel> traits = new ArrayList<TraitModel>(Arrays.asList(new TraitModel()));
-    String responseBody = mapper
-        .writeValueAsString(getFlagsAndTraitsResponse(Arrays.asList(getNewFlag()), Arrays.asList(new TraitModel())));
+    String responseBody = mapper.writeValueAsString(getFlagsAndTraitsResponse(Arrays.asList(getNewFlag()), Arrays.asList(new TraitModel())));
     interceptor.addRule()
         .post(BASE_URL + "/identities/")
         .respond(responseBody, MEDIATYPE_JSON);
 
     // Act
     final Flags actualFeatureFlags = sut.identifyUserWithTraits(
-        "user-w-traits", traits, false, true);
+        "user-w-traits", traits, false, true
+    );
 
     // Assert
     Map<String, BaseFlag> flag1 = newFlagsList(Arrays.asList(getNewFlag())).getFlags();
     Map<String, BaseFlag> flag2 = actualFeatureFlags.getFlags();
     assertEquals(
-        flag1, flag2);
+        flag1, flag2
+    );
     verify(flagsmithLogger, times(1)).info(anyString(), any(), any());
     verify(flagsmithLogger, times(0)).httpError(any(), any(Response.class), anyBoolean());
     verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
@@ -167,7 +168,7 @@ public class FlagsmithApiWrapperTest {
     // Given
     RequestProcessor mockedRequestProcessor = mock(RequestProcessor.class);
     FlagsmithApiWrapper apiWrapper = new FlagsmithApiWrapper(
-        defaultConfig, null, flagsmithLogger, API_KEY, mockedRequestProcessor);
+            defaultConfig, null, flagsmithLogger, API_KEY, mockedRequestProcessor);
 
     // When
     apiWrapper.close();
@@ -203,7 +204,8 @@ public class FlagsmithApiWrapperTest {
 
   private Flags newFlagsList(List<FeatureStateModel> flags) {
     return Flags.fromApiFlags(
-        flags, null, defaultConfig.getFlagsmithFlagDefaults());
+        flags, null, defaultConfig.getFlagsmithFlagDefaults()
+    );
   }
 
   private JsonNode getFlagsAndTraitsResponse(List<FeatureStateModel> flags, List<TraitModel> traits) {

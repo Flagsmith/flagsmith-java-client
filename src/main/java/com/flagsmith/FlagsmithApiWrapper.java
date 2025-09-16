@@ -89,8 +89,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   }
 
   /**
-   * Instantiate with config, custom headers, logger, apikey and request
-   * processor.
+   * Instantiate with config, custom headers, logger, apikey and request processor.
    *
    * @param defaultConfig config object
    * @param customHeaders custom headers list
@@ -149,7 +148,8 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
       featureFlags = Flags.fromApiFlags(
           featureFlagsResponse,
           getConfig().getAnalyticsProcessor(),
-          getConfig().getFlagsmithFlagDefaults());
+          getConfig().getFlagsmithFlagDefaults()
+      );
 
       if (getCache() != null && getCache().getEnvFlagsCacheKey() != null) {
         getCache().getCache().put(getCache().getEnvFlagsCacheKey(), featureFlags);
@@ -173,7 +173,8 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
 
   @Override
   public Flags identifyUserWithTraits(
-      String identifier, List<? extends TraitModel> traits, boolean isTransient, boolean doThrow) {
+      String identifier, List<? extends TraitModel> traits, boolean isTransient, boolean doThrow
+  ) {
     assertValidUser(identifier);
     Flags flags = null;
     String cacheKey = null;
@@ -222,7 +223,8 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
       flags = Flags.fromApiFlags(
           flagsArray,
           getConfig().getAnalyticsProcessor(),
-          getConfig().getFlagsmithFlagDefaults());
+          getConfig().getFlagsmithFlagDefaults()
+      );
 
       if (cacheKey != null) {
         getCache().getCache().put(cacheKey, flags);
@@ -322,7 +324,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   /**
    * Returns a build request with GET.
    *
-   * @param url  - URL to invoke
+   * @param url - URL to invoke
    * @param body - body to post
    */
   @Override
@@ -334,8 +336,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   }
 
   /**
-   * Close the FlagsmithAPIWrapper instance, cleaning up any dependent threads or
-   * services
+   * Close the FlagsmithAPIWrapper instance, cleaning up any dependent threads or services
    * which need cleaning up before the instance can be fully destroyed.
    */
   public void close() {

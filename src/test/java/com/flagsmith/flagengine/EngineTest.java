@@ -25,9 +25,9 @@ import java.util.stream.StreamSupport;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class EngineTest {
-  private static final String ENVIRONMENT_JSON_FILE_LOCATION = "src/test/java/com/flagsmith/flagengine/enginetestdata/"
-      +
-      "data/environment_n9fbf9h3v4fFgH3U3ngWhb.json";
+  private static final String ENVIRONMENT_JSON_FILE_LOCATION =
+      "src/test/java/com/flagsmith/flagengine/enginetestdata/" +
+          "data/environment_n9fbf9h3v4fFgH3U3ngWhb.json";
   private static ObjectMapper objectMapper = MapperFactory.getMapper();
 
   private static Stream<Arguments> engineTestData() {
@@ -37,8 +37,7 @@ public class EngineTest {
       JsonNode environmentDocument = engineTestData.get("environment");
       JsonNode identitiesAndResponses = engineTestData.get("identities_and_responses");
 
-      EvaluationContext baseEvaluationContext = EngineMappers
-          .mapEnvironmentDocumentToContext(environmentDocument);
+      EvaluationContext baseEvaluationContext = EngineMappers.mapEnvironmentDocumentToContext(environmentDocument);
 
       List<Arguments> returnValues = new ArrayList<>();
 
@@ -84,8 +83,7 @@ public class EngineTest {
 
     List<FeatureStateModel> flags = objectMapper.convertValue(
         expectedResponse.get("flags"),
-        new TypeReference<List<FeatureStateModel>>() {
-        });
+        new TypeReference<List<FeatureStateModel>>() {});
 
     flags.sort((fsm1, fsm2) -> fsm1.getFeature().getName().compareTo(fsm2.getFeature().getName()));
     List<FlagResult> sortedResults = evaluationResult.getFlags().stream()

@@ -102,7 +102,8 @@ public class SegmentModelTest {
         Arguments.of(SegmentConditions.IN, 1.5, "1.5", true),
         // Flagsmith's engine does not evaluate `IN` condition for booleans
         // due to ambiguous serialization across supported platforms.
-        Arguments.of(SegmentConditions.IN, false, "false", false));
+        Arguments.of(SegmentConditions.IN, false, "false", false)
+    );
   }
 
   @ParameterizedTest

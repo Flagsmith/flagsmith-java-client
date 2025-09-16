@@ -43,18 +43,20 @@ public class SegmentEvaluatorTest {
         Arguments.of(segmentNestedRules(), threeIdentityTraits(), Boolean.TRUE),
         Arguments.of(segmentConditionsAndNestedRules(), emptyIdentityTraits(), Boolean.FALSE),
         Arguments.of(segmentConditionsAndNestedRules(), oneIdentityTrait(), Boolean.FALSE),
-        Arguments.of(segmentConditionsAndNestedRules(), threeIdentityTraits(), Boolean.TRUE));
+        Arguments.of(segmentConditionsAndNestedRules(), threeIdentityTraits(), Boolean.TRUE)
+    );
   }
 
   @ParameterizedTest
   @MethodSource("identitiesInSegments")
   public void testContextInSegment(SegmentContext segment, List<TraitModel> identityTraits,
-      Boolean expectedResponse) {
+                                    Boolean expectedResponse) {
 
     final EvaluationContext context = EngineMappers.mapContextAndIdentityDataToContext(
         FlagsmithTestHelper.evaluationContext(), "foo",
         identityTraits.stream().collect(
-            java.util.stream.Collectors.toMap(TraitModel::getTraitKey, TraitModel::getTraitValue)));
+            java.util.stream.Collectors.toMap(TraitModel::getTraitKey, TraitModel::getTraitValue))
+    );
 
     Boolean actualResult = SegmentEvaluator.isContextInSegment(context, segment);
 
@@ -68,22 +70,23 @@ public class SegmentEvaluatorTest {
         Arguments.of(SegmentConditions.IS_SET, "foo", new ArrayList<>(Arrays.asList(
             new TraitModel("foo", "bar"))), true),
         Arguments.of(SegmentConditions.IS_NOT_SET, "foo", new ArrayList<>(Arrays.asList(
-            new TraitModel("foo", "bar"))), false));
+            new TraitModel("foo", "bar"))), false)
+    );
   }
 
   @ParameterizedTest
   @MethodSource("traitExistenceChecks")
   public void testTraitExistenceConditions(SegmentConditions conditionOperator, String conditionProperty,
-      List<TraitModel> traitModels, Boolean expectedResult) {
+                                           List<TraitModel> traitModels, Boolean expectedResult) {
     // Given
     // An identity to test with which has the traits as defined in the DataProvider
     final EvaluationContext context = EngineMappers.mapContextAndIdentityDataToContext(
         FlagsmithTestHelper.evaluationContext(), "foo",
         traitModels.stream().collect(
-            java.util.stream.Collectors.toMap(TraitModel::getTraitKey, TraitModel::getTraitValue)));
+            java.util.stream.Collectors.toMap(TraitModel::getTraitKey, TraitModel::getTraitValue))
+    );
 
-    // And a segment which has the operator and property value as defined in the
-    // DataProvider
+    // And a segment which has the operator and property value as defined in the DataProvider
     SegmentContext segment = new SegmentContext().withName("testSegment").withRules(
         Arrays.asList(new SegmentRule().withType(SegmentRule.Type.ALL).withConditions(
             Arrays.asList(new SegmentCondition()
