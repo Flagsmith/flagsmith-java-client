@@ -22,7 +22,7 @@ public class Flags {
   /**
    * Build flags object from list of feature states.
    *
-   * @param featureStates      list of feature states
+   * @param featureStates list of feature states
    * @param analyticsProcessor instance of analytics processor
    */
   public static Flags fromFeatureStateModels(
@@ -34,7 +34,7 @@ public class Flags {
   /**
    * Build flags object from list of feature states.
    *
-   * @param featureStates      list of feature states
+   * @param featureStates list of feature states
    * @param analyticsProcessor instance of analytics processor
    * @param defaultFlagHandler default flags (optional)
    */
@@ -60,7 +60,7 @@ public class Flags {
   /**
    * Return the flags instance.
    *
-   * @param apiFlags           Dictionary with api flags
+   * @param apiFlags Dictionary with api flags
    * @param analyticsProcessor instance of analytics processor
    * @param defaultFlagHandler handler for default flags if present
    */
@@ -88,7 +88,7 @@ public class Flags {
   /**
    * Return the flags instance.
    *
-   * @param apiFlags           Dictionary with api flags
+   * @param apiFlags Dictionary with api flags
    * @param analyticsProcessor instance of analytics processor
    * @param defaultFlagHandler handler for default flags if present
    */
@@ -116,7 +116,7 @@ public class Flags {
   /**
    * Build flags object from evaluation result.
    *
-   * @param evaluationResult   evaluation result
+   * @param evaluationResult evaluation result
    * @param analyticsProcessor instance of analytics processor
    * @param defaultFlagHandler handler for default flags if present
    */

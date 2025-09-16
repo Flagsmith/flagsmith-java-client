@@ -11,8 +11,8 @@ public class TypeCasting {
    * Compare the values value1 and value2 with the provided condition.
    *
    * @param condition SegmentCondition criteria to compare values against.
-   * @param value1    Value to compare.
-   * @param value2    Value to compare against.
+   * @param value1 Value to compare.
+   * @param value2 Value to compare against.
    */
   public static Boolean compare(SegmentConditions condition, Object value1, Object value2) {
 
@@ -39,8 +39,8 @@ public class TypeCasting {
    * Run comparison with condition of primitive type.
    *
    * @param condition SegmentCondition criteria to compare values against.
-   * @param value1    Value to compare.
-   * @param value2    Value to compare against.
+   * @param value1 Value to compare.
+   * @param value2 Value to compare against.
    */
   public static Boolean compare(SegmentConditions condition, Comparable value1, Comparable value2) {
     if (condition.equals(SegmentConditions.EQUAL)) {
@@ -163,8 +163,7 @@ public class TypeCasting {
   public static ComparableVersion toSemver(Object str) {
     try {
       String value = SemanticVersioning.isSemver((String) str)
-          ? SemanticVersioning.removeSemver((String) str)
-          : ((String) str);
+          ? SemanticVersioning.removeSemver((String) str) : ((String) str);
       return new ComparableVersion(value);
     } catch (Exception nfe) {
       return null;

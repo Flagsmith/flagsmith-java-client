@@ -22,7 +22,7 @@ public class ModelUtils {
    */
   public static List<TraitModel> getTraitModelsFromTraitMap(Map<String, Object> traits) {
     return ModelUtils.getTraitModelStreamFromTraitMap(
-        traits, () -> new TraitModel()).map(Pair::getLeft).collect(Collectors.toList());
+      traits, () -> new TraitModel()).map(Pair::getLeft).collect(Collectors.toList());
   }
 
   /**
@@ -34,23 +34,28 @@ public class ModelUtils {
    */
   public static List<SdkTraitModel> getSdkTraitModelsFromTraitMap(Map<String, Object> traits) {
     return ModelUtils.getTraitModelStreamFromTraitMap(traits, () -> new SdkTraitModel()).map(
-        (row) -> {
-          SdkTraitModel sdkTraitModel = row.getLeft();
-          TraitConfig traitConfig = row.getRight();
-          sdkTraitModel.setIsTransient(traitConfig.getIsTransient());
-          return sdkTraitModel;
-        }).collect(Collectors.toList());
+      (row) -> {
+        SdkTraitModel sdkTraitModel = row.getLeft();
+        TraitConfig traitConfig = row.getRight();
+        sdkTraitModel.setIsTransient(traitConfig.getIsTransient());
+        return sdkTraitModel;
+      }
+    ).collect(Collectors.toList());
   }
 
   private static Stream<Entry<String, TraitConfig>> getTraitConfigStreamFromTraitMap(
-      Map<String, Object> traits) {
+      Map<String, Object> traits
+  ) {
     return traits.entrySet().stream().map(
         row -> new AbstractMap.SimpleEntry<>(
-            row.getKey(), TraitConfig.fromObject(row.getValue())));
+                row.getKey(), TraitConfig.fromObject(row.getValue()))
+    );
   }
 
-  private static <T extends TraitModel> Stream<Pair<T, TraitConfig>> 
-      getTraitModelStreamFromTraitMap(Map<String, Object> traits, Supplier<T> traitSupplier) {
+  private static <T extends TraitModel> Stream<Pair<T, TraitConfig>>
+      getTraitModelStreamFromTraitMap(
+        Map<String, Object> traits, Supplier<T> traitSupplier
+  ) {
     return ModelUtils.getTraitConfigStreamFromTraitMap(traits).map(
         (row) -> {
           T trait = traitSupplier.get();
