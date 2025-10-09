@@ -16,19 +16,13 @@ import com.flagsmith.MapperFactory;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.config.Retry;
 import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.LongAccumulator;
-import java.util.concurrent.atomic.LongAdder;
 
 import lombok.SneakyThrows;
 import okhttp3.Response;
 import okhttp3.mock.MockInterceptor;
-import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 
 public class AnalyticsProcessorTest {
 
