@@ -196,7 +196,7 @@ public class EngineMappers {
       for (FeatureContext featureContext : overridesKey) {
         // Copy the feature context for the override
         FeatureContext override = new FeatureContext(featureContext)
-            .withKey(""); // Override the key for identity overrides
+            .withKey(""); // Identity overrides are never multivariate, so no need to set key
         overrides.add(override);
       }
 
@@ -289,6 +289,9 @@ public class EngineMappers {
     if (node != null && !node.isNull()) {
       return node.asText();
     }
+    // Feature state key is used in multivariate feature evaluation, not to
+    // identify features uniquely, so if both fields are missing,
+    // we don't need to care about collisions.
     return "";
   }
 
