@@ -145,7 +145,7 @@ public class EngineMappers {
 
     for (JsonNode identityOverride : identityOverrides) {
       JsonNode identityFeatures = identityOverride.get("identity_features");
-      if (identityFeatures == null || !identityFeatures.isArray() || identityFeatures.size() == 0) {
+      if (identityFeatures == null || !identityFeatures.isArray() || identityFeatures.isEmpty()) {
         continue;
       }
 
