@@ -177,8 +177,7 @@ public class EngineMappers {
       List<FeatureContext> overridesKey = entry.getKey();
       List<String> identifiers = entry.getValue();
 
-      // Generate unique segment key
-      String segmentKey = String.valueOf(overridesKey.hashCode());
+      String segmentKey = generateVirtualSegmentKey(overridesKey);
 
       // Create segment condition for identifier check
       SegmentCondition identifierCondition = new SegmentCondition()
@@ -191,17 +190,17 @@ public class EngineMappers {
           .withType(SegmentRule.Type.ALL)
           .withConditions(List.of(identifierCondition));
 
-      // Create overrides from FeatureContext objects (much cleaner now!)
+      // Create overrides from FeatureContext objects
       List<FeatureContext> overrides = new ArrayList<>();
       for (FeatureContext featureContext : overridesKey) {
         // Copy the feature context for the override
         FeatureContext override = new FeatureContext(featureContext)
-            .withKey(""); // Identity overrides are never multivariate, so no need to set key
+            .withKey(""); // Identity overrides never carry multivariate options
         overrides.add(override);
       }
 
       SegmentContext segmentContext = new SegmentContext()
-          .withKey("")
+          .withKey("") // Identity override segments never use % Split operator
           .withName("identity_overrides")
           .withRules(List.of(segmentRule))
           .withOverrides(overrides);
@@ -339,7 +338,7 @@ public class EngineMappers {
       for (JsonNode multivariateValue : sortedMultivariate) {
         FeatureValue variant = new FeatureValue()
             .withValue(getFeatureStateValue(
-              multivariateValue.get("multivariate_feature_option"), "value"))
+                multivariateValue.get("multivariate_feature_option"), "value"))
             .withWeight(multivariateValue.get("percentage_allocation").asDouble());
         variants.add(variant);
       }
@@ -386,5 +385,32 @@ public class EngineMappers {
         .withName(segment.get("name").asText())
         .withRules(rules)
         .withOverrides(overrides);
+  }
+
+  /**
+   * Generates a unique segment key based on feature contexts.
+   * Uses a combination of feature names and values to ensure
+   * uniqueness.
+   *
+   * @param featureContexts list of feature contexts
+   * @return unique segment key
+   */
+  private static String generateVirtualSegmentKey(
+      List<FeatureContext> featureContexts) {
+    StringBuilder keyBuilder = new StringBuilder();
+
+    // Add feature information to the key
+    for (FeatureContext featureContext : featureContexts) {
+      keyBuilder.append(featureContext.getName())
+          .append(":")
+          .append(featureContext.getEnabled())
+          .append(":")
+          .append(featureContext.getValue())
+          .append("|");
+    }
+
+    // Generate a hash of the combined string for a shorter key
+    // This is safer than using List.hashCode() as we control the string content
+    return String.valueOf(keyBuilder.toString().hashCode());
   }
 }
