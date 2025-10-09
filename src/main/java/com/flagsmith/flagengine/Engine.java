@@ -8,6 +8,26 @@ import java.util.List;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 public class Engine {
+  private static class SegmentEvaluationResult {
+    List<SegmentResult> segments;
+    HashMap<String, ImmutablePair<String, FeatureContext>> segmentFeatureContexts;
+
+    public SegmentEvaluationResult(
+        List<SegmentResult> segments,
+        HashMap<String, ImmutablePair<String, FeatureContext>> segmentFeatureContexts) {
+      this.segments = segments;
+      this.segmentFeatureContexts = segmentFeatureContexts;
+    }
+
+    public List<SegmentResult> getSegments() {
+      return segments;
+    }
+
+    public HashMap<String, ImmutablePair<String, FeatureContext>> getSegmentFeatureContexts() {
+      return segmentFeatureContexts;
+    }
+  }
+
   /**
    * Get evaluation result for a given evaluation context.
    *
@@ -15,9 +35,18 @@ public class Engine {
    * @return Evaluation result.
    */
   public static EvaluationResult getEvaluationResult(EvaluationContext context) {
+    SegmentEvaluationResult segmentEvaluationResult = evaluateSegments(context);
+    Flags flags = evaluateFeatures(context, segmentEvaluationResult.getSegmentFeatureContexts());
+
+    return new EvaluationResult()
+        .withFlags(flags)
+        .withSegments(segmentEvaluationResult.getSegments());
+  }
+
+  private static SegmentEvaluationResult evaluateSegments(
+      EvaluationContext context) {
     List<SegmentResult> segments = new ArrayList<>();
     HashMap<String, ImmutablePair<String, FeatureContext>> segmentFeatureContexts = new HashMap<>();
-    Flags flags = new Flags();
 
     for (SegmentContext segmentContext : context.getSegments().getAdditionalProperties().values()) {
       if (SegmentEvaluator.isContextInSegment(context, segmentContext)) {
@@ -36,10 +65,10 @@ public class Engine {
               FeatureContext existingFeatureContext = existing.getRight();
 
               Double existingPriority = existingFeatureContext.getPriority() == null
-                  ? Double.POSITIVE_INFINITY
+                  ? EngineConstants.WEAKEST_PRIORITY
                   : existingFeatureContext.getPriority();
               Double featurePriority = featureContext.getPriority() == null
-                  ? Double.POSITIVE_INFINITY
+                  ? EngineConstants.WEAKEST_PRIORITY
                   : featureContext.getPriority();
 
               if (existingPriority < featurePriority) {
@@ -54,11 +83,19 @@ public class Engine {
       }
     }
 
+    return new SegmentEvaluationResult(segments, segmentFeatureContexts);
+  }
+
+  private static Flags evaluateFeatures(
+      EvaluationContext context,
+      HashMap<String, ImmutablePair<String, FeatureContext>> segmentFeatureContexts) {
+    Features contextFeatures = context.getFeatures();
+    Flags flags = new Flags();
+
     String identityKey = context.getIdentity() != null
         ? context.getIdentity().getKey()
         : null;
 
-    Features contextFeatures = context.getFeatures();
     if (contextFeatures != null) {
       for (FeatureContext featureContext : contextFeatures.getAdditionalProperties().values()) {
         if (segmentFeatureContexts.containsKey(featureContext.getFeatureKey())) {
@@ -80,7 +117,7 @@ public class Engine {
       }
     }
 
-    return new EvaluationResult().withFlags(flags).withSegments(segments);
+    return flags;
   }
 
   private static FlagResult getFlagResultFromFeatureContext(

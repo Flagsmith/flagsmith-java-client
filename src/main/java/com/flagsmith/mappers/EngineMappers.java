@@ -1,6 +1,7 @@
 package com.flagsmith.mappers;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.flagsmith.flagengine.EngineConstants;
 import com.flagsmith.flagengine.EnvironmentContext;
 import com.flagsmith.flagengine.EvaluationContext;
 import com.flagsmith.flagengine.FeatureContext;
@@ -164,7 +165,7 @@ public class EngineMappers {
             .withName(feature.get("name").asText())
             .withEnabled(featureState.get("enabled").asBoolean())
             .withValue(getFeatureStateValue(featureState, "feature_state_value"))
-            .withPriority(Double.NEGATIVE_INFINITY); // Highest possible priority
+            .withPriority(EngineConstants.STRONGEST_PRIORITY);
         overridesKey.add(featureContext);
       }
 
