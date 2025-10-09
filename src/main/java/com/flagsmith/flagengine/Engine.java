@@ -17,7 +17,7 @@ public class Engine {
   public static EvaluationResult getEvaluationResult(EvaluationContext context) {
     List<SegmentResult> segments = new ArrayList<>();
     HashMap<String, ImmutablePair<String, FeatureContext>> segmentFeatureContexts = new HashMap<>();
-    List<FlagResult> flags = new ArrayList<>();
+    Flags flags = new Flags();
 
     for (SegmentContext segmentContext : context.getSegments().getAdditionalProperties().values()) {
       if (SegmentEvaluator.isContextInSegment(context, segmentContext)) {
@@ -58,22 +58,29 @@ public class Engine {
         ? context.getIdentity().getKey()
         : null;
 
-    for (FeatureContext featureContext : context.getFeatures().getAdditionalProperties().values()) {
-      if (segmentFeatureContexts.containsKey(featureContext.getFeatureKey())) {
-        ImmutablePair<String, FeatureContext> segmentNameWithFeatureContext = segmentFeatureContexts
-            .get(featureContext.getFeatureKey());
-        featureContext = segmentNameWithFeatureContext.getRight();
-        flags.add(new FlagResult().withEnabled(featureContext.getEnabled())
-            .withFeatureKey(featureContext.getFeatureKey())
-            .withName(featureContext.getName())
-            .withValue(featureContext.getValue())
-            .withReason("TARGETING_MATCH; segment=" + segmentNameWithFeatureContext.getLeft()));
-      } else {
-        flags.add(getFlagResultFromFeatureContext(featureContext, identityKey));
+    Features contextFeatures = context.getFeatures();
+    if (contextFeatures != null) {
+      for (FeatureContext featureContext : contextFeatures.getAdditionalProperties().values()) {
+        if (segmentFeatureContexts.containsKey(featureContext.getFeatureKey())) {
+          ImmutablePair<String, FeatureContext> segmentNameFeaturePair = segmentFeatureContexts
+              .get(featureContext.getFeatureKey());
+          featureContext = segmentNameFeaturePair.getRight();
+          flags.setAdditionalProperty(
+              featureContext.getName(),
+              new FlagResult().withEnabled(featureContext.getEnabled())
+                  .withFeatureKey(featureContext.getFeatureKey())
+                  .withName(featureContext.getName())
+                  .withValue(featureContext.getValue())
+                  .withReason(
+                      "TARGETING_MATCH; segment=" + segmentNameFeaturePair.getLeft()));
+        } else {
+          flags.setAdditionalProperty(featureContext.getName(),
+              getFlagResultFromFeatureContext(featureContext, identityKey));
+        }
       }
     }
 
-    return new EvaluationResult().withContext(context).withFlags(flags).withSegments(segments);
+    return new EvaluationResult().withFlags(flags).withSegments(segments);
   }
 
   private static FlagResult getFlagResultFromFeatureContext(
@@ -95,7 +102,7 @@ public class Engine {
                 .withFeatureKey(featureContext.getFeatureKey())
                 .withName(featureContext.getName())
                 .withValue(variant.getValue())
-                .withReason("SPLIT; weight=" + weight);
+                .withReason("SPLIT; weight=" + weight.intValue());
           }
           startPercentage = limit;
         }

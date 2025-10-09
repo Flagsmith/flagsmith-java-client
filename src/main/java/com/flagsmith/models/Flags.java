@@ -5,11 +5,13 @@ import com.flagsmith.FlagsmithFlagDefaults;
 import com.flagsmith.exceptions.FeatureNotFoundError;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.flagengine.EvaluationResult;
+import com.flagsmith.flagengine.FlagResult;
 import com.flagsmith.interfaces.DefaultFlagHandler;
 import com.flagsmith.threads.AnalyticsProcessor;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import lombok.Data;
 
@@ -22,7 +24,7 @@ public class Flags {
   /**
    * Build flags object from list of feature states.
    *
-   * @param featureStates list of feature states
+   * @param featureStates      list of feature states
    * @param analyticsProcessor instance of analytics processor
    */
   public static Flags fromFeatureStateModels(
@@ -34,7 +36,7 @@ public class Flags {
   /**
    * Build flags object from list of feature states.
    *
-   * @param featureStates list of feature states
+   * @param featureStates      list of feature states
    * @param analyticsProcessor instance of analytics processor
    * @param defaultFlagHandler default flags (optional)
    */
@@ -60,7 +62,7 @@ public class Flags {
   /**
    * Return the flags instance.
    *
-   * @param apiFlags Dictionary with api flags
+   * @param apiFlags           Dictionary with api flags
    * @param analyticsProcessor instance of analytics processor
    * @param defaultFlagHandler handler for default flags if present
    */
@@ -88,7 +90,7 @@ public class Flags {
   /**
    * Return the flags instance.
    *
-   * @param apiFlags Dictionary with api flags
+   * @param apiFlags           Dictionary with api flags
    * @param analyticsProcessor instance of analytics processor
    * @param defaultFlagHandler handler for default flags if present
    */
@@ -116,7 +118,7 @@ public class Flags {
   /**
    * Build flags object from evaluation result.
    *
-   * @param evaluationResult evaluation result
+   * @param evaluationResult   evaluation result
    * @param analyticsProcessor instance of analytics processor
    * @param defaultFlagHandler handler for default flags if present
    */
@@ -124,15 +126,18 @@ public class Flags {
       EvaluationResult evaluationResult,
       AnalyticsProcessor analyticsProcessor,
       DefaultFlagHandler defaultFlagHandler) {
-    Map<String, BaseFlag> flagMap = evaluationResult.getFlags().stream()
+    Map<String, BaseFlag> flagMap = evaluationResult.getFlags().getAdditionalProperties()
+        .entrySet()
+        .stream()
         .collect(
             Collectors.toMap(
-                (fs) -> fs.getName(),
-                (fs) -> {
+                Entry::getKey,
+                entry -> {
+                  FlagResult flagResult = entry.getValue();
                   Flag flag = new Flag();
-                  flag.setFeatureName(fs.getName());
-                  flag.setValue(fs.getValue());
-                  flag.setEnabled(fs.getEnabled());
+                  flag.setFeatureName(flagResult.getName());
+                  flag.setValue(flagResult.getValue());
+                  flag.setEnabled(flagResult.getEnabled());
                   return flag;
                 }));
 

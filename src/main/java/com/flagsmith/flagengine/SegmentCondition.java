@@ -1,7 +1,12 @@
 package com.flagsmith.flagengine;
 
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.flagsmith.flagengine.segments.constants.SegmentConditions;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import lombok.Data;
 
 @Data
@@ -39,6 +44,32 @@ public class SegmentCondition {
     this.operator = operator;
     this.property = property;
     this.value = value;
+  }
+
+  /**
+   * Set JsonNode value. Required for engine tests.
+   *
+   * @param node the JsonNode value.
+   * @throws IllegalArgumentException if value is not a String or List of Strings
+   */
+  @JsonSetter("value")
+  public void setValue(JsonNode node) {
+    if (node.isArray()) {
+      ArrayNode arr = (ArrayNode) node;
+      List<String> values = StreamSupport.stream(arr.spliterator(), false)
+          .peek(el -> {
+            if (!el.isTextual()) {
+              throw new IllegalArgumentException("Array elements must be strings");
+            }
+          })
+          .map(JsonNode::asText)
+          .collect(Collectors.toList());
+      this.setValue(values);
+    } else if (node.isTextual()) {
+      this.setValue(node.asText());
+    } else {
+      throw new IllegalArgumentException("Value must be a String or List of Strings");
+    }
   }
 
   /**

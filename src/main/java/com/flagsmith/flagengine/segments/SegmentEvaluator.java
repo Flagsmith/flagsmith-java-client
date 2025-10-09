@@ -102,7 +102,7 @@ public class SegmentEvaluator {
           }
         }
 
-        if (!(contextValue instanceof Boolean)) {
+        if (!(contextValue instanceof Boolean) && contextValue != null) {
           contextValue = String.valueOf(contextValue);
         }
 

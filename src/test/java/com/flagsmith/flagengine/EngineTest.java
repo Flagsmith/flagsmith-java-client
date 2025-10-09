@@ -1,103 +1,58 @@
 package com.flagsmith.flagengine;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.flagsmith.MapperFactory;
-import com.flagsmith.mappers.EngineMappers;
-import com.flagsmith.models.FeatureStateModel;
-import com.flagsmith.models.Flags;
-
-import groovy.util.Eval;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.BeforeClass;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.stream.Stream;
+import org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class EngineTest {
-  private static final String ENVIRONMENT_JSON_FILE_LOCATION =
-      "src/test/java/com/flagsmith/flagengine/enginetestdata/" +
-          "data/environment_n9fbf9h3v4fFgH3U3ngWhb.json";
-  private static ObjectMapper objectMapper = MapperFactory.getMapper();
+  private static final Path testCasesPath = Paths
+      .get("src/test/java/com/flagsmith/flagengine/enginetestdata/test_cases");
+  private static JsonMapper mapper = JsonMapper.builder()
+      .enable(JsonReadFeature.ALLOW_JAVA_COMMENTS.mappedFeature())
+      .build();
+  RecursiveComparisonConfiguration recursiveComparisonConfig = RecursiveComparisonConfiguration.builder()
+      .build();
 
-  private static Stream<Arguments> engineTestData() {
-    try {
-      JsonNode engineTestData = objectMapper.readTree(new File(ENVIRONMENT_JSON_FILE_LOCATION));
-
-      JsonNode environmentDocument = engineTestData.get("environment");
-      JsonNode identitiesAndResponses = engineTestData.get("identities_and_responses");
-
-      EvaluationContext baseEvaluationContext = EngineMappers.mapEnvironmentDocumentToContext(environmentDocument);
-
-      List<Arguments> returnValues = new ArrayList<>();
-
-      if (identitiesAndResponses.isArray()) {
-        for (JsonNode identityAndResponse : identitiesAndResponses) {
-          JsonNode identity = identityAndResponse.get("identity");
-          Map<String, Object> traits = Optional.ofNullable(identity.get("identity_traits"))
-              .filter(JsonNode::isArray)
-              .map(node -> StreamSupport.stream(node.spliterator(), false)
-                  .filter(trait -> trait.hasNonNull("trait_key"))
-                  .collect(Collectors.toMap(
-                      trait -> trait.get("trait_key").asText(),
-                      trait -> objectMapper.convertValue(trait.get("trait_value"), Object.class))))
-              .orElseGet(HashMap::new);
-
-          EvaluationContext evaluationContext = EngineMappers.mapContextAndIdentityDataToContext(
-              baseEvaluationContext, identity.get("identifier").asText(), traits);
-
-          if (identity.hasNonNull("django_id")) {
-            evaluationContext.getIdentity().setKey(identity.get("django_id").asText());
-          }
-
-          JsonNode expectedResponse = identityAndResponse.get("response");
-
-          returnValues.add(Arguments.of(evaluationContext, expectedResponse));
-
-        }
-      }
-
-      return returnValues.stream();
-
-    } catch (Exception e) {
-      System.out.println("Exception in engineTestData: " + e.getMessage());
-      e.printStackTrace();
+  private static Arguments engineTestDataFromFile(Path path) {
+    try (BufferedReader reader = Files.newBufferedReader(path)) {
+      JsonNode root = mapper.readTree(reader);
+      return Arguments.of(
+          mapper.treeToValue(root.get("context"), EvaluationContext.class),
+          mapper.treeToValue(root.get("result"), EvaluationResult.class));
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to read test data from file: " + path, e);
     }
-    return null;
+  }
+
+  private static Stream<Arguments> engineTestData() throws IOException {
+    return Files.walk(testCasesPath)
+        .filter(Files::isRegularFile)
+        .filter(p -> {
+          String n = p.getFileName().toString();
+          return n.endsWith(".json") || n.endsWith(".jsonc");
+        })
+        .map(EngineTest::engineTestDataFromFile);
   }
 
   @ParameterizedTest()
   @MethodSource("engineTestData")
-  public void testEngine(EvaluationContext evaluationContext, JsonNode expectedResponse) {
+  public void testEngine(EvaluationContext evaluationContext, EvaluationResult expectedResult) {
     EvaluationResult evaluationResult = Engine.getEvaluationResult(evaluationContext);
 
-    List<FeatureStateModel> flags = objectMapper.convertValue(
-        expectedResponse.get("flags"),
-        new TypeReference<List<FeatureStateModel>>() {});
-
-    flags.sort((fsm1, fsm2) -> fsm1.getFeature().getName().compareTo(fsm2.getFeature().getName()));
-    List<FlagResult> sortedResults = evaluationResult.getFlags().stream()
-        .sorted((fr1, fr2) -> fr1.getName().compareTo(fr2.getName()))
-        .collect(Collectors.toList());
-
-    assertEquals(flags.size(), sortedResults.size());
-    for (int i = 0; i < flags.size(); i++) {
-      FeatureStateModel fsm = flags.get(i);
-      FlagResult fr = sortedResults.get(i);
-
-      assertEquals(fsm.getFeature().getName(), fr.getName());
-      assertEquals(fsm.getEnabled(), fr.getEnabled());
-      assertEquals(fsm.getValue(), fr.getValue());
-    }
+    assertThat(evaluationResult)
+        .usingRecursiveComparison(recursiveComparisonConfig)
+        .ignoringAllOverriddenEquals()
+        .isEqualTo(expectedResult);
   }
 }
