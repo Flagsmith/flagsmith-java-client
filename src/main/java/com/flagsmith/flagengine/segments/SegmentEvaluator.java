@@ -27,6 +27,8 @@ public class SegmentEvaluator {
   private static Configuration jsonPathConfiguration = Configuration
       .defaultConfiguration()
       .setOptions(Option.SUPPRESS_EXCEPTIONS);
+  private static TypeReference<List<String>> stringListTypeRef = new TypeReference<List<String>>() {
+  };
 
   /**
    * Check if context is in segment.
@@ -94,8 +96,7 @@ public class SegmentEvaluator {
           try {
             // Try parsing a JSON list first
             conditionList = mapper.readValue(
-                stringConditionValue, new TypeReference<List<String>>() {
-                });
+                stringConditionValue, stringListTypeRef);
           } catch (IOException e) {
             // As a fallback, split by comma
             conditionList = Arrays.asList(stringConditionValue.split(","));
