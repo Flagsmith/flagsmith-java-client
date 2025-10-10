@@ -110,13 +110,15 @@ public class SegmentEvaluator {
         return conditionList.contains(contextValue);
 
       case PERCENTAGE_SPLIT:
-        String key = (contextValue != null) ? contextValue.toString()
-            : (context.getIdentity() != null) ? context.getIdentity().getKey() : null;
-
-        if (key == null) {
-          return false;
+        String key;
+        if (contextValue == null) {
+          if (context.getIdentity() == null) {
+            return false;
+          }
+          key = context.getIdentity().getKey();
+        } else {
+          key = contextValue.toString();
         }
-
         List<String> objectIds = List.of(segmentKey, key);
 
         final float floatValue;
