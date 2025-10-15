@@ -27,7 +27,8 @@ public class EngineTest {
   private static Arguments engineTestDataFromFile(Path path) {
     try (BufferedReader reader = Files.newBufferedReader(path)) {
       JsonNode root = mapper.readTree(reader);
-      return Arguments.of(
+      return Arguments.argumentSet(
+          path.getFileName().toString(),
           mapper.treeToValue(root.get("context"), EvaluationContext.class),
           mapper.treeToValue(root.get("result"), EvaluationResult.class));
     } catch (IOException e) {
