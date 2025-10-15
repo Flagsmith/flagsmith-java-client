@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * EngineMappers
@@ -305,6 +306,21 @@ public class EngineMappers {
     // identify features uniquely, so if both fields are missing,
     // we don't need to care about collisions.
     return "";
+
+  private static double getMultivariateFeatureValuePriority(JsonNode multivariateValue) {
+    JsonNode idNode = multivariateValue.get("id");
+    if (idNode != null && !idNode.isNull()) {
+      return idNode.asDouble();
+    }
+    // Fallback to mv_fs_value_uuid if id is not present
+    JsonNode mvFsValueUuidNode = multivariateValue.get("mv_fs_value_uuid");
+    if (mvFsValueUuidNode != null && !mvFsValueUuidNode.isNull()) {
+      UUID mvFsValueUuid = UUID.fromString(mvFsValueUuidNode.asText());
+      return mvFsValueUuid.getMostSignificantBits() & Long.MAX_VALUE;
+    }
+
+    throw new IllegalArgumentException(
+        "Multivariate feature value must have either 'id' or 'mv_fs_value_uuid'");
   }
 
   private static Object getFeatureStateValue(JsonNode featureState, String fieldName) {
@@ -345,14 +361,12 @@ public class EngineMappers {
     JsonNode multivariateValues = featureState.get("multivariate_feature_state_values");
     if (multivariateValues != null && multivariateValues.isArray()) {
       List<FeatureValue> variants = new ArrayList<>();
-      List<JsonNode> sortedMultivariate = new ArrayList<>();
-      multivariateValues.forEach(sortedMultivariate::add);
-      sortedMultivariate.sort((a, b) -> a.get("id").asText().compareTo(b.get("id").asText()));
-      for (JsonNode multivariateValue : sortedMultivariate) {
+      for (JsonNode multivariateValue : multivariateValues) {
         FeatureValue variant = new FeatureValue()
             .withValue(getFeatureStateValue(
                 multivariateValue.get("multivariate_feature_option"), "value"))
-            .withWeight(multivariateValue.get("percentage_allocation").asDouble());
+            .withWeight(multivariateValue.get("percentage_allocation").asDouble())
+            .withPriority(getMultivariateFeatureValuePriority(multivariateValue));
         variants.add(variant);
       }
       featureContext.withVariants(variants);

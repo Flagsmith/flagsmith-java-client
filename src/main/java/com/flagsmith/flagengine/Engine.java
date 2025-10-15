@@ -132,7 +132,13 @@ public class Engine {
 
         Float startPercentage = 0.0f;
 
-        for (FeatureValue variant : variants) {
+        ArrayList<FeatureValue> sortedVariants = new ArrayList<>(variants);
+        sortedVariants.sort((a, b) -> {
+          Double priority = a.getPriority();
+          Double comparedPriority = b.getPriority();
+          return priority.compareTo(comparedPriority);
+        });
+        for (FeatureValue variant : sortedVariants) {
           Double weight = variant.getWeight();
           Float limit = startPercentage + weight.floatValue();
           if (startPercentage <= percentageValue && percentageValue < limit) {
