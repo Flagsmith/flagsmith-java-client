@@ -140,7 +140,7 @@ public class TypeCasting {
       return str instanceof Boolean ? ((Boolean) str)
           : BooleanUtils.toBoolean((String) str);
     } catch (Exception nfe) {
-      return null;
+      return false;
     }
   }
 
@@ -152,7 +152,8 @@ public class TypeCasting {
   public static Boolean isBoolean(Object str) {
     return str instanceof Boolean
         || Boolean.TRUE.toString().equalsIgnoreCase((String.valueOf(str)))
-        || Boolean.FALSE.toString().equalsIgnoreCase((String.valueOf(str)));
+        || Boolean.FALSE.toString().equalsIgnoreCase((String.valueOf(str)))
+        || "1".equals(String.valueOf(str));
   }
 
   /**
