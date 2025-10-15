@@ -1,7 +1,7 @@
-package com.flagsmith.flagengine.identities;
+package com.flagsmith.models.identities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.models.features.FeatureStateModel;
 import com.flagsmith.utils.models.BaseModel;
 import java.sql.Date;
 import java.util.ArrayList;

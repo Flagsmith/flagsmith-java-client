@@ -1,4 +1,4 @@
-package com.flagsmith.flagengine.segments;
+package com.flagsmith.models.segments;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.flagsmith.flagengine.segments.constants.SegmentConditions;

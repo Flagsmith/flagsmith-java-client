@@ -1,6 +1,6 @@
-package com.flagsmith.flagengine.projects;
+package com.flagsmith.models.projects;
 
-import com.flagsmith.flagengine.segments.SegmentModel;
+import com.flagsmith.models.segments.SegmentModel;
 import com.flagsmith.utils.models.BaseModel;
 import java.util.List;
 import lombok.Data;

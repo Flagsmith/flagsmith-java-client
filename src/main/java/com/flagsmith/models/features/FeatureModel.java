@@ -1,4 +1,4 @@
-package com.flagsmith.flagengine.features;
+package com.flagsmith.models.features;
 
 import lombok.Data;
 

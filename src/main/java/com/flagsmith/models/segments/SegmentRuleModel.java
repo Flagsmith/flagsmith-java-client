@@ -1,4 +1,4 @@
-package com.flagsmith.flagengine.segments;
+package com.flagsmith.models.segments;
 
 import java.util.List;
 import lombok.Data;

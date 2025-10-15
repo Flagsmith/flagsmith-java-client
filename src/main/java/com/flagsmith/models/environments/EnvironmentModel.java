@@ -1,9 +1,9 @@
-package com.flagsmith.flagengine.environments;
+package com.flagsmith.models.environments;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.flagsmith.flagengine.features.FeatureStateModel;
-import com.flagsmith.flagengine.identities.IdentityModel;
-import com.flagsmith.flagengine.projects.ProjectModel;
+import com.flagsmith.models.features.FeatureStateModel;
+import com.flagsmith.models.identities.IdentityModel;
+import com.flagsmith.models.projects.ProjectModel;
 import com.flagsmith.utils.models.BaseModel;
 import java.util.List;
 import lombok.Data;
