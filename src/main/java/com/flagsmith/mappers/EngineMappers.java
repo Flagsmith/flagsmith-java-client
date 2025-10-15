@@ -181,7 +181,7 @@ public class EngineMappers {
       List<FeatureContext> overridesKey = entry.getKey();
       List<String> identifiers = entry.getValue();
 
-      String segmentKey = generateVirtualSegmentKey(overridesKey);
+      String segmentKey = getVirtualSegmentKey(overridesKey);
 
       // Create segment condition for identifier check
       SegmentCondition identifierCondition = new SegmentCondition()
@@ -418,7 +418,7 @@ public class EngineMappers {
    * @param featureContexts list of feature contexts
    * @return unique segment key
    */
-  private static String generateVirtualSegmentKey(
+  private static String getVirtualSegmentKey(
       List<FeatureContext> featureContexts) {
     StringBuilder keyBuilder = new StringBuilder();
 
