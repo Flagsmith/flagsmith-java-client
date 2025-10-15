@@ -190,14 +190,22 @@ public class SegmentEvaluator {
    * @return Property value.
    */
   private static Object getContextValue(EvaluationContext context, String property) {
+    Object result;
+    if (context.getIdentity() != null && context.getIdentity().getTraits() != null) {
+      result = context.getIdentity().getTraits().getAdditionalProperties().get(property);
+      if (result != null) {
+        return result;
+      }
+    }
     if (property.startsWith("$.")) {
-      return JsonPath
+      result = JsonPath
           .using(jsonPathConfiguration)
           .parse(mapper.convertValue(context, Map.class))
           .read(property);
-    }
-    if (context.getIdentity() != null) {
-      return context.getIdentity().getTraits().getAdditionalProperties().get(property);
+      if (result instanceof List || result instanceof Map) {
+        return null;
+      }
+      return result;
     }
     return null;
   }
