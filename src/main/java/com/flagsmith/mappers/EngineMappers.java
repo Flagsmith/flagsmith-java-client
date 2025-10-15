@@ -1,18 +1,21 @@
 package com.flagsmith.mappers;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.flagsmith.MapperFactory;
 import com.flagsmith.flagengine.EngineConstants;
 import com.flagsmith.flagengine.EnvironmentContext;
 import com.flagsmith.flagengine.EvaluationContext;
 import com.flagsmith.flagengine.FeatureContext;
 import com.flagsmith.flagengine.FeatureValue;
 import com.flagsmith.flagengine.IdentityContext;
+import com.flagsmith.flagengine.Metadata;
 import com.flagsmith.flagengine.SegmentCondition;
 import com.flagsmith.flagengine.SegmentContext;
 import com.flagsmith.flagengine.SegmentRule;
 import com.flagsmith.flagengine.Segments;
 import com.flagsmith.flagengine.Traits;
 import com.flagsmith.flagengine.segments.constants.SegmentConditions;
+import com.flagsmith.models.SegmentMetadata;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -200,11 +203,20 @@ public class EngineMappers {
         overrides.add(override);
       }
 
+      SegmentMetadata metadata = new SegmentMetadata();
+      metadata.setSource(SegmentMetadata.Source.IDENTITY_OVERRIDES);
+
+      Map<String, Object> metadataMap = MapperFactory.getMapper()
+          .convertValue(metadata, 
+              new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
+              });
+
       SegmentContext segmentContext = new SegmentContext()
           .withKey("") // Identity override segments never use % Split operator
           .withName("identity_overrides")
           .withRules(List.of(segmentRule))
-          .withOverrides(overrides);
+          .withOverrides(overrides)
+          .withMetadata(metadataMap);
 
       segmentContexts.put(segmentKey, segmentContext);
     }
@@ -365,8 +377,6 @@ public class EngineMappers {
    * @return the segment context
    */
   private static SegmentContext mapSegmentToSegmentContext(JsonNode segment) {
-    String segmentKey = segment.get("id").asText();
-
     // Map rules
     List<SegmentRule> rules = new ArrayList<>();
     JsonNode segmentRules = segment.get("rules");
@@ -381,11 +391,23 @@ public class EngineMappers {
       overrides = mapEnvironmentDocumentFeatureStatesToFeatureContexts(segmentFeatureStates);
     }
 
+    // Map metadata
+    SegmentMetadata metadata = new SegmentMetadata();
+    metadata.setSource(SegmentMetadata.Source.API);
+    metadata.setFlagsmithId(segment.get("id").asInt());
+
+    Map<String, Object> metadataMap = MapperFactory.getMapper()
+        .convertValue(metadata, 
+            new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
+            });
+
+    String segmentKey = segment.get("id").asText();
     return new SegmentContext()
         .withKey(segmentKey)
         .withName(segment.get("name").asText())
         .withRules(rules)
-        .withOverrides(overrides);
+        .withOverrides(overrides)
+        .withMetadata(metadataMap);
   }
 
   /**

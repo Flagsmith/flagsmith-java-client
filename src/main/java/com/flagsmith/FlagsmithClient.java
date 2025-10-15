@@ -1,5 +1,6 @@
 package com.flagsmith;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithApiError;
@@ -14,11 +15,13 @@ import com.flagsmith.mappers.EngineMappers;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.Segment;
+import com.flagsmith.models.SegmentMetadata;
 import com.flagsmith.threads.PollingManager;
 import com.flagsmith.utils.ModelUtils;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Data;
@@ -171,12 +174,26 @@ public class FlagsmithClient {
     final EvaluationResult result = Engine.getEvaluationResult(context);
 
     return result.getSegments().stream().map((segmentModel) -> {
+      if (segmentModel.getMetadata() == null) {
+        return null;
+      }
+
+      ObjectMapper mapper = MapperFactory.getMapper();
+      SegmentMetadata segmentMetadata = mapper.convertValue(
+          segmentModel.getMetadata(), SegmentMetadata.class);
+
+      Integer flagsmithId = segmentMetadata.getFlagsmithId();
+      if (segmentMetadata.getSource() != SegmentMetadata.Source.API
+          || flagsmithId == null) {
+        return null;
+      }
+
       Segment segment = new Segment();
-      segment.setId(Integer.valueOf(segmentModel.getKey()));
+      segment.setId(flagsmithId);
       segment.setName(segmentModel.getName());
 
       return segment;
-    }).collect(Collectors.toList());
+    }).filter(Objects::nonNull).collect(Collectors.toList());
   }
 
   /**

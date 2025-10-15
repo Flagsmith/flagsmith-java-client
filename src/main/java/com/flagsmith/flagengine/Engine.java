@@ -51,7 +51,8 @@ public class Engine {
     for (SegmentContext segmentContext : context.getSegments().getAdditionalProperties().values()) {
       if (SegmentEvaluator.isContextInSegment(context, segmentContext)) {
         segments.add(new SegmentResult().withKey(segmentContext.getKey())
-            .withName(segmentContext.getName()));
+            .withName(segmentContext.getName())
+            .withMetadata(segmentContext.getMetadata()));
 
         List<FeatureContext> segmentOverrides = segmentContext.getOverrides();
 

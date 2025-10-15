@@ -544,6 +544,45 @@ public class FlagsmithClientTest {
         }
 
         @Test
+        public void testGetIdentitySegments__NonAPISourceInMetadata__ReturnsExpected() throws JsonProcessingException,
+                        FlagsmithClientError {
+                String baseUrl = "http://bad-url";
+
+                MockInterceptor interceptor = new MockInterceptor();
+                interceptor.addRule()
+                                .get(baseUrl + "/environment-document/")
+                                .anyTimes()
+                                .respond(
+                                                FlagsmithTestHelper.environmentString(),
+                                                MEDIATYPE_JSON);
+
+                FlagsmithClient client = FlagsmithClient.newBuilder()
+                                .withConfiguration(
+                                                FlagsmithConfig.newBuilder()
+                                                                .baseUri(baseUrl)
+                                                                .addHttpInterceptor(interceptor)
+                                                                .withLocalEvaluation(true)
+                                                                .build())
+                                .setApiKey("ser.abcdefg")
+                                .build();
+
+                client.updateEnvironment();
+
+                String identifier = "overridden-identity";
+                Map<String, Object> traits = new HashMap<String, Object>() {
+                        {
+                                put("foo", "bar");
+                        }
+                };
+
+                List<Segment> segments = client.getIdentitySegments(identifier, traits);
+
+                // no identity overrides segment present
+                assertEquals(segments.size(), 1);
+                assertEquals(segments.get(0).getName(), "Test segment");
+        }
+
+        @Test
         public void testUpdateEnvironment_DoesNothing_WhenGetEnvironmentThrowsExceptionAndEnvironmentExists() {
                 // Given
                 EvaluationContext evaluationContext = FlagsmithTestHelper.evaluationContext();
