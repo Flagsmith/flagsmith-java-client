@@ -8,7 +8,6 @@ import com.flagsmith.flagengine.EvaluationContext;
 import com.flagsmith.flagengine.FeatureContext;
 import com.flagsmith.flagengine.FeatureValue;
 import com.flagsmith.flagengine.IdentityContext;
-import com.flagsmith.flagengine.Metadata;
 import com.flagsmith.flagengine.SegmentCondition;
 import com.flagsmith.flagengine.SegmentContext;
 import com.flagsmith.flagengine.SegmentRule;
