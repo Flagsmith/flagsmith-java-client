@@ -24,7 +24,7 @@ public class LocalFileHandlerTest {
         LocalFileHandler handler = new LocalFileHandler(file.getAbsolutePath());
 
         // Then
-        assertEquals(FlagsmithTestHelper.evaluationContext(), handler.getEvaluationContext());
+        assertEquals(FlagsmithTestHelper.environmentModel(), handler.getEnvironment());
 
         file.delete();
     }

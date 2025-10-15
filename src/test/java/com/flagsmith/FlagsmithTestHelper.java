@@ -13,6 +13,7 @@ import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.FeatureStateModel;
 import com.flagsmith.models.Flag;
 import com.flagsmith.models.TraitModel;
+import com.flagsmith.models.environments.EnvironmentModel;
 import com.google.common.collect.ImmutableMap;
 import io.restassured.RestAssured;
 import io.restassured.http.Header;
@@ -346,6 +347,14 @@ public class FlagsmithTestHelper {
             "    }\n" +
             "  ]\n" +
             "}";
+  }
+
+  public static EnvironmentModel environmentModel() {
+    try {
+      return MapperFactory.getMapper().readValue(environmentString(), EnvironmentModel.class);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Failed to parse environment JSON", e);
+    }
   }
 
   public static EvaluationContext evaluationContext() {

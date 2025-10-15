@@ -1,10 +1,10 @@
 package com.flagsmith;
 
-import com.flagsmith.flagengine.EvaluationContext;
 import com.flagsmith.interfaces.IOfflineHandler;
+import com.flagsmith.models.environments.EnvironmentModel;
 
 public class DummyOfflineHandler implements IOfflineHandler {
-  public EvaluationContext getEvaluationContext() {
-    return FlagsmithTestHelper.evaluationContext();
+  public EnvironmentModel getEnvironment() {
+    return FlagsmithTestHelper.environmentModel();
   }
 }

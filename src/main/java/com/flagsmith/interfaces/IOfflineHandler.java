@@ -1,7 +1,7 @@
 package com.flagsmith.interfaces;
 
-import com.flagsmith.flagengine.EvaluationContext;
+import com.flagsmith.models.environments.EnvironmentModel;
 
 public interface IOfflineHandler {
-  EvaluationContext getEvaluationContext();
+  EnvironmentModel getEnvironment();
 }

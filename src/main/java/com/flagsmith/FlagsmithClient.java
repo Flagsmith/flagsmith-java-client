@@ -549,7 +549,8 @@ public class FlagsmithClient {
           throw new FlagsmithRuntimeError(
               "Cannot use both default flag handler and offline handler.");
         }
-        client.evaluationContext = configuration.getOfflineHandler().getEvaluationContext();
+        client.evaluationContext = EngineMappers.mapEnvironmentToContext(
+          configuration.getOfflineHandler().getEnvironment());
       }
 
       return this.client;
