@@ -302,10 +302,10 @@ public class EngineMappers {
     if (node != null && !node.isNull()) {
       return node.asText();
     }
-    // Feature state key is used in multivariate feature evaluation, not to
-    // identify features uniquely, so if both fields are missing,
-    // we don't need to care about collisions.
-    return "";
+
+    throw new IllegalArgumentException(
+        "Feature state must have either 'django_id' or 'featurestate_uuid'");
+  }
 
   private static double getMultivariateFeatureValuePriority(JsonNode multivariateValue) {
     JsonNode idNode = multivariateValue.get("id");
