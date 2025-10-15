@@ -13,6 +13,16 @@ import com.flagsmith.flagengine.SegmentContext;
 import com.flagsmith.flagengine.SegmentRule;
 import com.flagsmith.flagengine.Segments;
 import com.flagsmith.flagengine.Traits;
+import com.flagsmith.flagengine.environments.EnvironmentModel;
+import com.flagsmith.flagengine.features.FeatureModel;
+import com.flagsmith.flagengine.features.FeatureSegmentModel;
+import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.flagengine.features.MultivariateFeatureStateValueModel;
+import com.flagsmith.flagengine.identities.IdentityModel;
+import com.flagsmith.flagengine.projects.ProjectModel;
+import com.flagsmith.flagengine.segments.SegmentConditionModel;
+import com.flagsmith.flagengine.segments.SegmentModel;
+import com.flagsmith.flagengine.segments.SegmentRuleModel;
 import com.flagsmith.flagengine.segments.constants.SegmentConditions;
 import com.flagsmith.models.SegmentMetadata;
 import java.util.ArrayList;
@@ -74,45 +84,45 @@ public class EngineMappers {
    */
   public static EvaluationContext mapEnvironmentDocumentToContext(
       JsonNode environmentDocument) {
+    return mapEnvironmentToContext(
+        MapperFactory.getMapper().convertValue(environmentDocument,
+            EnvironmentModel.class));
+  }
 
+  /**
+   * Maps environment model to evaluation context.
+   *
+   * @param environmentModel the environment model
+   * @return the evaluation context
+   */
+  public static EvaluationContext mapEnvironmentToContext(
+      EnvironmentModel environmentModel) {
     // Create environment context
     final EnvironmentContext environmentContext = new EnvironmentContext()
-        .withKey(environmentDocument.get("api_key").require().asText())
-        .withName(environmentDocument.get("name").require().asText());
+        .withKey(environmentModel.getApiKey())
+        .withName(environmentModel.getName());
 
     // Map features
     Map<String, FeatureContext> features = new HashMap<>();
-    JsonNode featureStates = environmentDocument.get("feature_states");
-    if (featureStates != null && featureStates.isArray()) {
-      for (JsonNode featureState : featureStates) {
-        FeatureContext featureContext = mapFeatureStateToFeatureContext(featureState);
-        features.put(featureContext.getName(), featureContext);
-      }
+    for (FeatureStateModel featureState : environmentModel.getFeatureStates()) {
+      FeatureContext featureContext = mapFeatureStateToFeatureContext(featureState);
+      features.put(featureContext.getName(), featureContext);
     }
 
     // Map segments
     Map<String, SegmentContext> segments = new HashMap<>();
 
     // Map project segments
-    JsonNode project = environmentDocument.get("project");
-    if (project != null) {
-      JsonNode projectSegments = project.get("segments");
-      if (projectSegments != null && projectSegments.isArray()) {
-        for (JsonNode segment : projectSegments) {
-          String segmentKey = segment.get("id").asText();
-          SegmentContext segmentContext = mapSegmentToSegmentContext(segment);
-          segments.put(segmentKey, segmentContext);
-        }
-      }
+    ProjectModel project = environmentModel.getProject();
+    for (SegmentModel segment : project.getSegments()) {
+      String segmentKey = String.valueOf(segment.getId());
+      segments.put(segmentKey, mapSegmentToSegmentContext(segment));
     }
 
     // Map identity overrides
-    JsonNode identityOverrides = environmentDocument.get("identity_overrides");
-    if (identityOverrides != null && identityOverrides.isArray()) {
-      Map<String, SegmentContext> identityOverrideSegments = mapIdentityOverridesToSegments(
-          identityOverrides);
-      segments.putAll(identityOverrideSegments);
-    }
+    Map<String, SegmentContext> identityOverrideSegments = mapIdentityOverridesToSegments(
+        environmentModel.getIdentityOverrides());
+    segments.putAll(identityOverrideSegments);
 
     // Create evaluation context
     EvaluationContext evaluationContext = new EvaluationContext()
@@ -142,37 +152,37 @@ public class EngineMappers {
    * @return map of segment contexts
    */
   private static Map<String, SegmentContext> mapIdentityOverridesToSegments(
-      JsonNode identityOverrides) {
+      List<IdentityModel> identityOverrides) {
 
     // Map from sorted list of feature contexts to identifiers
     Map<List<FeatureContext>, List<String>> featuresToIdentifiers = new HashMap<>();
 
-    for (JsonNode identityOverride : identityOverrides) {
-      JsonNode identityFeatures = identityOverride.get("identity_features");
-      if (identityFeatures == null || !identityFeatures.isArray() || identityFeatures.isEmpty()) {
+    for (IdentityModel identityOverride : identityOverrides) {
+      List<FeatureStateModel> identityFeatures = identityOverride.getIdentityFeatures();
+      if (identityFeatures == null || identityFeatures.isEmpty()) {
         continue;
       }
 
       // Create overrides key as a sorted list of FeatureContext objects
       List<FeatureContext> overridesKey = new ArrayList<>();
-      List<JsonNode> sortedFeatures = new ArrayList<>();
+      List<FeatureStateModel> sortedFeatures = new ArrayList<>();
       identityFeatures.forEach(sortedFeatures::add);
-      sortedFeatures.sort((a, b) -> a.get("feature").get("name").asText()
-          .compareTo(b.get("feature").get("name").asText()));
+      sortedFeatures.sort((a, b) -> a.getFeature().getName()
+          .compareTo(b.getFeature().getName()));
 
-      for (JsonNode featureState : sortedFeatures) {
-        JsonNode feature = featureState.get("feature");
+      for (FeatureStateModel featureState : sortedFeatures) {
+        FeatureModel feature = featureState.getFeature();
         FeatureContext featureContext = new FeatureContext()
             .withKey("")
-            .withFeatureKey(feature.get("id").asText())
-            .withName(feature.get("name").asText())
-            .withEnabled(featureState.get("enabled").asBoolean())
-            .withValue(getFeatureStateValue(featureState, "feature_state_value"))
+            .withFeatureKey(String.valueOf(feature.getId()))
+            .withName(feature.getName())
+            .withEnabled(featureState.getEnabled())
+            .withValue(featureState.getValue())
             .withPriority(EngineConstants.STRONGEST_PRIORITY);
         overridesKey.add(featureContext);
       }
 
-      String identifier = identityOverride.get("identifier").asText();
+      String identifier = identityOverride.getIdentifier();
       featuresToIdentifiers.computeIfAbsent(overridesKey, k -> new ArrayList<>()).add(identifier);
     }
 
@@ -231,33 +241,30 @@ public class EngineMappers {
    * @return list of segment rules
    */
   private static List<SegmentRule> mapEnvironmentDocumentRulesToContextRules(
-      JsonNode rules) {
+      List<SegmentRuleModel> rules) {
 
     List<SegmentRule> segmentRules = new ArrayList<>();
 
-    for (JsonNode rule : rules) {
+    for (SegmentRuleModel rule : rules) {
       // Map conditions
       List<SegmentCondition> conditions = new ArrayList<>();
-      JsonNode ruleConditions = rule.get("conditions");
-      if (ruleConditions != null && ruleConditions.isArray()) {
-        for (JsonNode condition : ruleConditions) {
+
+      if (rule.getConditions() != null) {
+        for (SegmentConditionModel condition : rule.getConditions()) {
           SegmentCondition segmentCondition = new SegmentCondition()
-              .withProperty(condition.get("property_").asText())
-              .withOperator(SegmentConditions.valueOf(condition.get("operator").asText()))
-              .withValue(condition.get("value").asText());
+              .withProperty(condition.getProperty())
+              .withOperator(condition.getOperator())
+              .withValue(condition.getValue());
           conditions.add(segmentCondition);
         }
       }
 
       // Map sub-rules recursively
-      List<SegmentRule> subRules = new ArrayList<>();
-      JsonNode ruleRules = rule.get("rules");
-      if (ruleRules != null && ruleRules.isArray()) {
-        subRules = mapEnvironmentDocumentRulesToContextRules(ruleRules);
-      }
+      List<SegmentRule> subRules = mapEnvironmentDocumentRulesToContextRules(
+          rule.getRules());
 
       SegmentRule segmentRule = new SegmentRule()
-          .withType(SegmentRule.Type.valueOf(rule.get("type").asText()))
+          .withType(SegmentRule.Type.fromValue(rule.getType()))
           .withConditions(conditions)
           .withRules(subRules);
 
@@ -274,13 +281,15 @@ public class EngineMappers {
    * @return list of feature contexts
    */
   private static List<FeatureContext> mapEnvironmentDocumentFeatureStatesToFeatureContexts(
-      JsonNode featureStates) {
+      List<FeatureStateModel> featureStates) {
 
     List<FeatureContext> featureContexts = new ArrayList<>();
 
-    for (JsonNode featureState : featureStates) {
-      FeatureContext featureContext = mapFeatureStateToFeatureContext(featureState);
-      featureContexts.add(featureContext);
+    if (featureStates != null) {
+      for (FeatureStateModel featureState : featureStates) {
+        FeatureContext featureContext = mapFeatureStateToFeatureContext(featureState);
+        featureContexts.add(featureContext);
+      }
     }
 
     return featureContexts;
@@ -292,52 +301,23 @@ public class EngineMappers {
    * @param featureState the feature state JSON
    * @return the feature state key as string
    */
-  private static String getFeatureStateKey(JsonNode featureState) {
-    JsonNode node = featureState.get("django_id");
-    if (node != null && !node.isNull()) {
-      return node.asText();
+  private static String getFeatureStateKey(FeatureStateModel featureState) {
+    Integer djangoId = featureState.getDjangoId();
+    if (djangoId != null) {
+      return djangoId.toString();
     }
-    node = featureState.get("featurestate_uuid");
-    if (node != null && !node.isNull()) {
-      return node.asText();
-    }
-
-    throw new IllegalArgumentException(
-        "Feature state must have either 'django_id' or 'featurestate_uuid'");
+    return featureState.getFeaturestateUuid();
   }
 
-  private static double getMultivariateFeatureValuePriority(JsonNode multivariateValue) {
-    JsonNode idNode = multivariateValue.get("id");
-    if (idNode != null && !idNode.isNull()) {
-      return idNode.asDouble();
+  private static double getMultivariateFeatureValuePriority(
+      MultivariateFeatureStateValueModel multivariateValue) {
+    if (multivariateValue.getId() != null) {
+      return multivariateValue.getId();
     }
+
     // Fallback to mv_fs_value_uuid if id is not present
-    JsonNode mvFsValueUuidNode = multivariateValue.get("mv_fs_value_uuid");
-    if (mvFsValueUuidNode != null && !mvFsValueUuidNode.isNull()) {
-      UUID mvFsValueUuid = UUID.fromString(mvFsValueUuidNode.asText());
-      return mvFsValueUuid.getMostSignificantBits() & Long.MAX_VALUE;
-    }
-
-    throw new IllegalArgumentException(
-        "Multivariate feature value must have either 'id' or 'mv_fs_value_uuid'");
-  }
-
-  private static Object getFeatureStateValue(JsonNode featureState, String fieldName) {
-    JsonNode valueNode = featureState.get(fieldName);
-    if (valueNode.isTextual() || valueNode.isLong()) {
-      return valueNode.asText();
-    } else if (valueNode.isNumber()) {
-      if (valueNode.isInt()) {
-        return valueNode.asInt();
-      } else {
-        return valueNode.asDouble();
-      }
-    } else if (valueNode.isBoolean()) {
-      return valueNode.asBoolean();
-    } else if (valueNode.isArray() || valueNode.isObject()) {
-      return valueNode;
-    }
-    return null;
+    UUID mvFsValueUuid = UUID.fromString(multivariateValue.getMvFsValueUuid());
+    return mvFsValueUuid.getMostSignificantBits() & Long.MAX_VALUE;
   }
 
   /**
@@ -346,37 +326,32 @@ public class EngineMappers {
    * @param featureState the feature state JSON
    * @return the feature context
    */
-  private static FeatureContext mapFeatureStateToFeatureContext(JsonNode featureState) {
-    JsonNode feature = featureState.get("feature");
-
+  private static FeatureContext mapFeatureStateToFeatureContext(FeatureStateModel featureState) {
     FeatureContext featureContext = new FeatureContext()
         .withKey(getFeatureStateKey(featureState))
-        .withFeatureKey(feature.get("id").asText())
-        .withName(feature.get("name").asText())
-        .withEnabled(featureState.get("enabled").asBoolean())
-        .withValue(getFeatureStateValue(featureState, "feature_state_value"));
+        .withFeatureKey(String.valueOf(featureState.getFeature().getId()))
+        .withName(featureState.getFeature().getName())
+        .withEnabled(featureState.getEnabled())
+        .withValue(featureState.getValue());
 
     // Handle multivariate feature state values
-    JsonNode multivariateValues = featureState.get("multivariate_feature_state_values");
-    if (multivariateValues != null && multivariateValues.isArray()) {
-      List<FeatureValue> variants = new ArrayList<>();
-      for (JsonNode multivariateValue : multivariateValues) {
-        FeatureValue variant = new FeatureValue()
-            .withValue(getFeatureStateValue(
-                multivariateValue.get("multivariate_feature_option"), "value"))
-            .withWeight(multivariateValue.get("percentage_allocation").asDouble())
-            .withPriority(getMultivariateFeatureValuePriority(multivariateValue));
-        variants.add(variant);
-      }
-      featureContext.withVariants(variants);
+    List<FeatureValue> variants = new ArrayList<>();
+    for (MultivariateFeatureStateValueModel mvValue :
+        featureState.getMultivariateFeatureStateValues()) {
+      FeatureValue variant = new FeatureValue()
+          .withValue(mvValue.getMultivariateFeatureOption().getValue())
+          .withWeight(mvValue.getPercentageAllocation().doubleValue())
+          .withPriority(getMultivariateFeatureValuePriority(mvValue));
+      variants.add(variant);
     }
+    featureContext.setVariants(variants);
 
     // Handle priority from feature segment
-    JsonNode featureSegment = featureState.get("feature_segment");
-    if (featureSegment != null && !featureSegment.isNull()) {
-      JsonNode priority = featureSegment.get("priority");
-      if (priority != null && !priority.isNull()) {
-        featureContext.withPriority(priority.asDouble());
+    FeatureSegmentModel featureSegment = featureState.getFeatureSegment();
+    if (featureSegment != null) {
+      Double priority = (double) featureSegment.getPriority();
+      if (priority != null) {
+        featureContext.withPriority(priority);
       }
     }
 
@@ -389,35 +364,30 @@ public class EngineMappers {
    * @param segment the segment JSON
    * @return the segment context
    */
-  private static SegmentContext mapSegmentToSegmentContext(JsonNode segment) {
+  private static SegmentContext mapSegmentToSegmentContext(SegmentModel segment) {
     // Map rules
-    List<SegmentRule> rules = new ArrayList<>();
-    JsonNode segmentRules = segment.get("rules");
-    if (segmentRules != null && segmentRules.isArray()) {
-      rules = mapEnvironmentDocumentRulesToContextRules(segmentRules);
-    }
+    List<SegmentRule> rules = mapEnvironmentDocumentRulesToContextRules(
+        segment.getRules());
 
     // Map overrides
-    List<FeatureContext> overrides = new ArrayList<>();
-    JsonNode segmentFeatureStates = segment.get("feature_states");
-    if (segmentFeatureStates != null && segmentFeatureStates.isArray()) {
-      overrides = mapEnvironmentDocumentFeatureStatesToFeatureContexts(segmentFeatureStates);
-    }
+    List<FeatureStateModel> segmentFeatureStates = segment.getFeatureStates();
+    List<FeatureContext> overrides = mapEnvironmentDocumentFeatureStatesToFeatureContexts(
+        segmentFeatureStates);
 
     // Map metadata
     SegmentMetadata metadata = new SegmentMetadata();
     metadata.setSource(SegmentMetadata.Source.API);
-    metadata.setFlagsmithId(segment.get("id").asInt());
+    metadata.setFlagsmithId(segment.getId());
 
     Map<String, Object> metadataMap = MapperFactory.getMapper()
-        .convertValue(metadata, 
+          .convertValue(metadata,
             new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
             });
 
-    String segmentKey = segment.get("id").asText();
+    String segmentKey = String.valueOf(segment.getId());
     return new SegmentContext()
         .withKey(segmentKey)
-        .withName(segment.get("name").asText())
+        .withName(segment.getName())
         .withRules(rules)
         .withOverrides(overrides)
         .withMetadata(metadataMap);
