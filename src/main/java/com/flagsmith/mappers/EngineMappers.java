@@ -7,6 +7,7 @@ import com.flagsmith.flagengine.EnvironmentContext;
 import com.flagsmith.flagengine.EvaluationContext;
 import com.flagsmith.flagengine.FeatureContext;
 import com.flagsmith.flagengine.FeatureValue;
+import com.flagsmith.flagengine.FlagResult;
 import com.flagsmith.flagengine.IdentityContext;
 import com.flagsmith.flagengine.SegmentCondition;
 import com.flagsmith.flagengine.SegmentContext;
@@ -14,6 +15,8 @@ import com.flagsmith.flagengine.SegmentRule;
 import com.flagsmith.flagengine.Segments;
 import com.flagsmith.flagengine.Traits;
 import com.flagsmith.flagengine.segments.constants.SegmentConditions;
+import com.flagsmith.models.FeatureMetadata;
+import com.flagsmith.models.Flag;
 import com.flagsmith.models.SegmentMetadata;
 import com.flagsmith.models.environments.EnvironmentModel;
 import com.flagsmith.models.features.FeatureModel;
@@ -37,6 +40,33 @@ import java.util.UUID;
  * <p>Utility class for mapping JSON data to flag engine context objects.
  */
 public class EngineMappers {
+  /**
+   * Maps FlagResult to Flag.
+   * Returns null if metadata is missing or invalid.
+   *
+   * @param flagResult the flag result
+   * @return the mapped flag or null
+   */
+  public static Flag mapFlagResultToFlag(
+      FlagResult flagResult
+  ) {
+    FeatureMetadata metadata;
+
+    metadata = MapperFactory.getMapper()
+        .convertValue(flagResult.getMetadata(), FeatureMetadata.class);
+    
+    if (metadata == null || metadata.getFlagsmithId() == null) {
+      return null;
+    }
+
+    Flag flag = new Flag();
+    flag.setFeatureId(metadata.getFlagsmithId());
+    flag.setFeatureName(flagResult.getName());
+    flag.setValue(flagResult.getValue());
+    flag.setEnabled(flagResult.getEnabled());
+    return flag;
+  }
+
   /**
    * Maps context and identity data to evaluation context.
    *
@@ -178,7 +208,8 @@ public class EngineMappers {
             .withName(feature.getName())
             .withEnabled(featureState.getEnabled())
             .withValue(featureState.getValue())
-            .withPriority(EngineConstants.STRONGEST_PRIORITY);
+            .withPriority(EngineConstants.STRONGEST_PRIORITY)
+            .withMetadata(mapFeatureStateToFeatureMetadata(featureState));
         overridesKey.add(featureContext);
       }
 
@@ -332,7 +363,8 @@ public class EngineMappers {
         .withFeatureKey(String.valueOf(featureState.getFeature().getId()))
         .withName(featureState.getFeature().getName())
         .withEnabled(featureState.getEnabled())
-        .withValue(featureState.getValue());
+        .withValue(featureState.getValue())
+        .withMetadata(mapFeatureStateToFeatureMetadata(featureState));
 
     // Handle multivariate feature state values
     List<FeatureValue> variants = new ArrayList<>();
@@ -356,6 +388,15 @@ public class EngineMappers {
     }
 
     return featureContext;
+  }
+
+  private static Map<String, Object> mapFeatureStateToFeatureMetadata(
+      FeatureStateModel featureState) {
+    FeatureMetadata metadata = new FeatureMetadata();
+    metadata.setFlagsmithId(featureState.getFeature().getId());
+    return MapperFactory.getMapper().convertValue(metadata,
+        new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
+        });
   }
 
   /**

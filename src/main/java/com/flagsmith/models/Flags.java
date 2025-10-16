@@ -7,6 +7,7 @@ import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.flagengine.EvaluationResult;
 import com.flagsmith.flagengine.FlagResult;
 import com.flagsmith.interfaces.DefaultFlagHandler;
+import com.flagsmith.mappers.EngineMappers;
 import com.flagsmith.models.features.FeatureStateModel;
 import com.flagsmith.threads.AnalyticsProcessor;
 import java.util.HashMap;
@@ -127,21 +128,14 @@ public class Flags {
       EvaluationResult evaluationResult,
       AnalyticsProcessor analyticsProcessor,
       DefaultFlagHandler defaultFlagHandler) {
-    Map<String, BaseFlag> flagMap = evaluationResult.getFlags().getAdditionalProperties()
-        .entrySet()
-        .stream()
-        .collect(
-            Collectors.toMap(
-                Entry::getKey,
-                entry -> {
-                  FlagResult flagResult = entry.getValue();
-                  Flag flag = new Flag();
-                  flag.setFeatureName(flagResult.getName());
-                  flag.setValue(flagResult.getValue());
-                  flag.setEnabled(flagResult.getEnabled());
-                  return flag;
-                }));
-
+    Map<String, BaseFlag> flagMap = new HashMap<>();
+    evaluationResult.getFlags().getAdditionalProperties().forEach((featureName, flagResult) -> {
+      Flag flag = EngineMappers.mapFlagResultToFlag(flagResult);
+      if (flag != null) {
+        flagMap.put(featureName, flag);
+      }
+    });
+    
     Flags flags = new Flags();
     flags.setFlags(flagMap);
     flags.setAnalyticsProcessor(analyticsProcessor);
