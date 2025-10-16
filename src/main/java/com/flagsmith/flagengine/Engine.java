@@ -48,37 +48,41 @@ public class Engine {
     List<SegmentResult> segments = new ArrayList<>();
     HashMap<String, ImmutablePair<String, FeatureContext>> segmentFeatureContexts = new HashMap<>();
 
-    for (SegmentContext segmentContext : context.getSegments().getAdditionalProperties().values()) {
-      if (SegmentEvaluator.isContextInSegment(context, segmentContext)) {
-        segments.add(new SegmentResult().withKey(segmentContext.getKey())
-            .withName(segmentContext.getName())
-            .withMetadata(segmentContext.getMetadata()));
+    Segments contextSegments = context.getSegments();
 
-        List<FeatureContext> segmentOverrides = segmentContext.getOverrides();
+    if (contextSegments != null) {
+      for (SegmentContext segmentContext : contextSegments.getAdditionalProperties().values()) {
+        if (SegmentEvaluator.isContextInSegment(context, segmentContext)) {
+          segments.add(new SegmentResult().withKey(segmentContext.getKey())
+              .withName(segmentContext.getName())
+              .withMetadata(segmentContext.getMetadata()));
 
-        if (segmentOverrides != null) {
-          for (FeatureContext featureContext : segmentOverrides) {
-            String featureKey = featureContext.getFeatureKey();
+          List<FeatureContext> segmentOverrides = segmentContext.getOverrides();
 
-            if (segmentFeatureContexts.containsKey(featureKey)) {
-              ImmutablePair<String, FeatureContext> existing = segmentFeatureContexts
-                  .get(featureKey);
-              FeatureContext existingFeatureContext = existing.getRight();
+          if (segmentOverrides != null) {
+            for (FeatureContext featureContext : segmentOverrides) {
+              String featureKey = featureContext.getFeatureKey();
 
-              Double existingPriority = existingFeatureContext.getPriority() == null
-                  ? EngineConstants.WEAKEST_PRIORITY
-                  : existingFeatureContext.getPriority();
-              Double featurePriority = featureContext.getPriority() == null
-                  ? EngineConstants.WEAKEST_PRIORITY
-                  : featureContext.getPriority();
+              if (segmentFeatureContexts.containsKey(featureKey)) {
+                ImmutablePair<String, FeatureContext> existing = segmentFeatureContexts
+                    .get(featureKey);
+                FeatureContext existingFeatureContext = existing.getRight();
 
-              if (existingPriority < featurePriority) {
-                continue;
+                Double existingPriority = existingFeatureContext.getPriority() == null
+                    ? EngineConstants.WEAKEST_PRIORITY
+                    : existingFeatureContext.getPriority();
+                Double featurePriority = featureContext.getPriority() == null
+                    ? EngineConstants.WEAKEST_PRIORITY
+                    : featureContext.getPriority();
+
+                if (existingPriority < featurePriority) {
+                  continue;
+                }
               }
+              segmentFeatureContexts.put(featureKey,
+                  new ImmutablePair<String, FeatureContext>(
+                      segmentContext.getName(), featureContext));
             }
-            segmentFeatureContexts.put(featureKey,
-                new ImmutablePair<String, FeatureContext>(
-                    segmentContext.getName(), featureContext));
           }
         }
       }
@@ -110,7 +114,8 @@ public class Engine {
                   .withName(featureContext.getName())
                   .withValue(featureContext.getValue())
                   .withReason(
-                      "TARGETING_MATCH; segment=" + segmentNameFeaturePair.getLeft()));
+                      "TARGETING_MATCH; segment=" + segmentNameFeaturePair.getLeft())
+                  .withMetadata(featureContext.getMetadata()));
         } else {
           flags.setAdditionalProperty(featureContext.getName(),
               getFlagResultFromFeatureContext(featureContext, identityKey));
@@ -146,7 +151,8 @@ public class Engine {
                 .withFeatureKey(featureContext.getFeatureKey())
                 .withName(featureContext.getName())
                 .withValue(variant.getValue())
-                .withReason("SPLIT; weight=" + weight.intValue());
+                .withReason("SPLIT; weight=" + weight.intValue())
+                .withMetadata(featureContext.getMetadata());
           }
           startPercentage = limit;
         }
@@ -157,6 +163,7 @@ public class Engine {
         .withFeatureKey(featureContext.getFeatureKey())
         .withName(featureContext.getName())
         .withValue(featureContext.getValue())
-        .withReason("DEFAULT");
+        .withReason("DEFAULT")
+        .withMetadata(featureContext.getMetadata());
   }
 }
