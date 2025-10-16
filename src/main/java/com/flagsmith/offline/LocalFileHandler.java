@@ -20,7 +20,7 @@ public class LocalFileHandler implements IOfflineHandler {
   public LocalFileHandler(String filePath) throws FlagsmithClientError {
     File file = new File(filePath);
     try {
-      this.environmentModel = objectMapper.readValue(file, EnvironmentModel.class);
+      environmentModel = objectMapper.readValue(file, EnvironmentModel.class);
     } catch (IOException e) {
       throw new FlagsmithClientError("Unable to read environment from file " + filePath);
     }

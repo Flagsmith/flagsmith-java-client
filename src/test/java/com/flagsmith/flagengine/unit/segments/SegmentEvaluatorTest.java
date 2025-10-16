@@ -64,12 +64,12 @@ public class SegmentEvaluatorTest {
 
   private static Stream<Arguments> traitExistenceChecks() {
     return Stream.of(
-        Arguments.of(SegmentConditions.IS_SET, "foo", new ArrayList<>(), false),
-        Arguments.of(SegmentConditions.IS_NOT_SET, "foo", new ArrayList<>(), true),
-        Arguments.of(SegmentConditions.IS_SET, "foo", new ArrayList<>(Arrays.asList(
-            new TraitModel("foo", "bar"))), true),
-        Arguments.of(SegmentConditions.IS_NOT_SET, "foo", new ArrayList<>(Arrays.asList(
-            new TraitModel("foo", "bar"))), false)
+      Arguments.of(SegmentConditions.IS_SET, "foo", new ArrayList<>(), false),
+      Arguments.of(SegmentConditions.IS_NOT_SET, "foo", new ArrayList<>(), true),
+      Arguments.of(SegmentConditions.IS_SET, "foo", new ArrayList<>(Arrays.asList(
+        new TraitModel("foo", "bar"))), true),
+      Arguments.of(SegmentConditions.IS_NOT_SET, "foo", new ArrayList<>(Arrays.asList(
+        new TraitModel("foo", "bar"))), false)
     );
   }
 
