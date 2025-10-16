@@ -15,7 +15,7 @@ import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.config.Retry;
 import com.flagsmith.interfaces.FlagsmithCache;
-import com.flagsmith.models.FeatureStateModel;
+import com.flagsmith.models.features.FeatureStateModel;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.TraitModel;
 import com.flagsmith.responses.FlagsAndTraitsResponse;

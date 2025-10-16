@@ -10,7 +10,8 @@ import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.flagengine.EvaluationContext;
 import com.flagsmith.mappers.EngineMappers;
 import com.flagsmith.models.BaseFlag;
-import com.flagsmith.models.FeatureStateModel;
+import com.flagsmith.models.features.FeatureStateModel;
+import com.flagsmith.models.features.FeatureModel;
 import com.flagsmith.models.Flag;
 import com.flagsmith.models.TraitModel;
 import com.flagsmith.models.environments.EnvironmentModel;
@@ -245,7 +246,7 @@ public class FlagsmithTestHelper {
     result.setEnabled(enabled);
     result.setValue(value);
 
-    final FeatureStateModel.FeatureModel feature = result.new FeatureModel();
+    final FeatureModel feature = result.new FeatureModel();
     feature.setName(name);
     feature.setType(type);
 

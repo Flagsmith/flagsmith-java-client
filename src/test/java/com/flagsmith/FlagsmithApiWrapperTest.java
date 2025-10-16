@@ -19,7 +19,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.config.Retry;
 import com.flagsmith.models.BaseFlag;
-import com.flagsmith.models.FeatureStateModel;
+import com.flagsmith.models.features.FeatureStateModel;
+import com.flagsmith.models.features.FeatureModel;
 import com.flagsmith.models.Flag;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.TraitModel;
@@ -194,7 +195,7 @@ public class FlagsmithApiWrapperTest {
 
   private FeatureStateModel getNewFlag() {
     final FeatureStateModel flag = new FeatureStateModel();
-    final FeatureStateModel.FeatureModel feature = flag.new FeatureModel();
+    final FeatureModel feature = new FeatureModel();
     feature.setName("my-test-flag");
     feature.setId(123);
     flag.setFeature(feature);

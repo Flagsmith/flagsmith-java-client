@@ -1,6 +1,7 @@
 package com.flagsmith.models;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.flagsmith.models.features.FeatureStateModel;
 import lombok.Data;
 
 @Data

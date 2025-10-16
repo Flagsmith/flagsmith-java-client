@@ -7,6 +7,7 @@ import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.flagengine.EvaluationResult;
 import com.flagsmith.flagengine.FlagResult;
 import com.flagsmith.interfaces.DefaultFlagHandler;
+import com.flagsmith.models.features.FeatureStateModel;
 import com.flagsmith.threads.AnalyticsProcessor;
 import java.util.HashMap;
 import java.util.List;

@@ -24,7 +24,7 @@ import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.DefaultFlag;
 import com.flagsmith.models.environments.EnvironmentModel;
-import com.flagsmith.models.FeatureStateModel;
+import com.flagsmith.models.features.FeatureStateModel;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.SdkTraitModel;
 import com.flagsmith.models.Segment;
