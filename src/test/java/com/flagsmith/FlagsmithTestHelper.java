@@ -246,7 +246,7 @@ public class FlagsmithTestHelper {
     result.setEnabled(enabled);
     result.setValue(value);
 
-    final FeatureModel feature = result.new FeatureModel();
+    final FeatureModel feature = new FeatureModel();
     feature.setName(name);
     feature.setType(type);
 
