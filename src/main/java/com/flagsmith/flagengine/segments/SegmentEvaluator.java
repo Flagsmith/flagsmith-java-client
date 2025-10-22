@@ -83,6 +83,10 @@ public class SegmentEvaluator {
 
     switch (operator) {
       case IN:
+        if (contextValue == null || contextValue instanceof Boolean) {
+          return false;
+        }
+
         List<String> conditionList = new ArrayList<>();
 
         if (conditionValue instanceof List) {
@@ -102,11 +106,7 @@ public class SegmentEvaluator {
           }
         }
 
-        if (!(contextValue instanceof Boolean) && contextValue != null) {
-          contextValue = String.valueOf(contextValue);
-        }
-
-        return conditionList.contains(contextValue);
+        return conditionList.contains(String.valueOf(contextValue));
 
       case PERCENTAGE_SPLIT:
         String key;
