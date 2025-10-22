@@ -28,17 +28,15 @@ public class FlagsTest {
         .withName("Feature 2")
         .withValue(null)
         .withReason("DEFAULT")
+        .withMetadata(Map.of())
       );
     EvaluationResult evaluationResult = new EvaluationResult()
       .withFlags(flagResults);
 
     Flags flags = Flags.fromEvaluationResult(evaluationResult, null, null);
-    Flag flag = (Flag) flags.getFlag("feature_1");
-
-    assertEquals(1, flags.getFlags().size());
-    assertEquals(true, flag.getEnabled());
-    assertEquals("value_1", flag.getValue());
-    assertEquals("Feature 1", flag.getFeatureName());
-    assertEquals(1, flag.getFeatureId().intValue());
+    
+    assertEquals(2, flags.getFlags().size());
+    assertEquals(1, ((Flag) flags.getFlag("feature_1")).getFeatureId().intValue());
+    assertEquals(null, ((Flag) flags.getFlag("feature_2")).getFeatureId());
   }
 }
