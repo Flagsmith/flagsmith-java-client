@@ -88,7 +88,6 @@ public class SegmentEvaluator {
         if (conditionValue instanceof List) {
           List<?> maybeConditionList = (List<?>) conditionValue;
           conditionList = maybeConditionList.stream()
-              .filter(String.class::isInstance)
               .map(Object::toString)
               .collect(Collectors.toList());
         } else if (conditionValue instanceof String) {
