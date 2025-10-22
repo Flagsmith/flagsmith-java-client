@@ -11,6 +11,7 @@ import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.mappers.EngineMappers;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.TraitModel;
+import com.flagsmith.models.environments.EnvironmentModel;
 import com.flagsmith.models.features.FeatureStateModel;
 import com.flagsmith.responses.FlagsAndTraitsResponse;
 import com.flagsmith.threads.AnalyticsProcessor;
@@ -252,13 +253,13 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   public EvaluationContext getEvaluationContext() {
     final Request request = newGetRequest(defaultConfig.getEnvironmentUri());
 
-    Future<JsonNode> environmentFuture = requestor.executeAsync(request,
-        new TypeReference<JsonNode>() {},
+    Future<EnvironmentModel> environmentFuture = requestor.executeAsync(request,
+        new TypeReference<EnvironmentModel>() {},
         Boolean.TRUE);
 
     try {
-      JsonNode environmentJson = environmentFuture.get(TIMEOUT, TimeUnit.MILLISECONDS);
-      return EngineMappers.mapEnvironmentDocumentToContext(environmentJson);
+      EnvironmentModel environment = environmentFuture.get(TIMEOUT, TimeUnit.MILLISECONDS);
+      return EngineMappers.mapEnvironmentToContext(environment);
     } catch (TimeoutException ie) {
       logger.error("Timed out on fetching Feature flags.", ie);
     } catch (InterruptedException ie) {

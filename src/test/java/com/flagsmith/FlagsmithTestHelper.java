@@ -359,11 +359,7 @@ public class FlagsmithTestHelper {
   }
 
   public static EvaluationContext evaluationContext() {
-    try {
-      return EngineMappers.mapEnvironmentDocumentToContext(MapperFactory.getMapper().readTree(environmentString()));
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException("Failed to parse environment JSON", e);
-    }
+      return EngineMappers.mapEnvironmentToContext(environmentModel());
   }
 
   public static List<FeatureStateModel> getFlags() {
