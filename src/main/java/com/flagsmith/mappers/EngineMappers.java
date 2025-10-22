@@ -54,10 +54,6 @@ public class EngineMappers {
 
     metadata = MapperFactory.getMapper()
         .convertValue(flagResult.getMetadata(), FeatureMetadata.class);
-    
-    if (metadata == null || metadata.getFlagsmithId() == null) {
-      return null;
-    }
 
     Flag flag = new Flag();
     flag.setFeatureId(metadata.getFlagsmithId());
