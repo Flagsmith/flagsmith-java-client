@@ -73,7 +73,7 @@ public class FlagsmithClient {
    */
   public Flags getEnvironmentFlags() throws FlagsmithClientError {
     if (getShouldUseEnvironmentDocument()) {
-      return getEnvironmentFlagsFromDocument();
+      return getEnvironmentFlagsFromEvaluationContext();
     }
 
     return getEnvironmentFlagsFromApi();
@@ -137,7 +137,7 @@ public class FlagsmithClient {
   public Flags getIdentityFlags(String identifier, Map<String, Object> traits, boolean isTransient)
       throws FlagsmithClientError {
     if (getShouldUseEnvironmentDocument()) {
-      return getIdentityFlagsFromDocument(identifier, traits);
+      return getIdentityFlagsFromEvaluationContext(identifier, traits);
     }
 
     return getIdentityFlagsFromApi(identifier, traits, isTransient);
@@ -207,7 +207,7 @@ public class FlagsmithClient {
     flagsmithSdk.close();
   }
 
-  private Flags getEnvironmentFlagsFromDocument() throws FlagsmithClientError {
+  private Flags getEnvironmentFlagsFromEvaluationContext() throws FlagsmithClientError {
     if (evaluationContext == null) {
       if (getConfig().getFlagsmithFlagDefaults() == null) {
         throw new FlagsmithClientError("Unable to get flags. No environment present.");
@@ -223,7 +223,7 @@ public class FlagsmithClient {
         getConfig().getFlagsmithFlagDefaults());
   }
 
-  private Flags getIdentityFlagsFromDocument(
+  private Flags getIdentityFlagsFromEvaluationContext(
       String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
     if (evaluationContext == null) {
@@ -252,7 +252,7 @@ public class FlagsmithClient {
         return getDefaultFlags();
       } else if (evaluationContext != null) {
         try {
-          return getEnvironmentFlagsFromDocument();
+          return getEnvironmentFlagsFromEvaluationContext();
         } catch (FlagsmithClientError ce) {
           // Do nothing and fall through to FlagsmithApiError
         }
@@ -276,7 +276,7 @@ public class FlagsmithClient {
         return getDefaultFlags();
       } else if (evaluationContext != null) {
         try {
-          return getIdentityFlagsFromDocument(identifier, traits);
+          return getIdentityFlagsFromEvaluationContext(identifier, traits);
         } catch (FlagsmithClientError ce) {
           // Do nothing and fall through to FlagsmithApiError
         }
