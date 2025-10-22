@@ -83,27 +83,4 @@ public class Traits {
     }
     return sb.toString();
   }
-
-  @Override
-  public int hashCode() {
-    int result = 1;
-    result = ((result * 31) + ((this.additionalProperties == null) ? 0
-        : this.additionalProperties.hashCode()));
-    return result;
-  }
-
-  @Override
-  public boolean equals(Object other) {
-    if (other == this) {
-      return true;
-    }
-    if ((other instanceof Traits) == false) {
-      return false;
-    }
-    Traits rhs = ((Traits) other);
-    return ((this.additionalProperties == rhs.additionalProperties)
-        || ((this.additionalProperties != null)
-        && this.additionalProperties.equals(rhs.additionalProperties)));
-  }
-
 }

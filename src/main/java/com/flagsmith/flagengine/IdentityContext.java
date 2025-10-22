@@ -276,35 +276,4 @@ public class IdentityContext {
     return sb.toString();
   }
 
-  @Override
-  public int hashCode() {
-    int result = 1;
-    result = ((result * 31) + ((this.identifier == null) ? 0 : this.identifier.hashCode()));
-    result = ((result * 31) + ((this.traits == null) ? 0 : this.traits.hashCode()));
-    result = ((result * 31) + ((this.additionalProperties == null) ? 0
-        : this.additionalProperties.hashCode()));
-    result = ((result * 31) + ((this.key == null) ? 0 : this.key.hashCode()));
-    return result;
-  }
-
-  @Override
-  public boolean equals(Object other) {
-    if (other == this) {
-      return true;
-    }
-    if ((other instanceof IdentityContext) == false) {
-      return false;
-    }
-    IdentityContext rhs = ((IdentityContext) other);
-    return (((((this.identifier == rhs.identifier)
-        || ((this.identifier != null) && this.identifier.equals(rhs.identifier)))
-        && ((this.traits == rhs.traits) || ((this.traits != null)
-            && this.traits.equals(rhs.traits))))
-        && ((this.additionalProperties == rhs.additionalProperties)
-            || ((this.additionalProperties != null)
-                && this.additionalProperties.equals(rhs.additionalProperties))))
-        && ((this.key == rhs.key) || ((this.key != null)
-            && this.key.equals(rhs.key))));
-  }
-
 }
