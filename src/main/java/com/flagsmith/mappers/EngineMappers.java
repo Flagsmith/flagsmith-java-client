@@ -243,10 +243,7 @@ public class EngineMappers {
       SegmentMetadata metadata = new SegmentMetadata();
       metadata.setSource(SegmentMetadata.Source.IDENTITY_OVERRIDES);
 
-      Map<String, Object> metadataMap = MapperFactory.getMapper()
-          .convertValue(metadata, 
-              new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
-              });
+      Map<String, Object> metadataMap = mapSegmentMetadataToMetadataMap(metadata);
 
       SegmentContext segmentContext = new SegmentContext()
           .withKey("") // Identity override segments never use % Split operator
@@ -416,10 +413,7 @@ public class EngineMappers {
     metadata.setSource(SegmentMetadata.Source.API);
     metadata.setFlagsmithId(segment.getId());
 
-    Map<String, Object> metadataMap = MapperFactory.getMapper()
-          .convertValue(metadata,
-            new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
-            });
+    Map<String, Object> metadataMap = mapSegmentMetadataToMetadataMap(metadata);
 
     String segmentKey = String.valueOf(segment.getId());
     return new SegmentContext()
@@ -455,5 +449,11 @@ public class EngineMappers {
     // Generate a hash of the combined string for a shorter key
     // This is safer than using List.hashCode() as we control the string content
     return String.valueOf(keyBuilder.toString().hashCode());
+  }
+
+  private static Map<String, Object> mapSegmentMetadataToMetadataMap(SegmentMetadata metadata) {
+    return MapperFactory.getMapper().convertValue(metadata,
+        new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
+        });
   }
 }
