@@ -173,12 +173,13 @@ public class FlagsmithClient {
 
     final EvaluationResult result = Engine.getEvaluationResult(context);
 
+    ObjectMapper mapper = MapperFactory.getMapper();
+
     return result.getSegments().stream().map((segmentModel) -> {
       if (segmentModel.getMetadata() == null) {
         return null;
       }
 
-      ObjectMapper mapper = MapperFactory.getMapper();
       SegmentMetadata segmentMetadata = mapper.convertValue(
           segmentModel.getMetadata(), SegmentMetadata.class);
 
