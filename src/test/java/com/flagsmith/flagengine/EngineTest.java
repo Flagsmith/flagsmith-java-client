@@ -1,94 +1,59 @@
 package com.flagsmith.flagengine;
 
+import com.fasterxml.jackson.core.json.JsonReadFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.flagsmith.MapperFactory;
-import com.flagsmith.flagengine.environments.EnvironmentModel;
-import com.flagsmith.flagengine.features.FeatureStateModel;
-import com.flagsmith.flagengine.identities.IdentityModel;
-import com.flagsmith.flagengine.models.ResponseJSON;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.BeforeClass;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.stream.Stream;
+import org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class EngineTest {
-  private static final String ENVIRONMENT_JSON_FILE_LOCATION =
-      "src/test/java/com/flagsmith/flagengine/enginetestdata/" +
-          "data/environment_n9fbf9h3v4fFgH3U3ngWhb.json";
+  private static final Path testCasesPath = Paths
+      .get("src/test/java/com/flagsmith/flagengine/enginetestdata/test_cases");
+  private static JsonMapper mapper = JsonMapper.builder()
+      .enable(JsonReadFeature.ALLOW_JAVA_COMMENTS.mappedFeature())
+      .build();
+  RecursiveComparisonConfiguration recursiveComparisonConfig = RecursiveComparisonConfiguration.builder()
+      .build();
 
-  private static Stream<Arguments> engineTestData() {
-    try {
-      ObjectMapper objectMapper = MapperFactory.getMapper();
-      JsonNode engineTestData = objectMapper.
-          readTree(new File(ENVIRONMENT_JSON_FILE_LOCATION));
-
-      JsonNode environmentNode = engineTestData.get("environment");
-      EnvironmentModel environmentModel = EnvironmentModel.load(environmentNode, EnvironmentModel.class);
-
-      JsonNode identitiesAndResponses = engineTestData.get("identities_and_responses");
-
-      List<Arguments> returnValues = new ArrayList<>();
-
-      if (identitiesAndResponses.isArray()) {
-        for (JsonNode identityAndResponse : identitiesAndResponses) {
-          IdentityModel identityModel =
-              IdentityModel.load(identityAndResponse.get("identity"), IdentityModel.class);
-          ResponseJSON expectedResponse =
-              objectMapper.treeToValue(identityAndResponse.get("response"), ResponseJSON.class);
-
-          returnValues.add(Arguments.of(identityModel, environmentModel, expectedResponse));
-
-        }
-      }
-
-      return returnValues.stream();
-
-    } catch (Exception e) {
-      System.out.println(e.getMessage());
+  private static Arguments engineTestDataFromFile(Path path) {
+    try (BufferedReader reader = Files.newBufferedReader(path)) {
+      JsonNode root = mapper.readTree(reader);
+      return Arguments.argumentSet(
+          path.getFileName().toString(),
+          mapper.treeToValue(root.get("context"), EvaluationContext.class),
+          mapper.treeToValue(root.get("result"), EvaluationResult.class));
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to read test data from file: " + path, e);
     }
-    return null;
+  }
+
+  private static Stream<Arguments> engineTestData() throws IOException {
+    return Files.walk(testCasesPath)
+        .filter(Files::isRegularFile)
+        .filter(p -> {
+          String n = p.getFileName().toString();
+          return n.endsWith(".json") || n.endsWith(".jsonc");
+        })
+        .map(EngineTest::engineTestDataFromFile);
   }
 
   @ParameterizedTest()
   @MethodSource("engineTestData")
-  public void testEngine(IdentityModel identity, EnvironmentModel environmentModel, ResponseJSON expectedResponse) {
-    List<FeatureStateModel> featureStates =
-        Engine.getIdentityFeatureStates(environmentModel, identity);
+  public void testEngine(EvaluationContext evaluationContext, EvaluationResult expectedResult) {
+    EvaluationResult evaluationResult = Engine.getEvaluationResult(evaluationContext);
 
-    List<FeatureStateModel> sortedFeatureStates = featureStates
-        .stream()
-        .sorted((featureState1, t1)
-            -> featureState1.getFeature().getName()
-            .compareTo(t1.getFeature().getName()))
-        .collect(Collectors.toList());
-
-    List<FeatureStateModel> sortedResponse = expectedResponse.getFlags()
-        .stream()
-        .sorted((featureState1, t1)
-            -> featureState1.getFeature().getName()
-            .compareTo(t1.getFeature().getName()))
-        .collect(Collectors.toList());
-
-    assert (sortedResponse.size() == sortedFeatureStates.size());
-
-    int index = 0;
-    for (FeatureStateModel featureState : sortedFeatureStates) {
-      Object featureStateValue = featureState.getValue(identity.getDjangoId());
-      Object expectedResponseValue = sortedResponse.get(index).getValue(identity.getDjangoId());
-
-      assertEquals(featureStateValue, expectedResponseValue);
-      assertEquals(featureState.getEnabled(), sortedResponse.get(index).getEnabled());
-      index++;
-    }
+    assertThat(evaluationResult)
+        .usingRecursiveComparison(recursiveComparisonConfig)
+        .ignoringAllOverriddenEquals()
+        .isEqualTo(expectedResult);
   }
 }

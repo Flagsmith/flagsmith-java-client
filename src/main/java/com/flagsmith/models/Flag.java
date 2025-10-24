@@ -1,9 +1,8 @@
 package com.flagsmith.models;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.models.features.FeatureStateModel;
 import lombok.Data;
-import lombok.ToString;
 
 @Data
 public class Flag extends BaseFlag {
@@ -14,13 +13,12 @@ public class Flag extends BaseFlag {
    * return flag from feature state model and identity id.
    *
    * @param featureState feature state model
-   * @param identityId identity id
    */
-  public static Flag fromFeatureStateModel(FeatureStateModel featureState, Object identityId) {
+  public static Flag fromFeatureStateModel(FeatureStateModel featureState) {
     Flag flag = new Flag();
 
     flag.setFeatureId(featureState.getFeature().getId());
-    flag.setValue(featureState.getValue(identityId));
+    flag.setValue(featureState.getValue());
     flag.setFeatureName(featureState.getFeature().getName());
     flag.setEnabled(featureState.getEnabled());
 

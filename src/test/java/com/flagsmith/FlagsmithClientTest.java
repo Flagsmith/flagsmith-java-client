@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
@@ -20,17 +19,17 @@ import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithApiError;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.exceptions.FlagsmithRuntimeError;
-import com.flagsmith.flagengine.environments.EnvironmentModel;
-import com.flagsmith.flagengine.features.FeatureStateModel;
-import com.flagsmith.flagengine.identities.IdentityModel;
-import com.flagsmith.flagengine.identities.traits.TraitModel;
+import com.flagsmith.flagengine.EvaluationContext;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.DefaultFlag;
+import com.flagsmith.models.environments.EnvironmentModel;
+import com.flagsmith.models.features.FeatureStateModel;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.SdkTraitModel;
 import com.flagsmith.models.Segment;
 import com.flagsmith.models.TraitConfig;
+import com.flagsmith.models.TraitModel;
 import com.flagsmith.responses.FlagsAndTraitsResponse;
 import com.flagsmith.threads.PollingManager;
 import com.flagsmith.threads.RequestProcessor;
@@ -159,18 +158,18 @@ public class FlagsmithClientTest {
                 .setApiKey("api-key")
                 .build();
 
-        EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
+        EvaluationContext evaluationContext = FlagsmithTestHelper.evaluationContext();
 
         interceptor.addRule()
                 .get(baseUrl + "/environment-document/")
                 .anyTimes()
                 .respond(
-                        MapperFactory.getMapper().writeValueAsString(environmentModel),
+                        FlagsmithTestHelper.environmentString(),
                         MEDIATYPE_JSON);
 
         client.updateEnvironment();
-        assertNotNull(client.getEnvironment());
-        assertEquals(client.getEnvironment(), environmentModel);
+        assertNotNull(client.getEvaluationContext());
+        assertEquals(client.getEvaluationContext(), evaluationContext);
     }
 
     @Test
@@ -548,11 +547,11 @@ public class FlagsmithClientTest {
     @Test
     public void testUpdateEnvironment_DoesNothing_WhenGetEnvironmentThrowsExceptionAndEnvironmentExists() {
         // Given
-        EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
+        EvaluationContext evaluationContext = FlagsmithTestHelper.evaluationContext();
 
         FlagsmithApiWrapper mockApiWrapper = mock(FlagsmithApiWrapper.class);
-        when(mockApiWrapper.getEnvironment())
-                .thenReturn(environmentModel)
+        when(mockApiWrapper.getEvaluationContext())
+                .thenReturn(evaluationContext)
                 .thenThrow(RuntimeException.class);
 
         FlagsmithClient client = FlagsmithClient.newBuilder()
@@ -570,17 +569,17 @@ public class FlagsmithClientTest {
         // Then
         // No exception is thrown and the client environment remains what was first
         // retrieved from the ApiWrapper
-        assertEquals(client.getEnvironment(), environmentModel);
+        assertEquals(client.getEvaluationContext(), evaluationContext);
     }
 
     @Test
     public void testUpdateEnvironment_DoesNothing_WhenGetEnvironmentReturnsNullAndEnvironmentExists() {
         // Given
-        EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
+        EvaluationContext evaluationContext = FlagsmithTestHelper.evaluationContext();
 
         FlagsmithApiWrapper mockApiWrapper = mock(FlagsmithApiWrapper.class);
-        when(mockApiWrapper.getEnvironment())
-                .thenReturn(environmentModel)
+        when(mockApiWrapper.getEvaluationContext())
+                .thenReturn(evaluationContext)
                 .thenReturn(null);
 
         FlagsmithClient client = FlagsmithClient.newBuilder()
@@ -597,14 +596,14 @@ public class FlagsmithClientTest {
 
         // Then
         // The client environment is not overwritten with null
-        assertEquals(client.getEnvironment(), environmentModel);
+        assertEquals(client.getEvaluationContext(), evaluationContext);
     }
 
     @Test
     public void testUpdateEnvironment_DoesNothing_WhenGetEnvironmentReturnsNullAndEnvironmentNotExists() {
         // Given
         FlagsmithApiWrapper mockApiWrapper = mock(FlagsmithApiWrapper.class);
-        when(mockApiWrapper.getEnvironment()).thenThrow(RuntimeException.class);
+        when(mockApiWrapper.getEvaluationContext()).thenThrow(RuntimeException.class);
 
         FlagsmithClient client = FlagsmithClient.newBuilder()
                 .withFlagsmithApiWrapper(mockApiWrapper)
@@ -617,20 +616,26 @@ public class FlagsmithClientTest {
 
         // Then
         // The environment remains null
-        assertEquals(client.getEnvironment(), null);
+        assertEquals(client.getEvaluationContext(), null);
     }
 
     @Test
-    public void testUpdateEnvironment_StoresIdentityOverrides_WhenGetEnvironmentReturnsEnvironmentWithOverrides() {
+    public void testUpdateEnvironment_StoresIdentityOverrides_WhenGetEnvironmentReturnsEnvironmentWithOverrides()
+        throws FlagsmithClientError {
         // Given
-        EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
+        EvaluationContext evaluationContext = FlagsmithTestHelper.evaluationContext();
+
+        FlagsmithConfig config = FlagsmithConfig.newBuilder()
+                        .withLocalEvaluation(true)
+                        .build();
 
         FlagsmithApiWrapper mockApiWrapper = mock(FlagsmithApiWrapper.class);
-        when(mockApiWrapper.getEnvironment()).thenReturn(environmentModel);
+        when(mockApiWrapper.getEvaluationContext()).thenReturn(evaluationContext);
+        when(mockApiWrapper.getConfig()).thenReturn(config);
 
         FlagsmithClient client = FlagsmithClient.newBuilder()
                 .withFlagsmithApiWrapper(mockApiWrapper)
-                .withConfiguration(FlagsmithConfig.newBuilder().withLocalEvaluation(true).build())
+                .withConfiguration(config)
                 .setApiKey("ser.dummy-key")
                 .build();
 
@@ -639,10 +644,10 @@ public class FlagsmithClientTest {
 
         // Then
         // Identity overrides are correctly stored
-        IdentityModel actualIdentity = client.getIdentitiesWithOverridesByIdentifier().get("overridden-identity");
-
-        assertEquals(actualIdentity.getIdentityFeatures().size(), 1);
-        assertEquals(actualIdentity.getIdentityFeatures().iterator().next().getValue(), "overridden-value");
+        assertEquals(
+                client.getIdentityFlags("overridden-identity")
+                        .getFlag("some_feature").getValue(),
+                "overridden-value");
     }
 
     @Test
@@ -686,13 +691,13 @@ public class FlagsmithClientTest {
         // evaluate flags soon after the client is instantiated.
 
         // Given
-        EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
+        EvaluationContext evaluationContext = FlagsmithTestHelper.evaluationContext();
 
         FlagsmithConfig config = FlagsmithConfig.newBuilder().withLocalEvaluation(true).build();
 
         FlagsmithApiWrapper mockedApiWrapper = mock(FlagsmithApiWrapper.class);
-        when(mockedApiWrapper.getEnvironment())
-                .thenReturn(environmentModel)
+        when(mockedApiWrapper.getEvaluationContext())
+                .thenReturn(evaluationContext)
                 .thenReturn(null);
         when(mockedApiWrapper.getConfig()).thenReturn(config);
 
@@ -723,13 +728,13 @@ public class FlagsmithClientTest {
     @Test
     public void testLocalEvaluation_ReturnsIdentityOverrides() throws FlagsmithClientError {
         // Given
-        EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
+        EvaluationContext evaluationContext = FlagsmithTestHelper.evaluationContext();
 
         FlagsmithConfig config = FlagsmithConfig.newBuilder().withLocalEvaluation(true).build();
 
         FlagsmithApiWrapper mockedApiWrapper = mock(FlagsmithApiWrapper.class);
-        when(mockedApiWrapper.getEnvironment())
-                .thenReturn(environmentModel)
+        when(mockedApiWrapper.getEvaluationContext())
+                .thenReturn(evaluationContext)
                 .thenReturn(null);
         when(mockedApiWrapper.getConfig()).thenReturn(config);
 
@@ -755,7 +760,7 @@ public class FlagsmithClientTest {
         // Given
         FlagsmithConfig config = FlagsmithConfig.newBuilder().withLocalEvaluation(true).build();
         FlagsmithApiWrapper mockedApiWrapper = mock(FlagsmithApiWrapper.class);
-        when(mockedApiWrapper.getEnvironment()).thenThrow(RuntimeException.class);
+        when(mockedApiWrapper.getEvaluationContext()).thenThrow(RuntimeException.class);
         when(mockedApiWrapper.getConfig()).thenReturn(config);
 
         FlagsmithClient client = FlagsmithClient.newBuilder()
@@ -778,7 +783,7 @@ public class FlagsmithClientTest {
         // Given
         FlagsmithConfig config = FlagsmithConfig.newBuilder().withLocalEvaluation(true).build();
         FlagsmithApiWrapper mockedApiWrapper = mock(FlagsmithApiWrapper.class);
-        when(mockedApiWrapper.getEnvironment()).thenThrow(RuntimeException.class);
+        when(mockedApiWrapper.getEvaluationContext()).thenThrow(RuntimeException.class);
         when(mockedApiWrapper.getConfig()).thenReturn(config);
 
         FlagsmithClient client = FlagsmithClient.newBuilder()
@@ -808,7 +813,7 @@ public class FlagsmithClientTest {
                 .build();
 
         FlagsmithApiWrapper mockedApiWrapper = mock(FlagsmithApiWrapper.class);
-        when(mockedApiWrapper.getEnvironment()).thenReturn(FlagsmithTestHelper.environmentModel());
+        when(mockedApiWrapper.getEvaluationContext()).thenReturn(FlagsmithTestHelper.evaluationContext());
         when(mockedApiWrapper.getConfig()).thenReturn(config);
 
         FlagsmithClient client = FlagsmithClient.newBuilder()
@@ -831,7 +836,7 @@ public class FlagsmithClientTest {
     @Test
     public void testOfflineMode() throws FlagsmithClientError {
         // Given
-        EnvironmentModel environmentModel = FlagsmithTestHelper.environmentModel();
+        EvaluationContext evaluationContext = FlagsmithTestHelper.evaluationContext();
         FlagsmithConfig config = FlagsmithConfig
                 .newBuilder()
                 .withOfflineMode(true)
@@ -842,7 +847,7 @@ public class FlagsmithClientTest {
         FlagsmithClient client = FlagsmithClient.newBuilder().withConfiguration(config).build();
 
         // Then
-        assertEquals(environmentModel, client.getEnvironment());
+        assertEquals(evaluationContext, client.getEvaluationContext());
 
         Flags environmentFlags = client.getEnvironmentFlags();
         assertTrue(environmentFlags.isFeatureEnabled("some_feature"));

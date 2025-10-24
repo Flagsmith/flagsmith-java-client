@@ -3,8 +3,8 @@ package com.flagsmith.offline;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.exceptions.FlagsmithClientError;
-import com.flagsmith.flagengine.environments.EnvironmentModel;
 import com.flagsmith.interfaces.IOfflineHandler;
+import com.flagsmith.models.environments.EnvironmentModel;
 import java.io.File;
 import java.io.IOException;
 

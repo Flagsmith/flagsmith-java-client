@@ -1,196 +1,211 @@
 package com.flagsmith.flagengine.segments;
 
-import com.flagsmith.flagengine.environments.EnvironmentModel;
-import com.flagsmith.flagengine.identities.IdentityModel;
-import com.flagsmith.flagengine.identities.traits.TraitModel;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flagsmith.flagengine.EvaluationContext;
+import com.flagsmith.flagengine.SegmentCondition;
+import com.flagsmith.flagengine.SegmentContext;
+import com.flagsmith.flagengine.SegmentRule;
 import com.flagsmith.flagengine.segments.constants.SegmentConditions;
 import com.flagsmith.flagengine.utils.Hashing;
 import com.flagsmith.flagengine.utils.types.TypeCasting;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.Option;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 public class SegmentEvaluator {
+  private static ObjectMapper mapper = new ObjectMapper();
+  private static Configuration jsonPathConfiguration = Configuration
+      .defaultConfiguration()
+      .setOptions(Option.SUPPRESS_EXCEPTIONS);
+  private static TypeReference<List<String>> stringListTypeRef = new TypeReference<List<String>>() {
+  };
 
   /**
-   * Get segment identities from environment and identity.
+   * Check if context is in segment.
    *
-   * @param environment Environment instance.
-   * @param identity Identity Instance.
+   * @param context Evaluation context.
+   * @param segment Segment context.
+   * @return true if context is in segment.
    */
-  public static List<SegmentModel> getIdentitySegments(EnvironmentModel environment,
-                                                       IdentityModel identity) {
-    return getIdentitySegments(environment, identity, null);
+  public static Boolean isContextInSegment(EvaluationContext context, SegmentContext segment) {
+    List<SegmentRule> rules = segment.getRules();
+    return !rules.isEmpty() && rules.stream()
+        .allMatch((rule) -> contextMatchesRule(context, rule, segment.getKey()));
   }
 
-  /**
-   * Get segment identities from environment and identity along with traits to override.
-   *
-   * @param environment Environment Instance.
-   * @param identity Identity Instance.
-   * @param overrideTraits Traits to over ride.
-   */
-  public static List<SegmentModel> getIdentitySegments(EnvironmentModel environment,
-                                                       IdentityModel identity,
-                                                       List<TraitModel> overrideTraits) {
-    return environment
-        .getProject()
-        .getSegments()
-        .stream()
-        .filter((segment) -> evaluateIdentityInSegment(identity, segment, overrideTraits))
-        .collect(Collectors.toList());
-  }
+  private static Boolean contextMatchesRule(EvaluationContext context, SegmentRule rule,
+      String segmentKey) {
+    Predicate<SegmentCondition> conditionPredicate = (condition) -> contextMatchesCondition(
+        context, condition, segmentKey);
 
-  /**
-   * Evaluate the traits in identities and overrides with rules from segments.
-   *
-   * @param identity Identity instance.
-   * @param segment Segment Instance.
-   * @param overrideTraits Overriden traits.
-   */
-  public static Boolean evaluateIdentityInSegment(IdentityModel identity, SegmentModel segment,
-                                                  List<? extends TraitModel> overrideTraits) {
-    List<SegmentRuleModel> segmentRules = segment.getRules();
-    List<? extends TraitModel> traits =
-        overrideTraits != null ? overrideTraits : identity.getIdentityTraits();
+    Boolean isMatch;
+    List<SegmentCondition> conditions = rule.getConditions();
 
-    String identityHashKey = identity.getDjangoId() == null ? identity.getCompositeKey()
-        : identity.getDjangoId().toString();
-
-    if (segmentRules != null && segmentRules.size() > 0) {
-      List<Boolean> segmentRuleEvaluations = segmentRules.stream().map(
-          (rule) -> traitsMatchSegmentRule(
-              traits,
-              rule,
-              segment.getId(),
-              identityHashKey
-          )
-      ).collect(Collectors.toList());
-
-      return segmentRuleEvaluations.stream().allMatch((bool) -> bool);
-    }
-
-    return Boolean.FALSE;
-  }
-
-  /**
-   * Evaluate whether the trait match the rule from segment.
-   *
-   * @param identityTraits Traits to match against.
-   * @param rule Rule from segments to evaluate with.
-   * @param segmentId Segment ID (for hashing)
-   * @param identityId Identity ID (for hashing)
-   */
-  private static Boolean traitsMatchSegmentRule(List<? extends TraitModel> identityTraits,
-                                                SegmentRuleModel rule,
-                                                Integer segmentId, String identityId) {
-    Boolean matchingCondition = Boolean.TRUE;
-
-    if (rule.getConditions() != null && rule.getConditions().size() > 0) {
-      List<Boolean> conditionEvaluations = rule.getConditions().stream()
-          .map((condition) -> traitsMatchSegmentCondition(identityTraits, condition, segmentId,
-              identityId))
-          .collect(Collectors.toList());
-
-      matchingCondition = rule.matchingFunction(
-          conditionEvaluations.stream()
-      );
-    }
-
-    List<SegmentRuleModel> rules = rule.getRules();
-
-    if (rules != null) {
-      matchingCondition = matchingCondition && rules.stream()
-          .allMatch((segmentRule) -> traitsMatchSegmentRule(
-              identityTraits,
-              segmentRule,
-              segmentId,
-              identityId
-          ));
-    }
-
-    return matchingCondition;
-  }
-
-  /**
-   * Evaluate traits and compare them with condition.
-   *
-   * @param identityTraits Traits to match against.
-   * @param condition Condition to evaluate with.
-   * @param segmentId Segment ID (for hashing)
-   * @param identityId Identity ID (for hashing)
-   */
-  private static Boolean traitsMatchSegmentCondition(List<? extends TraitModel> identityTraits,
-                                                     SegmentConditionModel condition,
-                                                     Integer segmentId, String identityId) {
-    if (condition.getOperator().equals(SegmentConditions.PERCENTAGE_SPLIT)) {
-      try {
-        Float floatValue = Float.parseFloat(condition.getValue());
-        return Hashing.getInstance().getHashedPercentageForObjectIds(
-            Arrays.asList(segmentId.toString(), identityId)) <= floatValue;
-
-      } catch (NumberFormatException nfe) {
-        return Boolean.FALSE;
+    if (conditions.isEmpty()) {
+      isMatch = true;
+    } else {
+      switch (rule.getType()) {
+        case ALL:
+          isMatch = conditions.stream().allMatch(conditionPredicate);
+          break;
+        case ANY:
+          isMatch = conditions.stream().anyMatch(conditionPredicate);
+          break;
+        case NONE:
+          isMatch = conditions.stream().noneMatch(conditionPredicate);
+          break;
+        default:
+          return false;
       }
     }
 
-    if (identityTraits != null) {
-      Optional<? extends TraitModel> matchingTrait = identityTraits
-          .stream()
-          .filter((trait) -> trait.getTraitKey().equals(condition.getProperty_()))
-          .findFirst();
-
-      return traitMatchesSegmentCondition(matchingTrait, condition);
-    }
-
-    return condition.getOperator().equals(SegmentConditions.IS_NOT_SET);
+    return isMatch && rule.getRules().stream()
+        .allMatch((subRule) -> contextMatchesRule(context, subRule, segmentKey));
   }
 
-  /**
-   * Evaluate a single trait and compare it with condition.
-   *
-   * @param trait Trait to match against.
-   * @param condition Condition to evaluate with.
-   */
-  private static Boolean traitMatchesSegmentCondition(Optional<? extends TraitModel> trait,
-                                                      SegmentConditionModel condition) {
-    if (condition.getOperator().equals(SegmentConditions.IS_NOT_SET)) {
-      return !trait.isPresent();
-    } else if (condition.getOperator().equals(SegmentConditions.IS_SET)) {
-      return trait.isPresent();
-    }
-
-    return trait.isPresent() && conditionMatchesTraitValue(condition, trait.get().getTraitValue());
-  }
-
-  /**
-   * Matches condition value with the trait value.
-   *
-   * @param condition Condition to evaluate with.
-   * @param value Trait value to compare with.
-   */
-  public static Boolean conditionMatchesTraitValue(SegmentConditionModel condition, Object value) {
+  private static Boolean contextMatchesCondition(
+      EvaluationContext context,
+      SegmentCondition condition,
+      String segmentKey) {
+    Object contextValue = getContextValue(context, condition.getProperty());
+    Object conditionValue = condition.getValue();
     SegmentConditions operator = condition.getOperator();
+
     switch (operator) {
-      case NOT_CONTAINS:
-        return (String.valueOf(value)).indexOf(condition.getValue()) == -1;
-      case CONTAINS:
-        return (String.valueOf(value)).indexOf(condition.getValue()) > -1;
       case IN:
-        if (value instanceof String) {
-          return Arrays.asList(condition.getValue().split(",")).contains(value);
+        if (contextValue == null || contextValue instanceof Boolean) {
+          return false;
         }
-        if (value instanceof Integer) {
-          return Arrays.asList(condition.getValue().split(",")).contains(String.valueOf(value));
+
+        List<String> conditionList = new ArrayList<>();
+
+        if (conditionValue instanceof List) {
+          List<?> maybeConditionList = (List<?>) conditionValue;
+          conditionList = maybeConditionList.stream()
+              .map(Object::toString)
+              .collect(Collectors.toList());
+        } else if (conditionValue instanceof String) {
+          String stringConditionValue = (String) conditionValue;
+          try {
+            // Try parsing a JSON list first
+            conditionList = mapper.readValue(
+                stringConditionValue, stringListTypeRef);
+          } catch (IOException e) {
+            // As a fallback, split by comma
+            conditionList = Arrays.asList(stringConditionValue.split(","));
+          }
+        }
+
+        return conditionList.contains(String.valueOf(contextValue));
+
+      case PERCENTAGE_SPLIT:
+        String key;
+        if (contextValue == null) {
+          if (context.getIdentity() == null) {
+            return false;
+          }
+          key = context.getIdentity().getKey();
+        } else {
+          key = contextValue.toString();
+        }
+        List<String> objectIds = List.of(segmentKey, key);
+
+        final float floatValue;
+        try {
+          floatValue = Float.parseFloat(String.valueOf(condition.getValue()));
+        } catch (NumberFormatException e) {
+          return false;
+        }
+
+        return Hashing.getInstance()
+            .getHashedPercentageForObjectIds(objectIds) <= floatValue;
+
+      case IS_NOT_SET:
+        return contextValue == null;
+
+      case IS_SET:
+        return contextValue != null;
+
+      case CONTAINS:
+        return (String.valueOf(contextValue)).indexOf(conditionValue.toString()) > -1;
+
+      case NOT_CONTAINS:
+        if (contextValue != null) {
+          return (String.valueOf(contextValue)).indexOf(conditionValue.toString()) == -1;
         }
         return false;
+
       case REGEX:
-        Pattern pattern = Pattern.compile(condition.getValue());
-        return pattern.matcher(String.valueOf(value)).find();
+        if (contextValue != null) {
+          try {
+            Pattern pattern = Pattern.compile(conditionValue.toString());
+            return pattern.matcher(contextValue.toString()).find();
+          } catch (PatternSyntaxException pse) {
+            return false;
+          }
+        }
+        return false;
+
+      case MODULO:
+        if (contextValue instanceof Number && conditionValue instanceof String) {
+          try {
+            String[] parts = conditionValue.toString().split("\\|");
+            if (parts.length != 2) {
+              return false;
+            }
+            Double divisor = Double.parseDouble(parts[0]);
+            Double remainder = Double.parseDouble(parts[1]);
+            Double value = ((Number) contextValue).doubleValue();
+            return (value % divisor) == remainder;
+          } catch (NumberFormatException nfe) {
+            return false;
+          }
+        }
+        return false;
+
       default:
-        return TypeCasting.compare(operator, value, condition.getValue());
+        if (contextValue == null) {
+          return false;
+        }
+        return TypeCasting.compare(operator, contextValue, conditionValue);
     }
+  }
+
+  /**
+   * Get context value by property name.
+   *
+   * @param context  Evaluation context.
+   * @param property Property name.
+   * @return Property value.
+   */
+  private static Object getContextValue(EvaluationContext context, String property) {
+    Object result;
+    if (context.getIdentity() != null && context.getIdentity().getTraits() != null) {
+      result = context.getIdentity().getTraits().getAdditionalProperties().get(property);
+      if (result != null) {
+        return result;
+      }
+    }
+    if (property.startsWith("$.")) {
+      result = JsonPath
+          .using(jsonPathConfiguration)
+          .parse(mapper.convertValue(context, Map.class))
+          .read(property);
+      if (result instanceof List || result instanceof Map) {
+        return null;
+      }
+      return result;
+    }
+    return null;
   }
 }

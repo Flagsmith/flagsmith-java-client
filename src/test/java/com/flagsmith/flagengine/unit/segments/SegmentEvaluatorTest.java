@@ -1,15 +1,16 @@
 package com.flagsmith.flagengine.unit.segments;
 
-import com.flagsmith.flagengine.identities.IdentityModel;
-import com.flagsmith.flagengine.identities.traits.TraitModel;
-import com.flagsmith.flagengine.segments.SegmentConditionModel;
+import com.flagsmith.flagengine.EvaluationContext;
+import com.flagsmith.flagengine.SegmentCondition;
+import com.flagsmith.flagengine.SegmentContext;
+import com.flagsmith.flagengine.SegmentRule;
 import com.flagsmith.flagengine.segments.SegmentEvaluator;
-import com.flagsmith.flagengine.segments.SegmentModel;
-import com.flagsmith.flagengine.segments.SegmentRuleModel;
 import com.flagsmith.flagengine.segments.constants.SegmentConditions;
-import com.flagsmith.flagengine.segments.constants.SegmentRules;
+import com.flagsmith.mappers.EngineMappers;
+import com.flagsmith.models.TraitModel;
 
 import static com.flagsmith.flagengine.unit.segments.IdentitySegmentFixtures.*;
+import com.flagsmith.FlagsmithTestHelper;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -47,16 +48,18 @@ public class SegmentEvaluatorTest {
 
   @ParameterizedTest
   @MethodSource("identitiesInSegments")
-  public void testIdentityInSegment(SegmentModel segment, List<TraitModel> identityTraits,
+  public void testContextInSegment(SegmentContext segment, List<TraitModel> identityTraits,
                                     Boolean expectedResponse) {
-    IdentityModel mockIdentity = new IdentityModel();
-    mockIdentity.setIdentifier("foo");
-    mockIdentity.setIdentityTraits(identityTraits);
-    mockIdentity.setEnvironmentApiKey("api-key");
 
-    Boolean actualResult = SegmentEvaluator.evaluateIdentityInSegment(mockIdentity, segment, null);
+    final EvaluationContext context = EngineMappers.mapContextAndIdentityDataToContext(
+        FlagsmithTestHelper.evaluationContext(), "foo",
+        identityTraits.stream().collect(
+            java.util.stream.Collectors.toMap(TraitModel::getTraitKey, TraitModel::getTraitValue))
+    );
 
-    Assertions.assertTrue(actualResult.equals(expectedResponse));
+    Boolean actualResult = SegmentEvaluator.isContextInSegment(context, segment);
+
+    Assertions.assertEquals(expectedResponse, actualResult);
   }
 
   private static Stream<Arguments> traitExistenceChecks() {
@@ -76,71 +79,25 @@ public class SegmentEvaluatorTest {
                                            List<TraitModel> traitModels, Boolean expectedResult) {
     // Given
     // An identity to test with which has the traits as defined in the DataProvider
-    IdentityModel identityModel  = new IdentityModel();
-    identityModel.setIdentifier("foo");
-    identityModel.setIdentityTraits(traitModels);
-    identityModel.setEnvironmentApiKey("api-key");
+    final EvaluationContext context = EngineMappers.mapContextAndIdentityDataToContext(
+        FlagsmithTestHelper.evaluationContext(), "foo",
+        traitModels.stream().collect(
+            java.util.stream.Collectors.toMap(TraitModel::getTraitKey, TraitModel::getTraitValue))
+    );
 
     // And a segment which has the operator and property value as defined in the DataProvider
-    SegmentConditionModel segmentCondition = new SegmentConditionModel();
-    segmentCondition.setOperator(conditionOperator);
-    segmentCondition.setProperty_(conditionProperty);
-    segmentCondition.setValue(null);
-
-    SegmentRuleModel segmentRule = new SegmentRuleModel();
-    segmentRule.setConditions(new ArrayList<>(Arrays.asList(segmentCondition)));
-    segmentRule.setType(SegmentRules.ALL_RULE.getRule());
-
-    SegmentModel segment = new SegmentModel();
-    segment.setName("testSegment");
-    segment.setRules(new ArrayList<>(Arrays.asList(segmentRule)));
+    SegmentContext segment = new SegmentContext().withName("testSegment").withRules(
+        Arrays.asList(new SegmentRule().withType(SegmentRule.Type.ALL).withConditions(
+            Arrays.asList(new SegmentCondition()
+                .withOperator(conditionOperator)
+                .withProperty(conditionProperty)))));
 
     // When
     // We evaluate whether the identity is in the segment
-    Boolean inSegment = SegmentEvaluator.evaluateIdentityInSegment(identityModel, segment, null);
+    Boolean inSegment = SegmentEvaluator.isContextInSegment(context, segment);
 
     // Then
     // The result is as we expect from the DataProvider definition
     Assertions.assertEquals(inSegment, expectedResult);
-  }
-
-  private static Stream<Arguments> identitiesInSegmentsPercentageSplit() {
-    return Stream.of(
-        Arguments.of(null, "Test", Boolean.TRUE),
-        Arguments.of(1, "Test", Boolean.FALSE));
-  }
-
-  @ParameterizedTest
-  @MethodSource("identitiesInSegmentsPercentageSplit")
-  public void testIdentityInSegmentPercentageSplitUsesDjangoId(Integer djangoId, String identifier,
-      Boolean expectedResult) {
-    // Given
-    // An identity with djangoId and identifier as defined in the DataProvider
-    IdentityModel identityModel = new IdentityModel();
-    identityModel.setDjangoId(djangoId);
-    identityModel.setIdentifier(identifier);
-    identityModel.setEnvironmentApiKey("key");
-
-    // And a segment with 50% percentage split
-    SegmentConditionModel segmentCondition = new SegmentConditionModel();
-    segmentCondition.setOperator(SegmentConditions.PERCENTAGE_SPLIT);
-    segmentCondition.setValue("50");
-
-    SegmentRuleModel segmentRule = new SegmentRuleModel();
-    segmentRule.setConditions(new ArrayList<>(Arrays.asList(segmentCondition)));
-    segmentRule.setType(SegmentRules.ALL_RULE.getRule());
-
-    SegmentModel segment = new SegmentModel();
-    segment.setId(1);
-    segment.setName("% split");
-    segment.setRules(new ArrayList<>(Arrays.asList(segmentRule)));
-
-    // When
-    // We evaluate whether the identity is in the segment
-    Boolean result = SegmentEvaluator.evaluateIdentityInSegment(identityModel, segment, null);
-
-    // Then
-    // The result is as we expect from the DataProvider definition
-    Assertions.assertEquals(result, expectedResult);
   }
 }

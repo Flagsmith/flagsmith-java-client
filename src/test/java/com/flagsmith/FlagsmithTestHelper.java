@@ -7,13 +7,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.flagsmith.config.FlagsmithCacheConfig;
-import com.flagsmith.flagengine.environments.EnvironmentModel;
-import com.flagsmith.flagengine.features.FeatureModel;
-import com.flagsmith.flagengine.features.FeatureStateModel;
-import com.flagsmith.flagengine.identities.IdentityModel;
-import com.flagsmith.flagengine.identities.traits.TraitModel;
+import com.flagsmith.flagengine.EvaluationContext;
+import com.flagsmith.mappers.EngineMappers;
 import com.flagsmith.models.BaseFlag;
+import com.flagsmith.models.features.FeatureStateModel;
+import com.flagsmith.models.features.FeatureModel;
 import com.flagsmith.models.Flag;
+import com.flagsmith.models.TraitModel;
+import com.flagsmith.models.environments.EnvironmentModel;
 import com.google.common.collect.ImmutableMap;
 import io.restassured.RestAssured;
 import io.restassured.http.Header;
@@ -241,15 +242,15 @@ public class FlagsmithTestHelper {
   public static BaseFlag flag(
       String name, String description, String type, boolean enabled, String value
   ) {
+    final FeatureStateModel result = new FeatureStateModel();
+    result.setEnabled(enabled);
+    result.setValue(value);
+
     final FeatureModel feature = new FeatureModel();
     feature.setName(name);
     feature.setType(type);
 
-    final FeatureStateModel result = new FeatureStateModel();
-    result.setFeature(feature);
-    result.setEnabled(enabled);
-    result.setValue(value);
-    return Flag.fromFeatureStateModel(result, null);
+    return Flag.fromFeatureStateModel(result);
   }
 
   public static BaseFlag flag(String name, String description, boolean enabled) {
@@ -267,40 +268,10 @@ public class FlagsmithTestHelper {
     return result;
   }
 
-  public static IdentityModel featureUser(String identifier) {
-    final IdentityModel user = new IdentityModel();
-    user.setIdentifier(identifier);
-    return user;
-  }
-
-  public static IdentityModel identityOverride() {
-    final FeatureModel overriddenFeature = new FeatureModel();
-    overriddenFeature.setId(1);
-    overriddenFeature.setName("some_feature");
-    overriddenFeature.setType("STANDARD");
-
-    final FeatureStateModel overriddenFeatureState = new FeatureStateModel();
-    overriddenFeatureState.setFeature(overriddenFeature);
-    overriddenFeatureState.setFeaturestateUuid("d5d0767b-6287-4bb4-9d53-8b87e5458642");
-    overriddenFeatureState.setValue("overridden-value");
-    overriddenFeatureState.setEnabled(true);
-    overriddenFeatureState.setMultivariateFeatureStateValues(new ArrayList<>());
-
-    List<FeatureStateModel> identityFeatures = new ArrayList<>();
-    identityFeatures.add(overriddenFeatureState);
-
-    final IdentityModel identity = new IdentityModel();
-    identity.setIdentifier("overridden-identity");
-    identity.setIdentityUuid("65bc5ac6-5859-4cfe-97e6-d5ec2e80c1fb");
-    identity.setCompositeKey("B62qaMZNwfiqT76p38ggrQ_identity_overridden_identity");
-    identity.setEnvironmentApiKey("B62qaMZNwfiqT76p38ggrQ");
-    identity.setIdentityFeatures(identityFeatures);
-    return identity;
-  }
-
   public static String environmentString() {
     return "{\n" +
             "  \"api_key\": \"B62qaMZNwfiqT76p38ggrQ\",\n" +
+            "  \"name\": \"Test Environment\",\n" +
             "  \"project\": {\n" +
             "    \"name\": \"Test project\",\n" +
             "    \"organisation\": {\n" +
@@ -381,12 +352,14 @@ public class FlagsmithTestHelper {
 
   public static EnvironmentModel environmentModel() {
     try {
-      return EnvironmentModel.load(MapperFactory.getMapper().readTree(environmentString()), EnvironmentModel.class);
+      return MapperFactory.getMapper().readValue(environmentString(), EnvironmentModel.class);
     } catch (JsonProcessingException e) {
-      // environment model json
+      throw new RuntimeException("Failed to parse environment JSON", e);
     }
+  }
 
-    return null;
+  public static EvaluationContext evaluationContext() {
+      return EngineMappers.mapEnvironmentToContext(environmentModel());
   }
 
   public static List<FeatureStateModel> getFlags() {
@@ -476,7 +449,7 @@ public class FlagsmithTestHelper {
     final ObjectNode flagsAndTraits = MapperFactory.getMapper().createObjectNode();
     flagsAndTraits.putPOJO("identifier", identifier);
     flagsAndTraits.put("transient", isTransient);
-    flagsAndTraits.putPOJO("traits", traits != null ? traits : new ArrayList<>());  
+    flagsAndTraits.putPOJO("traits", traits != null ? traits : new ArrayList<>());
     return flagsAndTraits;
   }
 

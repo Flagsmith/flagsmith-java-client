@@ -1,9 +1,9 @@
 package com.flagsmith.interfaces;
 
 import com.flagsmith.config.FlagsmithConfig;
-import com.flagsmith.flagengine.environments.EnvironmentModel;
-import com.flagsmith.flagengine.identities.traits.TraitModel;
+import com.flagsmith.flagengine.EvaluationContext;
 import com.flagsmith.models.Flags;
+import com.flagsmith.models.TraitModel;
 import com.flagsmith.threads.RequestProcessor;
 import java.util.List;
 import okhttp3.HttpUrl;
@@ -21,7 +21,7 @@ public interface FlagsmithSdk {
 
   FlagsmithConfig getConfig();
 
-  EnvironmentModel getEnvironment();
+  EvaluationContext getEvaluationContext();
 
   RequestProcessor getRequestor();
 

@@ -4,12 +4,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.FlagsmithFlagDefaults;
 import com.flagsmith.exceptions.FeatureNotFoundError;
 import com.flagsmith.exceptions.FlagsmithClientError;
-import com.flagsmith.flagengine.features.FeatureStateModel;
+import com.flagsmith.flagengine.EvaluationResult;
+import com.flagsmith.flagengine.FlagResult;
 import com.flagsmith.interfaces.DefaultFlagHandler;
+import com.flagsmith.mappers.EngineMappers;
+import com.flagsmith.models.features.FeatureStateModel;
 import com.flagsmith.threads.AnalyticsProcessor;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import lombok.Data;
 
@@ -22,48 +26,32 @@ public class Flags {
   /**
    * Build flags object from list of feature states.
    *
-   * @param featureStates list of feature states
+   * @param featureStates      list of feature states
    * @param analyticsProcessor instance of analytics processor
    */
   public static Flags fromFeatureStateModels(
       List<FeatureStateModel> featureStates,
       AnalyticsProcessor analyticsProcessor) {
-    return fromFeatureStateModels(featureStates, analyticsProcessor, null, null);
+    return fromFeatureStateModels(featureStates, analyticsProcessor, null);
   }
 
   /**
    * Build flags object from list of feature states.
    *
-   * @param featureStates list of feature states
+   * @param featureStates      list of feature states
    * @param analyticsProcessor instance of analytics processor
-   * @param identityId identity ID (optional)
-   */
-  public static Flags fromFeatureStateModels(
-      List<FeatureStateModel> featureStates,
-      AnalyticsProcessor analyticsProcessor,
-      Object identityId) {
-    return fromFeatureStateModels(featureStates, analyticsProcessor, identityId, null);
-  }
-
-  /**
-   * Build flags object from list of feature states.
-   *
-   * @param featureStates list of feature states
-   * @param analyticsProcessor instance of analytics processor
-   * @param identityId identity ID (optional)
    * @param defaultFlagHandler default flags (optional)
    */
   public static Flags fromFeatureStateModels(
       List<FeatureStateModel> featureStates,
       AnalyticsProcessor analyticsProcessor,
-      Object identityId, DefaultFlagHandler defaultFlagHandler) {
+      DefaultFlagHandler defaultFlagHandler) {
 
     Map<String, BaseFlag> flagMap = featureStates.stream()
         .collect(
             Collectors.toMap(
                 (fs) -> fs.getFeature().getName(),
-                (fs) -> Flag.fromFeatureStateModel(fs, identityId)
-            ));
+                (fs) -> Flag.fromFeatureStateModel(fs)));
 
     Flags flags = new Flags();
     flags.setFlags(flagMap);
@@ -76,7 +64,7 @@ public class Flags {
   /**
    * Return the flags instance.
    *
-   * @param apiFlags Dictionary with api flags
+   * @param apiFlags           Dictionary with api flags
    * @param analyticsProcessor instance of analytics processor
    * @param defaultFlagHandler handler for default flags if present
    */
@@ -90,8 +78,7 @@ public class Flags {
     for (JsonNode node : apiFlags) {
       flagMap.put(
           node.get("feature").get("name").asText(),
-          Flag.fromApiFlag(node)
-      );
+          Flag.fromApiFlag(node));
     }
 
     Flags flags = new Flags();
@@ -105,7 +92,7 @@ public class Flags {
   /**
    * Return the flags instance.
    *
-   * @param apiFlags Dictionary with api flags
+   * @param apiFlags           Dictionary with api flags
    * @param analyticsProcessor instance of analytics processor
    * @param defaultFlagHandler handler for default flags if present
    */
@@ -119,10 +106,36 @@ public class Flags {
     for (FeatureStateModel flag : apiFlags) {
       flagMap.put(
           flag.getFeature().getName(),
-          Flag.fromFeatureStateModel(flag, null)
-      );
+          Flag.fromFeatureStateModel(flag));
     }
 
+    Flags flags = new Flags();
+    flags.setFlags(flagMap);
+    flags.setAnalyticsProcessor(analyticsProcessor);
+    flags.setDefaultFlagHandler(defaultFlagHandler);
+
+    return flags;
+  }
+
+  /**
+   * Build flags object from evaluation result.
+   *
+   * @param evaluationResult   evaluation result
+   * @param analyticsProcessor instance of analytics processor
+   * @param defaultFlagHandler handler for default flags if present
+   */
+  public static Flags fromEvaluationResult(
+      EvaluationResult evaluationResult,
+      AnalyticsProcessor analyticsProcessor,
+      DefaultFlagHandler defaultFlagHandler) {
+    Map<String, BaseFlag> flagMap = new HashMap<>();
+    evaluationResult.getFlags().getAdditionalProperties().forEach((featureName, flagResult) -> {
+      Flag flag = EngineMappers.mapFlagResultToFlag(flagResult);
+      if (flag != null) {
+        flagMap.put(featureName, flag);
+      }
+    });
+    
     Flags flags = new Flags();
     flags.setFlags(flagMap);
     flags.setAnalyticsProcessor(analyticsProcessor);

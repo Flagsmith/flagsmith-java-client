@@ -3,7 +3,6 @@ package com.flagsmith.models;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.flagsmith.flagengine.identities.traits.TraitModel;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

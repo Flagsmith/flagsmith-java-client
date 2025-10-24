@@ -1,11 +1,10 @@
 package com.flagsmith.flagengine.unit.segments;
 
-import com.flagsmith.flagengine.identities.traits.TraitModel;
-import com.flagsmith.flagengine.segments.SegmentConditionModel;
-import com.flagsmith.flagengine.segments.SegmentModel;
-import com.flagsmith.flagengine.segments.SegmentRuleModel;
 import com.flagsmith.flagengine.segments.constants.SegmentConditions;
-import com.flagsmith.flagengine.segments.constants.SegmentRules;
+import com.flagsmith.flagengine.SegmentContext;
+import com.flagsmith.flagengine.SegmentCondition;
+import com.flagsmith.flagengine.SegmentRule;
+import com.flagsmith.models.TraitModel;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,146 +21,136 @@ public class IdentitySegmentFixtures {
   public static final String traitKey3 = "date_joined";
   public static final String traitValue3 = "2021-01-01";
 
-  public static SegmentModel emptySegment() {
-    SegmentModel segment = new SegmentModel();
-    segment.setId(1);
-    segment.setName("empty_segment");
-
-    return segment;
+  public static SegmentContext emptySegment() {
+    return new SegmentContext().withKey("1").withName("empty_segment");
   }
 
-  public static SegmentModel segmentSingleCondition() {
-    SegmentConditionModel segmentCondition = new SegmentConditionModel();
-    segmentCondition.setOperator(SegmentConditions.EQUAL);
-    segmentCondition.setProperty_(traitKey1);
-    segmentCondition.setValue(traitValue1);
-
-    SegmentRuleModel segmentRule = new SegmentRuleModel();
-    segmentRule.setType(SegmentRules.ALL_RULE.getRule());
-    segmentRule.setConditions(Arrays.asList(segmentCondition));
-
-    SegmentModel segment = new SegmentModel();
-    segment.setId(2);
-    segment.setName("segment_one_condition");
-    segment.setRules(Arrays.asList(segmentRule));
-
-    return segment;
+  public static SegmentContext segmentSingleCondition() {
+    return new SegmentContext().withKey("2").withName("segment_one_condition")
+        .withRules(
+            Arrays.asList(
+                new SegmentRule().withType(SegmentRule.Type.ALL).withConditions(
+                    Arrays.asList(
+                        new SegmentCondition()
+                            .withOperator(SegmentConditions.EQUAL)
+                            .withProperty(traitKey1)
+                            .withValue(traitValue1)))));
   }
 
-  public static SegmentModel segmentMultipleConditionsAll() {
-    SegmentConditionModel segmentCondition = new SegmentConditionModel();
+  public static SegmentContext segmentMultipleConditionsAll() {
+    SegmentCondition segmentCondition = new SegmentCondition();
     segmentCondition.setOperator(SegmentConditions.EQUAL);
-    segmentCondition.setProperty_(traitKey1);
+    segmentCondition.setProperty(traitKey1);
     segmentCondition.setValue(traitValue1);
 
-    SegmentConditionModel segmentCondition2 = new SegmentConditionModel();
+    SegmentCondition segmentCondition2 = new SegmentCondition();
     segmentCondition2.setOperator(SegmentConditions.EQUAL);
-    segmentCondition2.setProperty_(traitKey2);
+    segmentCondition2.setProperty(traitKey2);
     segmentCondition2.setValue(traitValue2);
 
-    SegmentRuleModel segmentRule = new SegmentRuleModel();
-    segmentRule.setType(SegmentRules.ALL_RULE.getRule());
+    SegmentRule segmentRule = new SegmentRule();
+    segmentRule.setType(SegmentRule.Type.ALL);
     segmentRule.setConditions(Arrays.asList(segmentCondition, segmentCondition2));
 
-    SegmentModel segment = new SegmentModel();
-    segment.setId(3);
+    SegmentContext segment = new SegmentContext();
+    segment.setKey("3");
     segment.setName("segment_multiple_conditions_all");
     segment.setRules(Arrays.asList(segmentRule));
 
     return segment;
   }
 
-  public static SegmentModel segmentMultipleConditionsAny() {
-    SegmentConditionModel segmentCondition = new SegmentConditionModel();
+  public static SegmentContext segmentMultipleConditionsAny() {
+    SegmentCondition segmentCondition = new SegmentCondition();
     segmentCondition.setOperator(SegmentConditions.EQUAL);
-    segmentCondition.setProperty_(traitKey1);
+    segmentCondition.setProperty(traitKey1);
     segmentCondition.setValue(traitValue1);
 
-    SegmentConditionModel segmentCondition2 = new SegmentConditionModel();
+    SegmentCondition segmentCondition2 = new SegmentCondition();
     segmentCondition2.setOperator(SegmentConditions.EQUAL);
-    segmentCondition2.setProperty_(traitKey2);
+    segmentCondition2.setProperty(traitKey2);
     segmentCondition2.setValue(traitValue2);
 
-    SegmentRuleModel segmentRule = new SegmentRuleModel();
-    segmentRule.setType(SegmentRules.ANY_RULE.getRule());
+    SegmentRule segmentRule = new SegmentRule();
+    segmentRule.setType(SegmentRule.Type.ANY);
     segmentRule.setConditions(Arrays.asList(segmentCondition, segmentCondition2));
 
-    SegmentModel segment = new SegmentModel();
-    segment.setId(4);
+    SegmentContext segment = new SegmentContext();
+    segment.setKey("4");
     segment.setName("segment_multiple_conditions_any");
     segment.setRules(Arrays.asList(segmentRule));
 
     return segment;
   }
 
-  public static SegmentModel segmentNestedRules() {
-    SegmentConditionModel segmentCondition = new SegmentConditionModel();
+  public static SegmentContext segmentNestedRules() {
+    SegmentCondition segmentCondition = new SegmentCondition();
     segmentCondition.setOperator(SegmentConditions.EQUAL);
-    segmentCondition.setProperty_(traitKey1);
+    segmentCondition.setProperty(traitKey1);
     segmentCondition.setValue(traitValue1);
 
-    SegmentConditionModel segmentCondition2 = new SegmentConditionModel();
+    SegmentCondition segmentCondition2 = new SegmentCondition();
     segmentCondition2.setOperator(SegmentConditions.EQUAL);
-    segmentCondition2.setProperty_(traitKey2);
+    segmentCondition2.setProperty(traitKey2);
     segmentCondition2.setValue(traitValue2);
 
-    SegmentConditionModel segmentCondition3 = new SegmentConditionModel();
+    SegmentCondition segmentCondition3 = new SegmentCondition();
     segmentCondition3.setOperator(SegmentConditions.EQUAL);
-    segmentCondition3.setProperty_(traitKey3);
+    segmentCondition3.setProperty(traitKey3);
     segmentCondition3.setValue(traitValue3);
 
-    SegmentRuleModel segmentRule = new SegmentRuleModel();
-    segmentRule.setType(SegmentRules.ANY_RULE.getRule());
+    SegmentRule segmentRule = new SegmentRule();
+    segmentRule.setType(SegmentRule.Type.ANY);
     segmentRule.setConditions(Arrays.asList(segmentCondition, segmentCondition2));
 
-    SegmentRuleModel segmentRule2 = new SegmentRuleModel();
-    segmentRule2.setType(SegmentRules.ANY_RULE.getRule());
+    SegmentRule segmentRule2 = new SegmentRule();
+    segmentRule2.setType(SegmentRule.Type.ANY);
     segmentRule2.setConditions(Arrays.asList(segmentCondition3));
 
-    SegmentRuleModel segmentRule3 = new SegmentRuleModel();
-    segmentRule3.setType(SegmentRules.ANY_RULE.getRule());
+    SegmentRule segmentRule3 = new SegmentRule();
+    segmentRule3.setType(SegmentRule.Type.ANY);
     segmentRule3.setRules(Arrays.asList(segmentRule, segmentRule2));
 
-    SegmentModel segment = new SegmentModel();
-    segment.setId(5);
+    SegmentContext segment = new SegmentContext();
+    segment.setKey("5");
     segment.setName("segment_nested_rules_all");
     segment.setRules(Arrays.asList(segmentRule3));
 
     return segment;
   }
 
-  public static SegmentModel segmentConditionsAndNestedRules() {
-    SegmentConditionModel segmentCondition = new SegmentConditionModel();
+  public static SegmentContext segmentConditionsAndNestedRules() {
+    SegmentCondition segmentCondition = new SegmentCondition();
     segmentCondition.setOperator(SegmentConditions.EQUAL);
-    segmentCondition.setProperty_(traitKey1);
+    segmentCondition.setProperty(traitKey1);
     segmentCondition.setValue(traitValue1);
 
-    SegmentConditionModel segmentCondition2 = new SegmentConditionModel();
+    SegmentCondition segmentCondition2 = new SegmentCondition();
     segmentCondition2.setOperator(SegmentConditions.EQUAL);
-    segmentCondition2.setProperty_(traitKey2);
+    segmentCondition2.setProperty(traitKey2);
     segmentCondition2.setValue(traitValue2);
 
-    SegmentConditionModel segmentCondition3 = new SegmentConditionModel();
+    SegmentCondition segmentCondition3 = new SegmentCondition();
     segmentCondition3.setOperator(SegmentConditions.EQUAL);
-    segmentCondition3.setProperty_(traitKey3);
+    segmentCondition3.setProperty(traitKey3);
     segmentCondition3.setValue(traitValue3);
 
-    SegmentRuleModel segmentRule = new SegmentRuleModel();
-    segmentRule.setType(SegmentRules.ANY_RULE.getRule());
+    SegmentRule segmentRule = new SegmentRule();
+    segmentRule.setType(SegmentRule.Type.ANY);
     segmentRule.setConditions(Arrays.asList(segmentCondition));
 
-    SegmentRuleModel segmentRule2 = new SegmentRuleModel();
-    segmentRule2.setType(SegmentRules.ANY_RULE.getRule());
+    SegmentRule segmentRule2 = new SegmentRule();
+    segmentRule2.setType(SegmentRule.Type.ANY);
     segmentRule2.setConditions(Arrays.asList(segmentCondition2));
 
-    SegmentRuleModel segmentRule3 = new SegmentRuleModel();
-    segmentRule3.setType(SegmentRules.ANY_RULE.getRule());
+    SegmentRule segmentRule3 = new SegmentRule();
+    segmentRule3.setType(SegmentRule.Type.ANY);
     segmentRule3.setConditions(Arrays.asList(segmentCondition3));
 
     segmentRule.setRules(Arrays.asList(segmentRule2, segmentRule3));
 
-    SegmentModel segment = new SegmentModel();
-    segment.setId(6);
+    SegmentContext segment = new SegmentContext();
+    segment.setKey("6");
     segment.setName("segment_multiple_conditions_all_and_nested_rules");
     segment.setRules(Arrays.asList(segmentRule3));
 

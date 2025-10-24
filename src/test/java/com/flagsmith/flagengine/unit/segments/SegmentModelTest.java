@@ -1,15 +1,24 @@
 package com.flagsmith.flagengine.unit.segments;
 
-import com.flagsmith.flagengine.segments.SegmentConditionModel;
+import com.flagsmith.flagengine.EvaluationContext;
+import com.flagsmith.flagengine.IdentityContext;
+import com.flagsmith.flagengine.SegmentCondition;
+import com.flagsmith.flagengine.SegmentContext;
+import com.flagsmith.flagengine.SegmentRule;
+import com.flagsmith.flagengine.Traits;
 import com.flagsmith.flagengine.segments.SegmentEvaluator;
 import com.flagsmith.flagengine.segments.constants.SegmentConditions;
+import com.flagsmith.mappers.EngineMappers;
+import com.flagsmith.FlagsmithTestHelper;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.stream.Stream;
 
 public class SegmentModelTest {
@@ -86,9 +95,13 @@ public class SegmentModelTest {
         Arguments.of(SegmentConditions.IN, 1, "1,2,3,4", true),
         Arguments.of(SegmentConditions.IN, 1, "", false),
         Arguments.of(SegmentConditions.IN, 1, "1", true),
-        // Flagsmith's engine does not evaluate `IN` condition for floats/doubles and booleans
+        Arguments.of(SegmentConditions.IN, 1, "[1]", true),
+        Arguments.of(SegmentConditions.IN, 1, "[\"1\"]", true),
+        Arguments.of(SegmentConditions.IN, "bar", "[\"bar\"]", true),
+        Arguments.of(SegmentConditions.IN, "bar", Arrays.asList("bar", "foo"), true),
+        Arguments.of(SegmentConditions.IN, 1.5, "1.5", true),
+        // Flagsmith's engine does not evaluate `IN` condition for booleans
         // due to ambiguous serialization across supported platforms.
-        Arguments.of(SegmentConditions.IN, 1.5, "1.5", false),
         Arguments.of(SegmentConditions.IN, false, "false", false)
     );
   }
@@ -98,17 +111,23 @@ public class SegmentModelTest {
   public void testSegmentConditionMatchesTraitValue(
       SegmentConditions condition,
       Object traitValue,
-      String conditionValue,
+      Object conditionValue,
       Boolean expectedResponse) {
 
-    SegmentConditionModel conditionModel = new SegmentConditionModel();
-    conditionModel.setValue(conditionValue);
-    conditionModel.setOperator(condition);
-    conditionModel.setProperty_("foo");
+    final EvaluationContext context = EngineMappers.mapContextAndIdentityDataToContext(
+        FlagsmithTestHelper.evaluationContext(), "foo",
+        Collections.singletonMap("foo", traitValue));
 
-    Boolean actualResult = SegmentEvaluator.conditionMatchesTraitValue(conditionModel, traitValue);
+    SegmentContext segmentContext = new SegmentContext().withKey(
+        conditionValue.toString()).withRules(
+            Arrays.asList(new SegmentRule().withType(SegmentRule.Type.ALL).withConditions(
+                Arrays.asList(new SegmentCondition()
+                    .withOperator(condition).withProperty("foo")
+                    .withValue(conditionValue)))));
 
-    assertTrue(actualResult.equals(expectedResponse));
+    Boolean actualResult = SegmentEvaluator.isContextInSegment(context, segmentContext);
+
+    assertEquals(expectedResponse, actualResult);
   }
 
   @ParameterizedTest
@@ -119,14 +138,19 @@ public class SegmentModelTest {
       String conditionValue,
       Boolean expectedResponse) {
 
-    SegmentConditionModel conditionModel = new SegmentConditionModel();
-    conditionModel.setValue(conditionValue);
-    conditionModel.setOperator(condition);
-    conditionModel.setProperty_("foo");
+    final EvaluationContext context = EngineMappers.mapContextAndIdentityDataToContext(
+        FlagsmithTestHelper.evaluationContext(), "foo",
+        Collections.singletonMap("foo", traitValue));
 
-    Boolean actualResult = SegmentEvaluator.conditionMatchesTraitValue(conditionModel, traitValue);
+    SegmentContext segmentContext = new SegmentContext().withKey(conditionValue).withRules(
+        Arrays.asList(new SegmentRule().withType(SegmentRule.Type.ALL).withConditions(
+            Arrays.asList(new SegmentCondition()
+                .withOperator(condition).withProperty("foo")
+                .withValue(conditionValue)))));
 
-    assertTrue(actualResult.equals(expectedResponse));
+    Boolean actualResult = SegmentEvaluator.isContextInSegment(context, segmentContext);
+
+    assertEquals(expectedResponse, actualResult);
   }
 
   private static Stream<Arguments> semverTestData() {

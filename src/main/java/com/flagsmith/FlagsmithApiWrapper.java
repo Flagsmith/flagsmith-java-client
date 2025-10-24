@@ -1,15 +1,18 @@
 package com.flagsmith;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithRuntimeError;
-import com.flagsmith.flagengine.environments.EnvironmentModel;
-import com.flagsmith.flagengine.features.FeatureStateModel;
-import com.flagsmith.flagengine.identities.traits.TraitModel;
+import com.flagsmith.flagengine.EvaluationContext;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.interfaces.FlagsmithSdk;
+import com.flagsmith.mappers.EngineMappers;
 import com.flagsmith.models.Flags;
+import com.flagsmith.models.TraitModel;
+import com.flagsmith.models.environments.EnvironmentModel;
+import com.flagsmith.models.features.FeatureStateModel;
 import com.flagsmith.responses.FlagsAndTraitsResponse;
 import com.flagsmith.threads.AnalyticsProcessor;
 import com.flagsmith.threads.RequestProcessor;
@@ -20,7 +23,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import lombok.Data;
 import lombok.Getter;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -248,7 +250,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   }
 
   @Override
-  public EnvironmentModel getEnvironment() {
+  public EvaluationContext getEvaluationContext() {
     final Request request = newGetRequest(defaultConfig.getEnvironmentUri());
 
     Future<EnvironmentModel> environmentFuture = requestor.executeAsync(request,
@@ -256,11 +258,14 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
         Boolean.TRUE);
 
     try {
-      return environmentFuture.get(TIMEOUT, TimeUnit.MILLISECONDS);
+      EnvironmentModel environment = environmentFuture.get(TIMEOUT, TimeUnit.MILLISECONDS);
+      return EngineMappers.mapEnvironmentToContext(environment);
     } catch (TimeoutException ie) {
       logger.error("Timed out on fetching Feature flags.", ie);
     } catch (InterruptedException ie) {
       logger.error("Environment loading interrupted.", ie);
+    } catch (IllegalArgumentException iae) {
+      logger.error("Environment loading failed.", iae);
     } catch (ExecutionException ee) {
       logger.error("Execution failed on Environment loading.", ee);
       throw new FlagsmithRuntimeError(ee);

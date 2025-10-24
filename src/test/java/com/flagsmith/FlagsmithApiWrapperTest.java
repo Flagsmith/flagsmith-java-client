@@ -18,12 +18,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.config.Retry;
-import com.flagsmith.flagengine.features.FeatureModel;
-import com.flagsmith.flagengine.features.FeatureStateModel;
-import com.flagsmith.flagengine.identities.traits.TraitModel;
 import com.flagsmith.models.BaseFlag;
+import com.flagsmith.models.features.FeatureStateModel;
+import com.flagsmith.models.features.FeatureModel;
 import com.flagsmith.models.Flag;
 import com.flagsmith.models.Flags;
+import com.flagsmith.models.TraitModel;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -193,10 +194,10 @@ public class FlagsmithApiWrapperTest {
   }
 
   private FeatureStateModel getNewFlag() {
+    final FeatureStateModel flag = new FeatureStateModel();
     final FeatureModel feature = new FeatureModel();
     feature.setName("my-test-flag");
     feature.setId(123);
-    final FeatureStateModel flag = new FeatureStateModel();
     flag.setFeature(feature);
 
     return flag;
