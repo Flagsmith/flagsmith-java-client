@@ -18,6 +18,7 @@ import com.flagsmith.flagengine.segments.constants.SegmentConditions;
 import com.flagsmith.models.FeatureMetadata;
 import com.flagsmith.models.Flag;
 import com.flagsmith.models.SegmentMetadata;
+import com.flagsmith.models.TraitModel;
 import com.flagsmith.models.environments.EnvironmentModel;
 import com.flagsmith.models.features.FeatureModel;
 import com.flagsmith.models.features.FeatureSegmentModel;
@@ -28,6 +29,7 @@ import com.flagsmith.models.projects.ProjectModel;
 import com.flagsmith.models.segments.SegmentConditionModel;
 import com.flagsmith.models.segments.SegmentModel;
 import com.flagsmith.models.segments.SegmentRuleModel;
+import com.flagsmith.utils.ModelUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -79,22 +81,16 @@ public class EngineMappers {
     // Create identity context
     IdentityContext identityContext = new IdentityContext()
         .withIdentifier(identifier)
-        .withKey(context.getEnvironment().getKey() + "_" + identifier)
-        .withTraits(new Traits());
+        .withKey(context.getEnvironment().getKey() + "_" + identifier);
 
     // Map traits if provided
     if (traits != null && !traits.isEmpty()) {
-      for (Map.Entry<String, Object> entry : traits.entrySet()) {
-        Object traitValue = entry.getValue();
-        // Handle TraitConfig-like objects (maps with "value" key)
-        if (traitValue instanceof Map) {
-          Map<?, ?> traitMap = (Map<?, ?>) traitValue;
-          if (traitMap.containsKey("value")) {
-            traitValue = traitMap.get("value");
-          }
-        }
-        identityContext.getTraits().setAdditionalProperty(entry.getKey(), traitValue);
+      Traits identityTraits = new Traits();
+      for (TraitModel traitModel : ModelUtils.getTraitModelsFromTraitMap(traits)) {
+        identityTraits.setAdditionalProperty(
+            traitModel.getTraitKey(), traitModel.getTraitValue());
       }
+      identityContext.setTraits(identityTraits);
     }
 
     // Create new evaluation context with identity
