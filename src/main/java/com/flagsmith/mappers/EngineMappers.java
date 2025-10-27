@@ -80,8 +80,7 @@ public class EngineMappers {
 
     // Create identity context
     IdentityContext identityContext = new IdentityContext()
-        .withIdentifier(identifier)
-        .withKey(context.getEnvironment().getKey() + "_" + identifier);
+        .withIdentifier(identifier);
 
     // Map traits if provided
     if (traits != null && !traits.isEmpty()) {
@@ -196,7 +195,6 @@ public class EngineMappers {
         FeatureModel feature = featureState.getFeature();
         FeatureContext featureContext = new FeatureContext()
             .withKey("")
-            .withFeatureKey(String.valueOf(feature.getId()))
             .withName(feature.getName())
             .withEnabled(featureState.getEnabled())
             .withValue(featureState.getValue())
@@ -349,7 +347,6 @@ public class EngineMappers {
   private static FeatureContext mapFeatureStateToFeatureContext(FeatureStateModel featureState) {
     FeatureContext featureContext = new FeatureContext()
         .withKey(getFeatureStateKey(featureState))
-        .withFeatureKey(String.valueOf(featureState.getFeature().getId()))
         .withName(featureState.getFeature().getName())
         .withEnabled(featureState.getEnabled())
         .withValue(featureState.getValue())
