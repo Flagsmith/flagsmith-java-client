@@ -37,7 +37,7 @@ public class Engine {
    * @return Evaluation result.
    */
   public static EvaluationResult getEvaluationResult(EvaluationContext context) {
-    enrichEvaluationContext(context);
+    context = getEnrichedEvaluationContext(context);
     SegmentEvaluationResult segmentEvaluationResult = evaluateSegments(context);
     Flags flags = evaluateFeatures(context, segmentEvaluationResult.getSegmentFeatureContexts());
 
@@ -46,13 +46,22 @@ public class Engine {
         .withSegments(segmentEvaluationResult.getSegments());
   }
 
-  private static void enrichEvaluationContext(EvaluationContext context) {
+  /*
+   * Get a version of the evaluation context enriched with derived data.
+   * 
+   * @param context Evaluation context.
+   * @return Enriched evaluation context, or the original if no enrichment was needed.
+   */
+  private static EvaluationContext getEnrichedEvaluationContext(EvaluationContext context) {
     IdentityContext identity = context.getIdentity();
     if (identity != null) {
       if (StringUtils.isEmpty(identity.getKey())) {
-        identity.setKey(context.getEnvironment().getKey() + "_" + identity.getIdentifier());
+        String identityKey = context.getEnvironment().getKey() + "_" + identity.getIdentifier();
+        context = new EvaluationContext(context).withIdentity(
+          new IdentityContext(identity).withKey(identityKey));
       }
     }
+    return context;
   }
 
   private static SegmentEvaluationResult evaluateSegments(
