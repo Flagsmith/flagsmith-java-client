@@ -2,12 +2,14 @@ package com.flagsmith.flagengine;
 
 import com.flagsmith.flagengine.segments.SegmentEvaluator;
 import com.flagsmith.flagengine.utils.Hashing;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
-public class Engine {
+public class Engine {  
   private static class SegmentEvaluationResult {
     List<SegmentResult> segments;
     HashMap<String, ImmutablePair<String, FeatureContext>> segmentFeatureContexts;
@@ -35,12 +37,31 @@ public class Engine {
    * @return Evaluation result.
    */
   public static EvaluationResult getEvaluationResult(EvaluationContext context) {
+    context = getEnrichedEvaluationContext(context);
     SegmentEvaluationResult segmentEvaluationResult = evaluateSegments(context);
     Flags flags = evaluateFeatures(context, segmentEvaluationResult.getSegmentFeatureContexts());
 
     return new EvaluationResult()
         .withFlags(flags)
         .withSegments(segmentEvaluationResult.getSegments());
+  }
+
+  /*
+   * Get a version of the evaluation context enriched with derived data.
+   * 
+   * @param context Evaluation context.
+   * @return Enriched evaluation context, or the original if no enrichment was needed.
+   */
+  private static EvaluationContext getEnrichedEvaluationContext(EvaluationContext context) {
+    IdentityContext identity = context.getIdentity();
+    if (identity != null) {
+      if (StringUtils.isEmpty(identity.getKey())) {
+        String identityKey = context.getEnvironment().getKey() + "_" + identity.getIdentifier();
+        context = new EvaluationContext(context).withIdentity(
+          new IdentityContext(identity).withKey(identityKey));
+      }
+    }
+    return context;
   }
 
   private static SegmentEvaluationResult evaluateSegments(
@@ -53,7 +74,7 @@ public class Engine {
     if (contextSegments != null) {
       for (SegmentContext segmentContext : contextSegments.getAdditionalProperties().values()) {
         if (SegmentEvaluator.isContextInSegment(context, segmentContext)) {
-          segments.add(new SegmentResult().withKey(segmentContext.getKey())
+          segments.add(new SegmentResult()
               .withName(segmentContext.getName())
               .withMetadata(segmentContext.getMetadata()));
 
@@ -61,11 +82,11 @@ public class Engine {
 
           if (segmentOverrides != null) {
             for (FeatureContext featureContext : segmentOverrides) {
-              String featureKey = featureContext.getFeatureKey();
+              String featureName = featureContext.getName();
 
-              if (segmentFeatureContexts.containsKey(featureKey)) {
+              if (segmentFeatureContexts.containsKey(featureName)) {
                 ImmutablePair<String, FeatureContext> existing = segmentFeatureContexts
-                    .get(featureKey);
+                    .get(featureName);
                 FeatureContext existingFeatureContext = existing.getRight();
 
                 Double existingPriority = existingFeatureContext.getPriority() == null
@@ -79,7 +100,7 @@ public class Engine {
                   continue;
                 }
               }
-              segmentFeatureContexts.put(featureKey,
+              segmentFeatureContexts.put(featureName,
                   new ImmutablePair<String, FeatureContext>(
                       segmentContext.getName(), featureContext));
             }
@@ -103,14 +124,13 @@ public class Engine {
 
     if (contextFeatures != null) {
       for (FeatureContext featureContext : contextFeatures.getAdditionalProperties().values()) {
-        if (segmentFeatureContexts.containsKey(featureContext.getFeatureKey())) {
+        if (segmentFeatureContexts.containsKey(featureContext.getName())) {
           ImmutablePair<String, FeatureContext> segmentNameFeaturePair = segmentFeatureContexts
-              .get(featureContext.getFeatureKey());
+              .get(featureContext.getName());
           featureContext = segmentNameFeaturePair.getRight();
           flags.setAdditionalProperty(
               featureContext.getName(),
               new FlagResult().withEnabled(featureContext.getEnabled())
-                  .withFeatureKey(featureContext.getFeatureKey())
                   .withName(featureContext.getName())
                   .withValue(featureContext.getValue())
                   .withReason(
@@ -148,10 +168,11 @@ public class Engine {
           Float limit = startPercentage + weight.floatValue();
           if (startPercentage <= percentageValue && percentageValue < limit) {
             return new FlagResult().withEnabled(featureContext.getEnabled())
-                .withFeatureKey(featureContext.getFeatureKey())
                 .withName(featureContext.getName())
                 .withValue(variant.getValue())
-                .withReason("SPLIT; weight=" + weight.intValue())
+                .withReason("SPLIT; weight=" + BigDecimal.valueOf(weight)
+                  .stripTrailingZeros()
+                  .toPlainString())
                 .withMetadata(featureContext.getMetadata());
           }
           startPercentage = limit;
@@ -160,7 +181,6 @@ public class Engine {
     }
 
     return new FlagResult().withEnabled(featureContext.getEnabled())
-        .withFeatureKey(featureContext.getFeatureKey())
         .withName(featureContext.getName())
         .withValue(featureContext.getValue())
         .withReason("DEFAULT")
