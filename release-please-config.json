@@ -1,14 +1,14 @@
 {
-    "bootstrap-sha": "272792770bb4be7d2514e136eb1ee97c7693df80",
+    "bootstrap-sha": "2ea39c1ffecaed95f9403609486048090965ee8c",
     "packages": {
         ".": {
-            "release-type": "maven",
+            "package-name": "com.flagsmith.flagsmith-java-client",
+            "release-type": "simple",
             "changelog-path": "CHANGELOG.md",
             "bump-minor-pre-major": false,
             "bump-patch-for-minor-pre-major": false,
-            "draft": false,
-            "prerelease": false,
-            "include-component-in-tag": false
+            "include-component-in-tag": false,
+            "extra-files": ["pom.xml"]
         }
     },
     "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
