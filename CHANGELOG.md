@@ -1,5 +1,37 @@
+# Changelog
+
+## [8.0.0](https://github.com/Flagsmith/flagsmith-java-client/compare/v7.4.3...v8.0.0) (2025-10-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* Context Values support, `getEvaluationResult` ([#184](https://github.com/Flagsmith/flagsmith-java-client/issues/184))
+
+### Features
+
+* Actualise context schema, `SPLIT` reason weight formatting ([#186](https://github.com/Flagsmith/flagsmith-java-client/issues/186)) ([b909755](https://github.com/Flagsmith/flagsmith-java-client/commit/b9097558fa83824068382457d944b721c206d01e))
+* Context Values support, `getEvaluationResult` ([#184](https://github.com/Flagsmith/flagsmith-java-client/issues/184)) ([d892342](https://github.com/Flagsmith/flagsmith-java-client/commit/d89234228d379280831bf3a66d828c4580898c46))
+* Send a standard `User-Agent: sdk-name/version` header ([#187](https://github.com/Flagsmith/flagsmith-java-client/issues/187)) ([8eab4ae](https://github.com/Flagsmith/flagsmith-java-client/commit/8eab4ae7829fec5c48e4c667abdacc6b12c23975))
+
+
+### CI
+
+* Integrate release-please ([#188](https://github.com/Flagsmith/flagsmith-java-client/issues/188)) ([ddc2662](https://github.com/Flagsmith/flagsmith-java-client/commit/ddc2662f957d8629981a29153f1bf74951c4d0d6))
+* update release please configuration to use simple release type ([#191](https://github.com/Flagsmith/flagsmith-java-client/issues/191)) ([7fc4fef](https://github.com/Flagsmith/flagsmith-java-client/commit/7fc4fefed1fe8929a0f0a88298768ef0dd06e0e9))
+
+
+### Docs
+
+* removing hero image and broken build badge from SDK readme ([#174](https://github.com/Flagsmith/flagsmith-java-client/issues/174)) ([49ee223](https://github.com/Flagsmith/flagsmith-java-client/commit/49ee223aa9b2fefcf1ed3bf2c22ef88e3a0eae9e))
+
+
+### Other
+
+* add root CODEOWNERS ([#181](https://github.com/Flagsmith/flagsmith-java-client/issues/181)) ([3e4f3e4](https://github.com/Flagsmith/flagsmith-java-client/commit/3e4f3e48c392aec6d392d704e6dfe66b15cd8729))
+* versioned test data ([#178](https://github.com/Flagsmith/flagsmith-java-client/issues/178)) ([547afad](https://github.com/Flagsmith/flagsmith-java-client/commit/547afada20889ebaf9f0c352920dcea5a910119f))
+
 <a name="v7.4.3"></a>
-# [v7.4.3](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.4.3) - 09 Dec 2024
+## [v7.4.3](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.4.3) - 09 Dec 2024
 
 ## What's Changed
 * ci: publish workflow by [@matthewelwell](https://github.com/matthewelwell) in https://github.com/Flagsmith/flagsmith-java-client/pull/169
@@ -11,7 +43,7 @@
 
 
 <a name="v7.4.2"></a>
-# [v7.4.2](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.4.2) - 13 Sep 2024
+## [v7.4.2](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.4.2) - 13 Sep 2024
 
 ## What's Changed
 * fix: Change visibilty of Protocol by [@madgaet](https://github.com/madgaet) in https://github.com/Flagsmith/flagsmith-java-client/pull/167
@@ -25,7 +57,7 @@
 
 
 <a name="v7.4.1"></a>
-# [v7.4.1](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.4.1) - 22 Aug 2024
+## [v7.4.1](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.4.1) - 22 Aug 2024
 
 ## What's Changed
 * fix: java 8 incompatibility by [@matthewelwell](https://github.com/matthewelwell) in https://github.com/Flagsmith/flagsmith-java-client/pull/165
@@ -37,7 +69,7 @@
 
 
 <a name="v7.4.0"></a>
-# [v7.4.0](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.4.0) - 20 Aug 2024
+## [v7.4.0](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.4.0) - 20 Aug 2024
 
 ## What's Changed
 * fix: actions not running for PRs by [@matthewelwell](https://github.com/matthewelwell) in https://github.com/Flagsmith/flagsmith-java-client/pull/138
@@ -56,7 +88,7 @@
 
 
 <a name="v7.3.0"></a>
-# [v7.3.0](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.3.0) - 03 Apr 2024
+## [v7.3.0](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.3.0) - 03 Apr 2024
 
 ## What's Changed
 * chore: remove examples by [@dabeeeenster](https://github.com/dabeeeenster) in https://github.com/Flagsmith/flagsmith-java-client/pull/148
@@ -75,7 +107,7 @@
 
 
 <a name="v7.2.0"></a>
-# [Version 7.2.0 (v7.2.0)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.2.0) - 24 Jan 2024
+## [Version 7.2.0 (v7.2.0)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.2.0) - 24 Jan 2024
 
 ## What's Changed
 * deps: bump okhttp by [@matthewelwell](https://github.com/matthewelwell) in https://github.com/Flagsmith/flagsmith-java-client/pull/137
@@ -89,7 +121,7 @@
 
 
 <a name="v7.1.1"></a>
-# [Version 7.1.1 (v7.1.1)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.1.1) - 06 Dec 2023
+## [Version 7.1.1 (v7.1.1)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.1.1) - 06 Dec 2023
 
 ## What's Changed
 * fix: FlagsmithClient.close() doesn't kill polling manager properly by [@matthewelwell](https://github.com/matthewelwell) in https://github.com/Flagsmith/flagsmith-java-client/pull/133
@@ -101,7 +133,7 @@
 
 
 <a name="v7.1.0"></a>
-# [Version 7.1.0 (v7.1.0)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.1.0) - 25 Jul 2023
+## [Version 7.1.0 (v7.1.0)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.1.0) - 25 Jul 2023
 
 ## What's Changed
 * feat: support `IN` operator for local evaluation by [@khvn26](https://github.com/khvn26) in https://github.com/Flagsmith/flagsmith-java-client/pull/128
@@ -113,7 +145,7 @@
 
 
 <a name="v7.0.1"></a>
-# [Version 7.0.1 (v7.0.1)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.0.1) - 14 Jul 2023
+## [Version 7.0.1 (v7.0.1)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.0.1) - 14 Jul 2023
 
 ## What's Changed
 * Fix dependency vulnerabilities by [@matthewelwell](https://github.com/matthewelwell) in https://github.com/Flagsmith/flagsmith-java-client/pull/126
@@ -127,7 +159,7 @@
 
 
 <a name="v7.0.0"></a>
-# [Version 7.0.0 (v7.0.0)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.0.0) - 15 Jun 2023
+## [Version 7.0.0 (v7.0.0)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v7.0.0) - 15 Jun 2023
 
 ## What's Changed
 * **BREAKING CHANGE**: fix: consistent split evaluations by [@khvn26](https://github.com/khvn26) in https://github.com/Flagsmith/flagsmith-java-client/pull/122
@@ -144,7 +176,7 @@
 
 
 <a name="v6.2.0"></a>
-# [Version 6.2.0 (v6.2.0)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v6.2.0) - 15 Jun 2023
+## [Version 6.2.0 (v6.2.0)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v6.2.0) - 15 Jun 2023
 
 ## What's Changed
 * remove lombok [@data](https://github.com/data) causing StackOverflowError issue with springboot by [@p-maks](https://github.com/p-maks) in https://github.com/Flagsmith/flagsmith-java-client/pull/119
@@ -155,7 +187,7 @@
 
 
 <a name="v6.1.0"></a>
-# [Version 6.1.0 (v6.1.0)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v6.1.0) - 03 Apr 2023
+## [Version 6.1.0 (v6.1.0)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v6.1.0) - 03 Apr 2023
 
 ## What's Changed
 * Replace TestNG with JUnit5 by [@matthewelwell](https://github.com/matthewelwell) in https://github.com/Flagsmith/flagsmith-java-client/pull/117
@@ -167,7 +199,7 @@
 
 
 <a name="v6.0.1"></a>
-# [Version 6.0.1 (v6.0.1)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v6.0.1) - 29 Mar 2023
+## [Version 6.0.1 (v6.0.1)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v6.0.1) - 29 Mar 2023
 
 ## What's Changed
 * Fix Sonatype Jackson vulnerability by [@matthewelwell](https://github.com/matthewelwell) in https://github.com/Flagsmith/flagsmith-java-client/pull/113
@@ -178,7 +210,7 @@
 
 
 <a name="v6.0.0"></a>
-# [Version 6.0.0 (v6.0.0)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v6.0.0) - 29 Mar 2023
+## [Version 6.0.0 (v6.0.0)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v6.0.0) - 29 Mar 2023
 
 ## What's Changed
 * Fix tests expecting the wrong exception by [@matthewelwell](https://github.com/matthewelwell) in https://github.com/Flagsmith/flagsmith-java-client/pull/108
@@ -205,7 +237,7 @@
 
 
 <a name="v5.1.2"></a>
-# [Version 5.1.2 (v5.1.2)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v5.1.2) - 20 Jan 2023
+## [Version 5.1.2 (v5.1.2)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v5.1.2) - 20 Jan 2023
 
 ## What's Changed
 * fix/is-feature-enabled-nullpointer: Remove the possibility of a null … by [@ajhelsby](https://github.com/ajhelsby) in https://github.com/Flagsmith/flagsmith-java-client/pull/104
@@ -221,7 +253,7 @@
 
 
 <a name="v5.1.1"></a>
-# [Version 5.1.1 (v5.1.1)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v5.1.1) - 04 Nov 2022
+## [Version 5.1.1 (v5.1.1)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v5.1.1) - 04 Nov 2022
 
 ## What's Changed
 * Fix NPE in identifyUserWithTraits when using caching  by [@matthewelwell](https://github.com/matthewelwell) in https://github.com/Flagsmith/flagsmith-java-client/pull/100
@@ -234,7 +266,7 @@
 
 
 <a name="v5.1.0"></a>
-# [Version 5.1.0 (v5.1.0)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v5.1.0) - 01 Nov 2022
+## [Version 5.1.0 (v5.1.0)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v5.1.0) - 01 Nov 2022
 
 ## What's Changed
 * Add IS_SET and IS_NOT_SET operators by [@matthewelwell](https://github.com/matthewelwell) in https://github.com/Flagsmith/flagsmith-java-client/pull/90
@@ -250,7 +282,7 @@
 
 
 <a name="v5.0.4"></a>
-# [Version 5.0.4 (v5.0.4)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v5.0.4) - 24 Aug 2022
+## [Version 5.0.4 (v5.0.4)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v5.0.4) - 24 Aug 2022
 
 ## What's Changed
 * Handle exceptions in polling manager by [@matthewelwell](https://github.com/matthewelwell) in https://github.com/Flagsmith/flagsmith-java-client/pull/79
@@ -262,7 +294,7 @@
 
 
 <a name="v5.0.0"></a>
-# [Version 5.0.0 (v5.0.0)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v5.0.0) - 07 Jun 2022
+## [Version 5.0.0 (v5.0.0)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v5.0.0) - 07 Jun 2022
 
 ## What's Changed
 * Flag Engine Implementation by [@fzia](https://github.com/fzia) in https://github.com/Flagsmith/flagsmith-java-client/pull/53
@@ -283,7 +315,7 @@
 
 
 <a name="v1.5.0"></a>
-# [Full ConfigBuilder support (v1.5.0)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v1.5.0) - 11 Jun 2020
+## [Full ConfigBuilder support (v1.5.0)](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v1.5.0) - 11 Jun 2020
 
 You can now override all config options with the builder. 
 
@@ -291,7 +323,7 @@ You can now override all config options with the builder.
 
 
 <a name="v1.3.0"></a>
-# [v1.3.0](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v1.3.0) - 11 Jan 2019
+## [v1.3.0](https://github.com/Flagsmith/flagsmith-java-client/releases/tag/v1.3.0) - 11 Jan 2019
 
 added UserTraits feature support
 
