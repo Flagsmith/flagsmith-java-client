@@ -1,5 +1,5 @@
 {
-    "bootstrap-sha": "272792770bb4be7d2514e136eb1ee97c7693df80",
+    "bootstrap-sha": "2ea39c1ffecaed95f9403609486048090965ee8c",
     "packages": {
         ".": {
             "package-name": "com.flagsmith.flagsmith-java-client",
