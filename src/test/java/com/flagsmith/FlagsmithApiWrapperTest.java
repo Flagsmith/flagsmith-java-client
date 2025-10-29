@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import com.flagsmith.threads.AnalyticsProcessor;
 import com.flagsmith.threads.RequestProcessor;
@@ -92,6 +93,8 @@ public class FlagsmithApiWrapperTest {
     // Arrange
     interceptor.addRule()
         .get(BASE_URL + "/flags/")
+        .headerMatches("X-Environment-Key", Pattern.compile(API_KEY))
+        .headerMatches("User-Agent", Pattern.compile("flagsmith-java-sdk/.*"))
         .respond(mapper.writeValueAsString(Arrays.asList(getNewFlag())), MEDIATYPE_JSON);
 
     // Act
@@ -128,6 +131,8 @@ public class FlagsmithApiWrapperTest {
     String responseBody = mapper.writeValueAsString(getFlagsAndTraitsResponse(Arrays.asList(getNewFlag()), Arrays.asList(new TraitModel())));
     interceptor.addRule()
         .post(BASE_URL + "/identities/")
+        .headerMatches("X-Environment-Key", Pattern.compile(API_KEY))
+        .headerMatches("User-Agent", Pattern.compile("flagsmith-java-sdk/.*"))
         .respond(responseBody, MEDIATYPE_JSON);
 
     // Act

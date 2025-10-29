@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -125,6 +126,8 @@ public class FlagsmithClientTest {
 
         interceptor.addRule()
                 .get(baseUrl + "/environment-document/")
+                .headerMatches("X-Environment-Key", Pattern.compile("api-key"))
+                .headerMatches("User-Agent", Pattern.compile("flagsmith-java-sdk/.*"))
                 .respond(
                         500,
                         ResponseBody.create("error", MEDIATYPE_JSON));
@@ -162,6 +165,8 @@ public class FlagsmithClientTest {
 
         interceptor.addRule()
                 .get(baseUrl + "/environment-document/")
+                .headerMatches("X-Environment-Key", Pattern.compile("api-key"))
+                .headerMatches("User-Agent", Pattern.compile("flagsmith-java-sdk/.*"))
                 .anyTimes()
                 .respond(
                         FlagsmithTestHelper.environmentString(),
@@ -188,6 +193,8 @@ public class FlagsmithClientTest {
 
         interceptor.addRule()
                 .get(baseUrl + "/flags/")
+                .headerMatches("X-Environment-Key", Pattern.compile("api-key"))
+                .headerMatches("User-Agent", Pattern.compile("flagsmith-java-sdk/.*"))
                 .respond(
                         500,
                         ResponseBody.create("error", MEDIATYPE_JSON));
@@ -211,6 +218,8 @@ public class FlagsmithClientTest {
 
         interceptor.addRule()
                 .get(baseUrl + "/flags/")
+                .headerMatches("X-Environment-Key", Pattern.compile("api-key"))
+                .headerMatches("User-Agent", Pattern.compile("flagsmith-java-sdk/.*"))
                 .respond(
                         "[]",
                         MEDIATYPE_JSON);
@@ -238,6 +247,8 @@ public class FlagsmithClientTest {
 
         interceptor.addRule()
                 .get(baseUrl + "/flags/")
+                .headerMatches("X-Environment-Key", Pattern.compile("api-key"))
+                .headerMatches("User-Agent", Pattern.compile("flagsmith-java-sdk/.*"))
                 .respond(
                         MapperFactory.getMapper().writeValueAsString(featureStateModel),
                         MEDIATYPE_JSON);
@@ -264,6 +275,8 @@ public class FlagsmithClientTest {
 
         interceptor.addRule()
                 .post(baseUrl + "/identities/")
+                .headerMatches("X-Environment-Key", Pattern.compile("api-key"))
+                .headerMatches("User-Agent", Pattern.compile("flagsmith-java-sdk/.*"))
                 .respond(
                         500,
                         ResponseBody.create("error", MEDIATYPE_JSON));
@@ -289,6 +302,8 @@ public class FlagsmithClientTest {
 
         interceptor.addRule()
                 .post(baseUrl + "/identities/")
+                .headerMatches("X-Environment-Key", Pattern.compile("api-key"))
+                .headerMatches("User-Agent", Pattern.compile("flagsmith-java-sdk/.*"))
                 .respond(
                         json,
                         MEDIATYPE_JSON);
@@ -407,7 +422,8 @@ public class FlagsmithClientTest {
                 .build();
 
         interceptor.addRule()
-                .get(baseUrl + "/flags/").anyTimes()
+                .get(baseUrl + "/flags/")
+                .anyTimes()
                 .respond(500, ResponseBody.create("error", MEDIATYPE_JSON));
 
         assertThrows(FlagsmithApiError.class,
@@ -443,6 +459,8 @@ public class FlagsmithClientTest {
 
         interceptor.addRule()
                 .get(baseUrl + "/flags/")
+                .headerMatches("X-Environment-Key", Pattern.compile("api-key"))
+                .headerMatches("User-Agent", Pattern.compile("flagsmith-java-sdk/.*"))
                 .respond(
                         "[]",
                         MEDIATYPE_JSON);
@@ -481,6 +499,8 @@ public class FlagsmithClientTest {
         MockInterceptor interceptor = new MockInterceptor();
         interceptor.addRule()
                 .get(baseUrl + "/environment-document/")
+                .headerMatches("X-Environment-Key", Pattern.compile("ser.abcdefg"))
+                .headerMatches("User-Agent", Pattern.compile("flagsmith-java-sdk/.*"))
                 .anyTimes()
                 .respond(
                         MapperFactory.getMapper().writeValueAsString(environmentModel),
@@ -514,6 +534,8 @@ public class FlagsmithClientTest {
         MockInterceptor interceptor = new MockInterceptor();
         interceptor.addRule()
                 .get(baseUrl + "/environment-document/")
+                .headerMatches("X-Environment-Key", Pattern.compile("ser.abcdefg"))
+                .headerMatches("User-Agent", Pattern.compile("flagsmith-java-sdk/.*"))
                 .anyTimes()
                 .respond(
                         MapperFactory.getMapper().writeValueAsString(environmentModel),

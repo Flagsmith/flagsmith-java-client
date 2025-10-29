@@ -33,6 +33,7 @@ import okhttp3.RequestBody;
 public class FlagsmithApiWrapper implements FlagsmithSdk {
 
   private static final String AUTH_HEADER = "X-Environment-Key";
+  private static final String USER_AGENT_HEADER = "User-Agent";
   private static final String ACCEPT_HEADER = "Accept";
   private static final Integer TIMEOUT = 15000;
 
@@ -300,6 +301,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   private Request.Builder newRequestBuilder() {
     final Request.Builder builder = new Request.Builder()
         .header(AUTH_HEADER, apiKey)
+        .header(USER_AGENT_HEADER, "flagsmith-java-sdk/" + Versions.getVersion())
         .addHeader(ACCEPT_HEADER, "application/json");
 
     if (this.customHeaders != null && !this.customHeaders.isEmpty()) {
