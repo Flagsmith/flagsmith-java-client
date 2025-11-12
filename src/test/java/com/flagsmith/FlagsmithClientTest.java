@@ -20,6 +20,7 @@ import com.flagsmith.exceptions.FlagsmithApiError;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.exceptions.FlagsmithRuntimeError;
 import com.flagsmith.flagengine.EvaluationContext;
+import com.flagsmith.flagengine.EvaluationResult;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.DefaultFlag;
@@ -47,11 +48,13 @@ import okhttp3.Request;
 import okhttp3.ResponseBody;
 import okhttp3.mock.MockInterceptor;
 import okio.Buffer;
+import com.flagsmith.flagengine.Engine;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.invocation.Invocation;
 import org.slf4j.Logger;
@@ -774,6 +777,49 @@ public class FlagsmithClientTest {
         // Then
         assertEquals(flagsWithoutOverride.getFeatureValue("some_feature"), "some-value");
         assertEquals(flagsWithOverride.getFeatureValue("some_feature"), "overridden-value");
+    }
+
+    @Test
+    public void testLocalEvaluation_getEnvironmentFlags_NoTargeting() throws FlagsmithClientError {
+        // Given
+        EvaluationContext evaluationContext = FlagsmithTestHelper.evaluationContext();
+        EvaluationResult evaluationResult = Engine.getEvaluationResult(
+                new EvaluationContext(evaluationContext)
+                        .withSegments(null)
+        );
+
+        FlagsmithConfig config = FlagsmithConfig.newBuilder().withLocalEvaluation(true).build();
+
+        FlagsmithApiWrapper mockedApiWrapper = mock(FlagsmithApiWrapper.class);
+        when(mockedApiWrapper.getEvaluationContext())
+                .thenReturn(evaluationContext);
+        when(mockedApiWrapper.getConfig()).thenReturn(config);
+
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withFlagsmithApiWrapper(mockedApiWrapper)
+                .withConfiguration(config)
+                .setApiKey("ser.dummy-key")
+                .build();
+
+        // When
+        try (MockedStatic<Engine> mockedEngine = mockStatic(Engine.class)) {
+                mockedEngine.when(
+                        () -> Engine.getEvaluationResult(
+                                new EvaluationContext(evaluationContext)
+                                        .withSegments(null)
+                        )
+                ).thenReturn(evaluationResult);
+
+                client.getEnvironmentFlags();
+
+                // Then
+                mockedEngine.verify(
+                        () -> Engine.getEvaluationResult(
+                                new EvaluationContext(evaluationContext)
+                                        .withSegments(null)
+                        )
+                );
+        }
     }
 
     @Test
