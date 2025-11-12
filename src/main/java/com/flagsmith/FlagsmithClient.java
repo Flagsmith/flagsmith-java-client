@@ -216,7 +216,10 @@ public class FlagsmithClient {
       return getDefaultFlags();
     }
 
-    final EvaluationResult result = Engine.getEvaluationResult(evaluationContext);
+    final EvaluationResult result = Engine.getEvaluationResult(
+      new EvaluationContext(evaluationContext)
+        .withSegments(null)
+    );
 
     return Flags.fromEvaluationResult(
         result,
