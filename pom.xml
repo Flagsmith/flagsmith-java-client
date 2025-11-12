@@ -167,6 +167,12 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+        <!-- see https://github.com/mockito/mockito/issues/3328#issuecomment-2260087310 -->
+        <groupId>net.bytebuddy</groupId>
+        <artifactId>byte-buddy</artifactId>
+        <version>1.14.17</version>
+    </dependency>
+    <dependency>
       <groupId>com.github.gmazzo</groupId>
       <artifactId>okhttp-mock</artifactId>
       <version>1.4.1</version>
