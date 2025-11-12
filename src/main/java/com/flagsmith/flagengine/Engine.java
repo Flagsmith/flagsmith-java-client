@@ -124,22 +124,20 @@ public class Engine {
 
     if (contextFeatures != null) {
       for (FeatureContext featureContext : contextFeatures.getAdditionalProperties().values()) {
+        String reason;
         if (segmentFeatureContexts.containsKey(featureContext.getName())) {
           ImmutablePair<String, FeatureContext> segmentNameFeaturePair = segmentFeatureContexts
               .get(featureContext.getName());
           featureContext = segmentNameFeaturePair.getRight();
-          flags.setAdditionalProperty(
-              featureContext.getName(),
-              new FlagResult().withEnabled(featureContext.getEnabled())
-                  .withName(featureContext.getName())
-                  .withValue(featureContext.getValue())
-                  .withReason(
-                      "TARGETING_MATCH; segment=" + segmentNameFeaturePair.getLeft())
-                  .withMetadata(featureContext.getMetadata()));
+          reason = "TARGETING_MATCH; segment=" + segmentNameFeaturePair.getLeft();
         } else {
-          flags.setAdditionalProperty(featureContext.getName(),
-              getFlagResultFromFeatureContext(featureContext, identityKey));
+          reason = "DEFAULT";
         }
+        flags.setAdditionalProperty(featureContext.getName(),
+            getFlagResultFromFeatureContext(
+                featureContext,
+                identityKey,
+                reason));
       }
     }
 
@@ -148,7 +146,8 @@ public class Engine {
 
   private static FlagResult getFlagResultFromFeatureContext(
       FeatureContext featureContext,
-      String identityKey) {
+      String identityKey,
+      String reason) {
     if (identityKey != null) {
       List<FeatureValue> variants = featureContext.getVariants();
       if (variants != null) {
@@ -183,7 +182,7 @@ public class Engine {
     return new FlagResult().withEnabled(featureContext.getEnabled())
         .withName(featureContext.getName())
         .withValue(featureContext.getValue())
-        .withReason("DEFAULT")
+        .withReason(reason)
         .withMetadata(featureContext.getMetadata());
   }
 }
