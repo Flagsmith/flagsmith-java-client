@@ -1,4 +1,4 @@
 [submodule "src/test/java/com/flagsmith/flagengine/enginetestdata"]
 	path = src/test/java/com/flagsmith/flagengine/enginetestdata
 	url = git@github.com:Flagsmith/engine-test-data.git
-	tag = v3.4.1
+	tag = v3.5.0
