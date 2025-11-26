@@ -3,6 +3,7 @@ package com.flagsmith.flagengine.segments;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flagsmith.flagengine.EvaluationContext;
+import com.flagsmith.flagengine.IdentityContext;
 import com.flagsmith.flagengine.SegmentCondition;
 import com.flagsmith.flagengine.SegmentContext;
 import com.flagsmith.flagengine.SegmentRule;
@@ -21,6 +22,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 
 public class SegmentEvaluator {
   private static ObjectMapper mapper = new ObjectMapper();
@@ -77,9 +79,24 @@ public class SegmentEvaluator {
       EvaluationContext context,
       SegmentCondition condition,
       String segmentKey) {
-    Object contextValue = getContextValue(context, condition.getProperty());
+    Object contextValue = null;
     Object conditionValue = condition.getValue();
+    String conditionProperty = condition.getProperty();
     SegmentConditions operator = condition.getOperator();
+
+    if (operator == SegmentConditions.PERCENTAGE_SPLIT && StringUtils.isEmpty(conditionProperty)) {
+      // Currently, the only supported condition with a blank property
+      // is percentage split.
+      // In this case, we use the identity key as context value.
+      // This is mainly to support legacy segments created before
+      // we introduced JSONPath support.
+      IdentityContext identity = context.getIdentity();
+      if (!(identity == null)) {
+        contextValue = identity.getKey();
+      }
+    } else {
+      contextValue = getContextValue(context, conditionProperty);
+    }
 
     switch (operator) {
       case IN:
@@ -109,20 +126,14 @@ public class SegmentEvaluator {
         return conditionList.contains(String.valueOf(contextValue));
 
       case PERCENTAGE_SPLIT:
-        String key;
         if (contextValue == null) {
-          if (context.getIdentity() == null) {
-            return false;
-          }
-          key = context.getIdentity().getKey();
-        } else {
-          key = contextValue.toString();
+          return false;
         }
-        List<String> objectIds = List.of(segmentKey, key);
+        List<String> objectIds = List.of(segmentKey, contextValue.toString());
 
         final float floatValue;
         try {
-          floatValue = Float.parseFloat(String.valueOf(condition.getValue()));
+          floatValue = Float.parseFloat(String.valueOf(conditionValue));
         } catch (NumberFormatException e) {
           return false;
         }
