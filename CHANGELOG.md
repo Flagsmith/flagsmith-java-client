@@ -18,7 +18,7 @@
 
 * `getEnvironmentFlags` includes segments in evaluation context ([#193](https://github.com/Flagsmith/flagsmith-java-client/issues/193)) ([9b55de9](https://github.com/Flagsmith/flagsmith-java-client/commit/9b55de940d2bb735125129ad0ed90f451493b8a8))
 * Exclude identities when PERCENTAGE_SPLIT trait is undefined ([#198](https://github.com/Flagsmith/flagsmith-java-client/issues/198)) ([d1e2b59](https://github.com/Flagsmith/flagsmith-java-client/commit/d1e2b59ae7a7eaa1f3a6e9cea73b82c8b0938094))
-* Multivariate sgement overrides not evaluated ([#194](https://github.com/Flagsmith/flagsmith-java-client/issues/194)) ([75749e6](https://github.com/Flagsmith/flagsmith-java-client/commit/75749e6f3fb3f9dc22b502a270452bb6daf1c2dc))
+* Multivariate segment overrides not evaluated ([#194](https://github.com/Flagsmith/flagsmith-java-client/issues/194)) ([75749e6](https://github.com/Flagsmith/flagsmith-java-client/commit/75749e6f3fb3f9dc22b502a270452bb6daf1c2dc))
 
 
 ### CI
