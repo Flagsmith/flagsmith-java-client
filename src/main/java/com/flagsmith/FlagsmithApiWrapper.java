@@ -201,7 +201,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
       node.putPOJO("traits", traits);
     }
 
-    MediaType json = MediaType.parse("application/json; charset=utf-8");
+    MediaType json = MediaType.get("application/json; charset=utf-8");
     RequestBody body = RequestBody.create(node.toString(), json);
 
     HttpUrl url = defaultConfig.getIdentitiesUri();
