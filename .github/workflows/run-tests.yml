@@ -14,6 +14,12 @@ jobs:
       matrix:
         java: [ "11", "17", "21" ]
         distribution: [ "zulu", "adopt" ]
+        okhttp: [ "okhttp5", "okhttp4" ]
+        include:
+          - okhttp: "okhttp5"
+            maven_profiles: ""
+          - okhttp: "okhttp4"
+            maven_profiles: "-P test-okhttp4"
 
     steps:
       - name: Checkout repository
@@ -31,8 +37,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-m2-${{ matrix.okhttp }}-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
-      - name: Build with Maven
-        run: mvn clean install
+      - name: Build with Maven (OkHttp ${{ matrix.okhttp }})
+        run: mvn clean install ${{ matrix.maven_profiles }}
