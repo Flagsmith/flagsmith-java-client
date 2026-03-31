@@ -28,7 +28,7 @@ public final class FlagsmithConfig {
   private static final int DEFAULT_READ_TIMEOUT_MILLIS = 5000;
   private static final int DEFAULT_ENVIRONMENT_REFRESH_SECONDS = 60;
   private static final HttpUrl DEFAULT_BASE_URI = HttpUrl
-      .parse("https://edge.api.flagsmith.com/api/v1/");
+      .get("https://edge.api.flagsmith.com/api/v1/");
   private final HttpUrl flagsUri;
   private final HttpUrl identitiesUri;
   private final HttpUrl traitsUri;
@@ -129,7 +129,7 @@ public final class FlagsmithConfig {
      */
     public Builder baseUri(String baseUri) {
       if (baseUri != null) {
-        this.baseUri = HttpUrl.parse(baseUri);
+        this.baseUri = HttpUrl.get(baseUri);
       }
       return this;
     }

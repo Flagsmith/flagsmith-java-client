@@ -38,7 +38,6 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.mock.MockInterceptor;
-import org.bouncycastle.ocsp.Req;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

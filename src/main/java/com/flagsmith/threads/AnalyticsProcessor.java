@@ -132,8 +132,8 @@ public class AnalyticsProcessor {
         return;
       }
 
-      MediaType json = MediaType.parse("application/json; charset=utf-8");
-      RequestBody body = RequestBody.create(json, response);
+      MediaType json = MediaType.get("application/json; charset=utf-8");
+      RequestBody body = RequestBody.create(response, json);
 
       Request request = api.newPostRequest(getAnalyticsUrl(), body);
 
