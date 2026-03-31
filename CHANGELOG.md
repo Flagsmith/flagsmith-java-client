@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.0.1](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.0.0...v8.0.1) (2026-03-31)
+
+
+### Dependency Updates
+
+* Upgrade okhttp to 5.x ([#203](https://github.com/Flagsmith/flagsmith-java-client/issues/203)) ([08cf5b2](https://github.com/Flagsmith/flagsmith-java-client/commit/08cf5b247c0ad671980ce3031802a97435950051))
+
 ## [8.0.0](https://github.com/Flagsmith/flagsmith-java-client/compare/v7.4.3...v8.0.0) (2025-11-26)
 
 
