@@ -1,5 +1,23 @@
 # Changelog
 
+## [8.0.2](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.0.1...v8.0.2) (2026-04-02)
+
+
+### Bug Fixes
+
+* Preserve native types for multivariate feature option values ([#205](https://github.com/Flagsmith/flagsmith-java-client/issues/205)) ([b144bb0](https://github.com/Flagsmith/flagsmith-java-client/commit/b144bb0a75344635c66f3646d806b03c2be8e6b5))
+
+
+### Docs
+
+* improve README with typo fixes and clearer setup instructions ([#183](https://github.com/Flagsmith/flagsmith-java-client/issues/183)) ([0baec81](https://github.com/Flagsmith/flagsmith-java-client/commit/0baec819fcdb1baf7b220838110f8c28904c14a3))
+
+
+### Other
+
+* **deps-dev:** bump org.assertj:assertj-core from 3.19.0 to 3.27.7 ([#199](https://github.com/Flagsmith/flagsmith-java-client/issues/199)) ([59421bd](https://github.com/Flagsmith/flagsmith-java-client/commit/59421bdb6f4f0904edbbcafea46bf1c70a35e89d))
+* **deps:** bump com.fasterxml.jackson.core:jackson-core from 2.15.2 to 2.18.6 ([#201](https://github.com/Flagsmith/flagsmith-java-client/issues/201)) ([47283fb](https://github.com/Flagsmith/flagsmith-java-client/commit/47283fbc8bcc3819bc7952650dfeb7bf665f3c69))
+
 ## [8.0.1](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.0.0...v8.0.1) (2026-03-31)
 
 
