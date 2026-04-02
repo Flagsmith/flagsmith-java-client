@@ -43,7 +43,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <java.version>11</java.version>
-    <jacksonVersion>2.15.2</jacksonVersion>
+    <jacksonVersion>2.18.6</jacksonVersion>
     <lombok.version>1.18.34</lombok.version>
     <slf4j.version>1.7.30</slf4j.version>
     <maven.checkstyle.version>3.4.0</maven.checkstyle.version>
