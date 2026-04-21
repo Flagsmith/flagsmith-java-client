@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.1.0](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.0.2...v8.1.0) (2026-04-21)
+
+
+### Features
+
+* Expose ConnectionPool customization on FlagsmithConfig.Builder ([#208](https://github.com/Flagsmith/flagsmith-java-client/issues/208)) ([bf7290e](https://github.com/Flagsmith/flagsmith-java-client/commit/bf7290e9f04a27ed993bfbc4f612752e68fb90a7))
+
 ## [8.0.2](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.0.1...v8.0.2) (2026-04-02)
 
 
