@@ -2,12 +2,15 @@ package com.flagsmith.config;
 
 import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.flagsmith.config.FlagsmithConfig.Protocol;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+import okhttp3.ConnectionPool;
 import okhttp3.mock.MockInterceptor;
 import org.junit.jupiter.api.Test;
 
@@ -54,6 +57,29 @@ public class FlagsmithConfigTest {
   }
 
   @Test
+  public void configTest_customConnectionPool_respectsKeepAliveAndMaxIdle() throws Exception {
+    final ConnectionPool pool = new ConnectionPool(7, 42, TimeUnit.SECONDS);
+
+    final FlagsmithConfig flagsmithConfig = FlagsmithConfig.newBuilder()
+        .connectionPool(pool)
+        .build();
+
+    final ConnectionPool wired = flagsmithConfig.getHttpClient().connectionPool();
+    final Object delegate = readField(wired, "delegate");
+    assertEquals(7, readInt(delegate, "maxIdleConnections"));
+    assertEquals(TimeUnit.SECONDS.toNanos(42), readLong(delegate, "keepAliveDurationNs"));
+  }
+
+  @Test
+  public void configTest_nullConnectionPool_isSafeAndUsesDefault() {
+    final FlagsmithConfig flagsmithConfig = FlagsmithConfig.newBuilder()
+        .connectionPool(null)
+        .build();
+
+    assertNotNull(flagsmithConfig.getHttpClient().connectionPool());
+  }
+
+  @Test
   public void configTest_supportedProtocols() {
     final FlagsmithConfig defaultFlagsmithConfig = FlagsmithConfig.newBuilder().build();
 
@@ -64,5 +90,19 @@ public class FlagsmithConfigTest {
 
     assertEquals(1, customFlagsmithConfig.getHttpClient().protocols().size());
     assertEquals(okhttp3.Protocol.HTTP_1_1, customFlagsmithConfig.getHttpClient().protocols().get(0));
+  }
+
+  private static Object readField(Object target, String fieldName) throws Exception {
+    java.lang.reflect.Field field = target.getClass().getDeclaredField(fieldName);
+    field.setAccessible(true);
+    return field.get(target);
+  }
+
+  private static int readInt(Object target, String fieldName) throws Exception {
+    return (int) readField(target, fieldName);
+  }
+
+  private static long readLong(Object target, String fieldName) throws Exception {
+    return (long) readField(target, fieldName);
   }
 }
