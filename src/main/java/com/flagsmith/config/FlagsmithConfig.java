@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
 import lombok.Getter;
+import okhttp3.ConnectionPool;
 import okhttp3.HttpUrl;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
@@ -64,6 +65,9 @@ public final class FlagsmithConfig {
     if (builder.proxy != null) {
       httpBuilder.proxy(builder.proxy);
     }
+    if (builder.connectionPool != null) {
+      httpBuilder.connectionPool(builder.connectionPool);
+    }
     if (!builder.supportedProtocols.isEmpty()) {
       httpBuilder.protocols(
           builder.supportedProtocols.stream()
@@ -110,6 +114,7 @@ public final class FlagsmithConfig {
     private X509TrustManager trustManager;
     private FlagsmithFlagDefaults flagsmithFlagDefaults;
     private AnalyticsProcessor analyticsProcessor;
+    private ConnectionPool connectionPool;
 
     private Boolean enableLocalEvaluation = Boolean.FALSE;
     private Integer environmentRefreshIntervalSeconds = DEFAULT_ENVIRONMENT_REFRESH_SECONDS;
@@ -200,6 +205,18 @@ public final class FlagsmithConfig {
      */
     public Builder withProxy(Proxy proxy) {
       this.proxy = proxy;
+      return this;
+    }
+
+    /**
+     * Provide a custom OkHttp ConnectionPool to tune keep-alive duration and maximum idle
+     * connections. When not set, OkHttp's defaults are used.
+     *
+     * @param connectionPool the ConnectionPool to use for the HTTP client
+     * @return the Builder
+     */
+    public Builder connectionPool(ConnectionPool connectionPool) {
+      this.connectionPool = connectionPool;
       return this;
     }
 
