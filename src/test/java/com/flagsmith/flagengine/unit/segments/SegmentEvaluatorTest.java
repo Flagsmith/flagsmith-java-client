@@ -38,7 +38,7 @@ public class SegmentEvaluatorTest {
         Arguments.of(segmentMultipleConditionsAny(), oneIdentityTrait(), Boolean.TRUE),
         Arguments.of(segmentMultipleConditionsAny(), twoIdentityTraits(), Boolean.TRUE),
         Arguments.of(segmentNestedRules(), emptyIdentityTraits(), Boolean.FALSE),
-        Arguments.of(segmentNestedRules(), oneIdentityTrait(), Boolean.FALSE),
+        Arguments.of(segmentNestedRules(), oneIdentityTrait(), Boolean.TRUE),
         Arguments.of(segmentNestedRules(), threeIdentityTraits(), Boolean.TRUE),
         Arguments.of(segmentConditionsAndNestedRules(), emptyIdentityTraits(), Boolean.FALSE),
         Arguments.of(segmentConditionsAndNestedRules(), oneIdentityTrait(), Boolean.FALSE),

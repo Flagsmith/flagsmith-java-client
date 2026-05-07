@@ -71,8 +71,27 @@ public class SegmentEvaluator {
       }
     }
 
-    return isMatch && rule.getRules().stream()
-        .allMatch((subRule) -> contextMatchesRule(context, subRule, segmentKey));
+    if (!isMatch) {
+      return false;
+    }
+
+    List<SegmentRule> subRules = rule.getRules();
+    if (subRules.isEmpty()) {
+      return true;
+    }
+
+    Predicate<SegmentRule> subRulePredicate = (subRule) -> contextMatchesRule(
+        context, subRule, segmentKey);
+    switch (rule.getType()) {
+      case ALL:
+        return subRules.stream().allMatch(subRulePredicate);
+      case ANY:
+        return subRules.stream().anyMatch(subRulePredicate);
+      case NONE:
+        return subRules.stream().noneMatch(subRulePredicate);
+      default:
+        return false;
+    }
   }
 
   private static Boolean contextMatchesCondition(
