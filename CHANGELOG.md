@@ -1,5 +1,17 @@
 # Changelog
 
+## [8.1.1](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.1.0...v8.1.1) (2026-05-08)
+
+
+### Bug Fixes
+
+* handles integer foreign-key priority ([#215](https://github.com/Flagsmith/flagsmith-java-client/issues/215)) ([e567698](https://github.com/Flagsmith/flagsmith-java-client/commit/e5676982b178e70980e27c7a9aee2ddb21d79517))
+
+
+### CI
+
+* setup Renovate for engine-test-data tracking ([#211](https://github.com/Flagsmith/flagsmith-java-client/issues/211)) ([ee4dd8b](https://github.com/Flagsmith/flagsmith-java-client/commit/ee4dd8b962d8a79a7a291a6c2e11d001406313e2))
+
 ## [8.1.0](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.0.2...v8.1.0) (2026-04-21)
 
 
