@@ -1,5 +1,22 @@
 # Changelog
 
+## [8.1.2](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.1.1...v8.1.2) (2026-08-26)
+
+
+### Bug Fixes
+
+* respect rule type for sub-rules in segment evaluation ([#213](https://github.com/Flagsmith/flagsmith-java-client/issues/213)) ([a4cc74e](https://github.com/Flagsmith/flagsmith-java-client/commit/a4cc74ebde23ef8cbca3227dadd4eda736320afd))
+
+
+### CI
+
+* track engine-test-data semver tags via Renovate ([#219](https://github.com/Flagsmith/flagsmith-java-client/issues/219)) ([a01fd45](https://github.com/Flagsmith/flagsmith-java-client/commit/a01fd45ab5a890a5458e0f014f12b69751215d5b))
+
+
+### Other
+
+* **deps:** bump com.fasterxml.jackson.core:jackson-databind from 2.18.6 to 2.18.9 ([#222](https://github.com/Flagsmith/flagsmith-java-client/issues/222)) ([a395c51](https://github.com/Flagsmith/flagsmith-java-client/commit/a395c51df5ed92b91e4143be06640f3a0e6ea1d9))
+
 ## [8.1.1](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.1.0...v8.1.1) (2026-05-08)
 
 
