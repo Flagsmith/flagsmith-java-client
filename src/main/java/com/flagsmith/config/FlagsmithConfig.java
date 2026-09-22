@@ -299,7 +299,9 @@ public final class FlagsmithConfig {
     }
 
     /**
-     * Set the base URL of the Flagsmith events API, overriding the default one.
+     * Set the base URL of the Flagsmith events API, overriding the default one. Harmless when
+     * events are not enabled, so that a shared configuration can carry the URL for the services
+     * that do enable them.
      *
      * @param eventsUri the new base URI for the events API
      * @return the Builder
@@ -307,7 +309,6 @@ public final class FlagsmithConfig {
     public Builder eventsUri(String eventsUri) {
       if (eventsUri != null) {
         this.eventsUri = HttpUrl.get(eventsUri.endsWith("/") ? eventsUri : eventsUri + "/");
-        this.eventsConfigured = Boolean.TRUE;
       }
       return this;
     }

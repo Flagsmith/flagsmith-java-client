@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
@@ -39,6 +40,7 @@ import com.flagsmith.threads.PollingManager;
 import com.flagsmith.threads.RequestProcessor;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -1024,6 +1026,74 @@ public class FlagsmithClientTest {
                 () -> FlagsmithConfig.newBuilder().withEventsMaxBufferItems(10).build());
         assertThrows(IllegalArgumentException.class,
                 () -> FlagsmithConfig.newBuilder().withEventsFlushIntervalMillis(10).build());
+    }
+
+    @Test
+    public void testEventsUriWithoutEnableEventsIsHarmless() {
+        // A shared configuration may carry the events URL for the services that do enable events.
+        FlagsmithConfig config = FlagsmithConfig.newBuilder()
+                .eventsUri("http://events-uri")
+                .build();
+
+        assertNull(config.getEventProcessor());
+        assertEquals("http://events-uri/", config.getEventsUri().toString());
+    }
+
+    @Test
+    public void testGetExperimentFlagPassesTraitsThroughToTheExposure()
+            throws FlagsmithClientError {
+        String baseUrl = "http://bad-url";
+        MockInterceptor interceptor = new MockInterceptor();
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(eventsConfigBuilder(baseUrl, interceptor)
+                        .withEventProcessor(processor)
+                        .build())
+                .setApiKey("api-key")
+                .build();
+        respondWithExperimentFlags(baseUrl, interceptor);
+
+        Map<String, Object> traits = new HashMap<>();
+        traits.put("plan", "premium");
+        traits.put("session_id", new TraitConfig("abc123", true));
+
+        client.getExperimentFlag("checkout_cta", "user-1", traits);
+        verify(processor, times(1)).trackExposureEvent(
+                eq("checkout_cta"), eq("user-1"), eq("treatment"), eq(traits), any());
+
+        // The two-argument overload passes an empty map rather than null.
+        client.getExperimentFlag("checkout_cta", "user-2");
+        verify(processor, times(1)).trackExposureEvent(
+                eq("checkout_cta"), eq("user-2"), eq("treatment"), eq(new HashMap<>()), any());
+    }
+
+    @Test
+    public void testCloseDoesNotWedgeLaterFlushes() throws FlagsmithClientError {
+        String baseUrl = "http://bad-url";
+        MockInterceptor interceptor = new MockInterceptor();
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(eventsConfigBuilder(baseUrl, interceptor)
+                        .withEventsMaxBufferItems(1)
+                        .withEventsFlushIntervalMillis(0)
+                        .build())
+                .setApiKey("api-key")
+                .build();
+        interceptor.addRule()
+                .post("http://events-uri/v1/events")
+                .anyTimes()
+                .respond("{\"accepted\": 0, \"rejected\": []}", MEDIATYPE_JSON);
+
+        client.close();
+
+        // Buffering after close is a no-op, and nothing left behind may stall a later flush.
+        client.trackEvent("purchase", "user-1");
+        client.trackExposureEvent("checkout_cta", "user-1", "treatment");
+
+        assertTrue(assertTimeoutPreemptively(Duration.ofSeconds(10),
+                () -> {
+                    client.flushEvents().join();
+                    return Boolean.TRUE;
+                }));
     }
 
     @Test
