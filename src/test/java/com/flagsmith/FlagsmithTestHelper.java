@@ -431,6 +431,90 @@ public class FlagsmithTestHelper {
     return featureJson;
   }
 
+  /**
+   * An identity flags payload exercising every branch of the experiment gate: an enrolled flag,
+   * a bucketed but unenrolled flag, a flag with no metadata at all, and a disabled flag whose
+   * experiment is running.
+   */
+  public static String getIdentitiesFlagsWithExperiment() {
+    return "{\n" +
+        "    \"traits\": [],\n" +
+        "    \"flags\": [\n" +
+        "        {\n" +
+        "            \"id\": 1,\n" +
+        "            \"feature\": {\n" +
+        "                \"id\": 1,\n" +
+        "                \"name\": \"checkout_cta\",\n" +
+        "                \"type\": \"MULTIVARIATE\",\n" +
+        "                \"project\": 1\n" +
+        "            },\n" +
+        "            \"feature_state_value\": \"buy-now\",\n" +
+        "            \"enabled\": true,\n" +
+        "            \"variant\": \"treatment\",\n" +
+        "            \"reason\": \"SPLIT; weight=70.0\",\n" +
+        "            \"metadata\": {\n" +
+        "                \"experiment\": {\n" +
+        "                    \"id\": 42,\n" +
+        "                    \"name\": \"checkout_experiment\",\n" +
+        "                    \"in_experiment\": true\n" +
+        "                }\n" +
+        "            }\n" +
+        "        },\n" +
+        "        {\n" +
+        "            \"id\": 2,\n" +
+        "            \"feature\": {\n" +
+        "                \"id\": 2,\n" +
+        "                \"name\": \"pricing_page\",\n" +
+        "                \"type\": \"MULTIVARIATE\",\n" +
+        "                \"project\": 1\n" +
+        "            },\n" +
+        "            \"feature_state_value\": \"old-pricing\",\n" +
+        "            \"enabled\": true,\n" +
+        "            \"variant\": \"control\",\n" +
+        "            \"reason\": \"SPLIT; weight=30.0\",\n" +
+        "            \"metadata\": {\n" +
+        "                \"experiment\": {\n" +
+        "                    \"id\": 43,\n" +
+        "                    \"name\": \"pricing_experiment\",\n" +
+        "                    \"in_experiment\": false\n" +
+        "                }\n" +
+        "            }\n" +
+        "        },\n" +
+        "        {\n" +
+        "            \"id\": 3,\n" +
+        "            \"feature\": {\n" +
+        "                \"id\": 3,\n" +
+        "                \"name\": \"some_feature\",\n" +
+        "                \"type\": \"STANDARD\",\n" +
+        "                \"project\": 1\n" +
+        "            },\n" +
+        "            \"feature_state_value\": \"some-value\",\n" +
+        "            \"enabled\": true\n" +
+        "        },\n" +
+        "        {\n" +
+        "            \"id\": 4,\n" +
+        "            \"feature\": {\n" +
+        "                \"id\": 4,\n" +
+        "                \"name\": \"disabled_feature\",\n" +
+        "                \"type\": \"MULTIVARIATE\",\n" +
+        "                \"project\": 1\n" +
+        "            },\n" +
+        "            \"feature_state_value\": \"off\",\n" +
+        "            \"enabled\": false,\n" +
+        "            \"variant\": \"treatment\",\n" +
+        "            \"reason\": \"SPLIT; weight=50.0\",\n" +
+        "            \"metadata\": {\n" +
+        "                \"experiment\": {\n" +
+        "                    \"id\": 44,\n" +
+        "                    \"name\": \"disabled_experiment\",\n" +
+        "                    \"in_experiment\": true\n" +
+        "                }\n" +
+        "            }\n" +
+        "        }\n" +
+        "    ]\n" +
+        "}";
+  }
+
   public static <T> Future<T> futurableReturn(T response) {
     CompletableFuture<T> promise = new CompletableFuture<>();
     promise.complete(response);

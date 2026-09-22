@@ -13,19 +13,24 @@ import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.mappers.EngineMappers;
 import com.flagsmith.models.BaseFlag;
+import com.flagsmith.models.ExperimentMetadata;
+import com.flagsmith.models.Flag;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.Segment;
 import com.flagsmith.models.SegmentMetadata;
+import com.flagsmith.threads.EventProcessor;
 import com.flagsmith.threads.PollingManager;
 import com.flagsmith.utils.ModelUtils;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.NonNull;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -198,6 +203,170 @@ public class FlagsmithClient {
   }
 
   /**
+   * Resolve a flag for an identity and record one {@code $flag_exposure} event when the identity
+   * is enrolled in a running experiment on that feature. Identity flags are fetched exactly as
+   * {@link #getIdentityFlags(String)} fetches them.
+   *
+   * <p>Experiment metadata is only carried by remote evaluation. With local evaluation or offline
+   * mode the flag is still returned but no exposure is recorded.
+   *
+   * @param featureName feature name
+   * @param identifier  identifier string
+   * @return the flag for the given feature
+   * @throws FlagsmithRuntimeError when events are not enabled
+   */
+  public BaseFlag getExperimentFlag(String featureName, String identifier)
+      throws FlagsmithClientError {
+    return getExperimentFlag(featureName, identifier, new HashMap<>());
+  }
+
+  /**
+   * Resolve a flag for an identity and record one {@code $flag_exposure} event when the identity
+   * is enrolled in a running experiment on that feature. Identity flags are fetched exactly as
+   * {@link #getIdentityFlags(String, Map)} fetches them.
+   *
+   * <p>Experiment metadata is only carried by remote evaluation. With local evaluation or offline
+   * mode the flag is still returned but no exposure is recorded.
+   *
+   * @param featureName feature name
+   * @param identifier  identifier string
+   * @param traits      a map of trait keys to trait values
+   * @return the flag for the given feature
+   * @throws FlagsmithRuntimeError when events are not enabled
+   */
+  public BaseFlag getExperimentFlag(
+      String featureName, String identifier, Map<String, Object> traits)
+      throws FlagsmithClientError {
+    requireEventProcessor("get experiment flags");
+
+    Flags flags = getIdentityFlags(identifier, traits);
+    BaseFlag flag = flags.getFlag(featureName);
+
+    if (!(flag instanceof Flag)) {
+      logger.info("Not recording an exposure for feature {}: served by the default flag handler.",
+          featureName);
+      return flag;
+    }
+
+    if (!Boolean.TRUE.equals(flag.getEnabled())) {
+      logger.info("Not recording an exposure for feature {}: the flag is disabled.", featureName);
+      return flag;
+    }
+
+    ExperimentMetadata experiment = ((Flag) flag).getExperiment();
+    if (experiment == null || !Boolean.TRUE.equals(experiment.getInExperiment())) {
+      logger.info("Not recording an exposure for feature {}: the identity is not enrolled in a "
+          + "running experiment.", featureName);
+      return flag;
+    }
+
+    Map<String, Object> metadata = new HashMap<>();
+    metadata.put("experiment_id", experiment.getId());
+    trackExposureEvent(featureName, identifier, ((Flag) flag).getVariant(), traits, metadata);
+
+    return flag;
+  }
+
+  /**
+   * Record a custom event.
+   *
+   * @param event event name
+   * @throws FlagsmithRuntimeError    when events are not enabled
+   * @throws IllegalArgumentException when the event name starts with "$"
+   */
+  public void trackEvent(String event) {
+    trackEvent(event, null, null, null, null);
+  }
+
+  /**
+   * Record a custom event for an identity.
+   *
+   * @param event      event name
+   * @param identifier identifier string
+   * @throws FlagsmithRuntimeError    when events are not enabled
+   * @throws IllegalArgumentException when the event name starts with "$"
+   */
+  public void trackEvent(String event, String identifier) {
+    trackEvent(event, identifier, null, null, null);
+  }
+
+  /**
+   * Record a custom event for an identity, with a value, traits and metadata.
+   *
+   * @param event      event name
+   * @param identifier identifier string
+   * @param value      event value, stringified before sending
+   * @param traits     a map of trait keys to trait values
+   * @param metadata   a map of metadata to attach to the event
+   * @throws FlagsmithRuntimeError    when events are not enabled
+   * @throws IllegalArgumentException when the event name starts with "$"
+   */
+  public void trackEvent(String event, String identifier, Object value,
+      Map<String, Object> traits, Map<String, Object> metadata) {
+    EventProcessor processor = requireEventProcessor("track events");
+
+    if (event != null && event.startsWith("$")) {
+      throw new IllegalArgumentException("Event names starting with \"$\" are reserved; use "
+          + "trackExposureEvent to record \"" + EventProcessor.FLAG_EXPOSURE_EVENT + "\".");
+    }
+
+    processor.trackEvent(event, identifier, value, traits, metadata);
+  }
+
+  /**
+   * Record a {@code $flag_exposure} event. Skipped, with a log line, when the identifier is
+   * blank.
+   *
+   * @param featureName feature the identity was exposed to
+   * @param identifier  identifier string
+   * @param value       variant the identity was bucketed into
+   * @throws FlagsmithRuntimeError when events are not enabled
+   */
+  public void trackExposureEvent(String featureName, String identifier, Object value) {
+    trackExposureEvent(featureName, identifier, value, null, null);
+  }
+
+  /**
+   * Record a {@code $flag_exposure} event, with traits and metadata. Skipped, with a log line,
+   * when the identifier is blank.
+   *
+   * @param featureName feature the identity was exposed to
+   * @param identifier  identifier string
+   * @param value       variant the identity was bucketed into
+   * @param traits      a map of trait keys to trait values
+   * @param metadata    a map of metadata to attach to the event
+   * @throws FlagsmithRuntimeError when events are not enabled
+   */
+  public void trackExposureEvent(String featureName, String identifier, Object value,
+      Map<String, Object> traits, Map<String, Object> metadata) {
+    EventProcessor processor = requireEventProcessor("track exposure events");
+
+    if (StringUtils.isBlank(identifier)) {
+      logger.info("Not sending {} for feature {}: an exposure requires an identifier.",
+          EventProcessor.FLAG_EXPOSURE_EVENT, featureName);
+      return;
+    }
+
+    processor.trackExposureEvent(featureName, identifier, value, traits, metadata);
+  }
+
+  /**
+   * Send buffered events now.
+   *
+   * @return a future completing once every in-flight batch is done, already completed when events
+   *     are not enabled
+   */
+  public CompletableFuture<Void> flushEvents() {
+    EventProcessor processor = getEventProcessor();
+
+    if (processor == null) {
+      return CompletableFuture.completedFuture(null);
+    }
+
+    return processor.flush();
+  }
+
+  /**
    * Should be called when terminating the client to clean up any resources that
    * need cleaning up.
    **/
@@ -205,7 +374,29 @@ public class FlagsmithClient {
     if (pollingManager != null) {
       pollingManager.stopPolling();
     }
+
+    EventProcessor eventProcessor = getEventProcessor();
+    if (eventProcessor != null) {
+      eventProcessor.close();
+    }
+
     flagsmithSdk.close();
+  }
+
+  private EventProcessor getEventProcessor() {
+    FlagsmithConfig config = getConfig();
+    return config != null ? config.getEventProcessor() : null;
+  }
+
+  private EventProcessor requireEventProcessor(String action) {
+    EventProcessor processor = getEventProcessor();
+
+    if (processor == null) {
+      throw new FlagsmithRuntimeError(
+          "Events must be enabled to " + action + ". Use withEnableEvents(true).");
+    }
+
+    return processor;
   }
 
   private Flags getEnvironmentFlagsFromEvaluationContext() throws FlagsmithClientError {
@@ -523,6 +714,15 @@ public class FlagsmithClient {
       if (configuration.getAnalyticsProcessor() != null) {
         configuration.getAnalyticsProcessor().setApi(client.flagsmithSdk);
         configuration.getAnalyticsProcessor().setLogger(client.logger);
+      }
+
+      if (configuration.getEventProcessor() != null) {
+        if (configuration.getOfflineMode()) {
+          throw new FlagsmithRuntimeError("Events cannot be enabled in offline mode.");
+        }
+        configuration.getEventProcessor().setApi(client.flagsmithSdk);
+        configuration.getEventProcessor().setLogger(client.logger);
+        configuration.getEventProcessor().start();
       }
 
       if (configuration.getEnableLocalEvaluation()) {
