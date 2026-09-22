@@ -7,6 +7,7 @@ import com.flagsmith.MapperFactory;
 import com.flagsmith.Versions;
 import com.flagsmith.config.Retry;
 import com.flagsmith.interfaces.FlagsmithSdk;
+import com.flagsmith.models.TraitConfig;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -22,6 +23,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.Getter;
 import lombok.Setter;
 import okhttp3.HttpUrl;
@@ -65,6 +67,7 @@ public class EventProcessor {
   @Setter
   private FlagsmithSdk api;
   private FlagsmithLogger logger = new FlagsmithLogger();
+  private final AtomicBoolean closed = new AtomicBoolean(false);
   private ScheduledFuture<?> scheduledFlush;
 
   /**
@@ -161,22 +164,23 @@ public class EventProcessor {
    * @return a future completing once every in-flight batch has been delivered or dropped
    */
   public CompletableFuture<Void> flush() {
-    try {
-      List<Map<String, Object>> batch = null;
+    List<Map<String, Object>> batch = null;
+    CompletableFuture<Void> tracked = null;
 
-      synchronized (lock) {
-        if (!buffer.isEmpty()) {
-          batch = new ArrayList<>(buffer);
-          buffer.clear();
-        }
-        dedupeKeys.clear();
+    // The batch is registered as in-flight under the same lock that empties the buffer, so a
+    // concurrent flush() can never observe both an empty buffer and an unregistered batch.
+    synchronized (lock) {
+      if (!buffer.isEmpty()) {
+        batch = new ArrayList<>(buffer);
+        buffer.clear();
+        tracked = new CompletableFuture<>();
+        inFlight.add(tracked);
       }
+      dedupeKeys.clear();
+    }
 
-      if (batch != null) {
-        send(batch);
-      }
-    } catch (RuntimeException e) {
-      logger.error("Failed to flush events.", e);
+    if (batch != null) {
+      send(batch, tracked);
     }
 
     return awaitInFlight();
@@ -199,6 +203,7 @@ public class EventProcessor {
    * resources.
    */
   public void close() {
+    closed.set(true);
     scheduler.shutdownNow();
 
     try {
@@ -215,6 +220,11 @@ public class EventProcessor {
 
   private void bufferEvent(String event, String featureName, String identifier, Object value,
       Map<String, Object> traits, Map<String, Object> metadata, boolean dedupe) {
+    if (closed.get()) {
+      logger.info("Not buffering event {}: the event processor is closed.", event);
+      return;
+    }
+
     try {
       final String stringValue = value == null ? null : String.valueOf(value);
 
@@ -229,7 +239,7 @@ public class EventProcessor {
       eventPayload.put("feature_name", featureName);
       eventPayload.put("identifier", identifier);
       eventPayload.put("value", stringValue);
-      eventPayload.put("traits", traits);
+      eventPayload.put("traits", eventTraits(traits));
       eventPayload.put("metadata", eventMetadata);
       eventPayload.put("timestamp", System.currentTimeMillis());
 
@@ -252,6 +262,30 @@ public class EventProcessor {
     }
   }
 
+  /**
+   * Flatten a caller trait map into the flat map of trait values the events API expects. Values
+   * wrapped in a {@link TraitConfig} are unwrapped, and traits the caller marked transient are
+   * dropped: transient means "do not persist this against the identity", and an event store keeps
+   * what it is sent. The result is a copy, so a caller mutating its map afterwards cannot change
+   * an event already buffered.
+   */
+  private static Map<String, Object> eventTraits(Map<String, Object> traits) {
+    if (traits == null) {
+      return null;
+    }
+
+    Map<String, Object> flattened = new LinkedHashMap<>();
+
+    for (Map.Entry<String, Object> entry : traits.entrySet()) {
+      TraitConfig traitConfig = TraitConfig.fromObject(entry.getValue());
+      if (!traitConfig.getIsTransient()) {
+        flattened.put(entry.getKey(), traitConfig.getValue());
+      }
+    }
+
+    return flattened;
+  }
+
   private static String dedupeKey(String event, String featureName, String identifier,
       String value, Object experimentId) {
     return String.join(KEY_SEPARATOR,
@@ -266,37 +300,46 @@ public class EventProcessor {
     return value == null ? "" : value;
   }
 
-  private void send(List<Map<String, Object>> batch) {
-    if (api == null) {
-      logger.error("Dropping {} events: the event processor has no API wrapper.", batch.size());
-      return;
-    }
-
-    String payload;
+  /**
+   * Hand a batch to the request processor. {@code tracked} is settled exactly once, on every path
+   * out of here: leaving it pending would wedge every later {@link #flush()}, since those wait on
+   * it.
+   */
+  private void send(List<Map<String, Object>> batch, CompletableFuture<Void> tracked) {
+    boolean submitted = false;
 
     try {
-      payload = MapperFactory.getMapper()
+      if (api == null) {
+        logger.error("Dropping " + batch.size()
+            + " events: the event processor has no API wrapper.");
+        return;
+      }
+
+      String payload = MapperFactory.getMapper()
           .writeValueAsString(Collections.singletonMap("events", batch));
+
+      Request request = api
+          .newPostRequest(eventsEndpoint, RequestBody.create(payload, JSON_MEDIA_TYPE))
+          .newBuilder()
+          .header(SDK_USER_AGENT_HEADER, SDK_USER_AGENT_PREFIX + Versions.getVersion())
+          .build();
+
+      requestProcessor
+          .submit(request, new TypeReference<JsonNode>() {}, Boolean.FALSE, buildRetry())
+          .whenComplete((response, error) -> settle(tracked));
+      submitted = true;
     } catch (Exception e) {
-      logger.error("Error parsing event data to JSON.", e);
-      return;
+      logger.error("Dropping " + batch.size() + " events: failed to send them.", e);
+    } finally {
+      if (!submitted) {
+        settle(tracked);
+      }
     }
+  }
 
-    Request request = api
-        .newPostRequest(eventsEndpoint, RequestBody.create(payload, JSON_MEDIA_TYPE))
-        .newBuilder()
-        .header(SDK_USER_AGENT_HEADER, SDK_USER_AGENT_PREFIX + Versions.getVersion())
-        .build();
-
-    CompletableFuture<Void> tracked = new CompletableFuture<>();
-    inFlight.add(tracked);
-
-    requestProcessor
-        .submit(request, new TypeReference<JsonNode>() {}, Boolean.FALSE, buildRetry())
-        .whenComplete((response, error) -> {
-          inFlight.remove(tracked);
-          tracked.complete(null);
-        });
+  private void settle(CompletableFuture<Void> tracked) {
+    inFlight.remove(tracked);
+    tracked.complete(null);
   }
 
   private CompletableFuture<Void> awaitInFlight() {

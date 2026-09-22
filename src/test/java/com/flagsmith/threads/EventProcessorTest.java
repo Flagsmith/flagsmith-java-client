@@ -2,10 +2,13 @@ package com.flagsmith.threads;
 
 import static okhttp3.mock.MediaTypes.MEDIATYPE_JSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -13,14 +16,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.interfaces.FlagsmithSdk;
+import com.flagsmith.models.TraitConfig;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import lombok.SneakyThrows;
 import okhttp3.HttpUrl;
@@ -73,10 +81,16 @@ public class EventProcessorTest {
   }
 
   private EventProcessor newProcessor(int maxBufferItems, int flushIntervalMillis) {
-    OkHttpClient client = new OkHttpClient.Builder()
-        .addInterceptor(recorder)
-        .addInterceptor(interceptor)
-        .build();
+    return newProcessor(maxBufferItems, flushIntervalMillis, null);
+  }
+
+  private EventProcessor newProcessor(
+      int maxBufferItems, int flushIntervalMillis, Interceptor extra) {
+    OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder().addInterceptor(recorder);
+    if (extra != null) {
+      clientBuilder.addInterceptor(extra);
+    }
+    OkHttpClient client = clientBuilder.addInterceptor(interceptor).build();
     eventProcessor = new EventProcessor(
         HttpUrl.get(EVENTS_URI),
         maxBufferItems,
@@ -312,15 +326,159 @@ public class EventProcessorTest {
 
   @Test
   @SneakyThrows
+  public void flush_retriesOnceOnAConnectionFailureThenDelivers() {
+    EventProcessor processor = newProcessor(1000, 0, new FailingInterceptor(1));
+    interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(ACCEPTED_BODY, MEDIATYPE_JSON);
+
+    processor.trackEvent("purchase", "user-1", "1", null, null);
+    flushAndWait(processor);
+
+    assertEquals(2, recorder.count());
+    assertEquals(recorder.bodies().get(0), recorder.bodies().get(1));
+  }
+
+  @Test
+  @SneakyThrows
+  public void flush_dropsTheBatchAfterTwoConnectionFailures() {
+    EventProcessor processor = newProcessor(1000, 0, new FailingInterceptor(Integer.MAX_VALUE));
+
+    processor.trackEvent("purchase", "user-1", "1", null, null);
+    flushAndWait(processor);
+
+    assertEquals(2, recorder.count());
+    assertTrue(processor.getBuffer().isEmpty());
+  }
+
+  @Test
+  @SneakyThrows
+  public void flush_waitsForABatchAnotherThreadIsAlreadySending() {
+    EventProcessor processor = newProcessor(1000, 0);
+    interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(ACCEPTED_BODY, MEDIATYPE_JSON);
+
+    CountDownLatch insideSend = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    doAnswer((invocation) -> {
+      insideSend.countDown();
+      release.await(WAIT_SECONDS, TimeUnit.SECONDS);
+      return new Request.Builder()
+          .url((HttpUrl) invocation.getArgument(0))
+          .header("X-Environment-Key", "api-key")
+          .post((RequestBody) invocation.getArgument(1))
+          .build();
+    }).when(api).newPostRequest(any(), any());
+
+    processor.trackEvent("purchase", "user-1", "1", null, null);
+
+    Thread sender = new Thread(processor::flush, "test-sender");
+    sender.start();
+    assertTrue(insideSend.await(WAIT_SECONDS, TimeUnit.SECONDS));
+
+    // The buffer is already empty here, but the batch is still on its way out.
+    CompletableFuture<Void> second = processor.flush();
+    assertFalse(second.isDone(), "flush() completed while another thread was mid-send");
+
+    release.countDown();
+    second.get(WAIT_SECONDS, TimeUnit.SECONDS);
+    sender.join(TimeUnit.SECONDS.toMillis(WAIT_SECONDS));
+
+    assertEquals(1, recorder.count());
+  }
+
+  @Test
+  @SneakyThrows
+  public void flush_completesWhenBuildingTheRequestThrows() {
+    EventProcessor processor = newProcessor(1000, 0);
+    interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(ACCEPTED_BODY, MEDIATYPE_JSON);
+    doThrow(new IllegalStateException("boom")).when(api).newPostRequest(any(), any());
+
+    processor.trackEvent("purchase", "user-1", "1", null, null);
+    flushAndWait(processor);
+
+    assertEquals(0, recorder.count());
+    // A later flush must not inherit a batch that was never settled.
+    flushAndWait(processor);
+  }
+
+  @Test
+  @SneakyThrows
+  public void flush_completesWhenTheRequestProcessorIsAlreadyShutDown() {
+    EventProcessor processor = newProcessor(1000, 0);
+    interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(ACCEPTED_BODY, MEDIATYPE_JSON);
+
+    processor.trackEvent("purchase", "user-1", "1", null, null);
+    processor.getRequestProcessor().close();
+
+    flushAndWait(processor);
+
+    assertEquals(0, recorder.count());
+  }
+
+  @Test
+  @SneakyThrows
+  public void trackEvent_isANoOpAfterClose() {
+    EventProcessor processor = newProcessor(2, 0);
+    interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(ACCEPTED_BODY, MEDIATYPE_JSON);
+
+    processor.close();
+    eventProcessor = null;
+    int postsAfterClose = recorder.count();
+
+    processor.trackEvent("purchase", "user-1", "1", null, null);
+    processor.trackEvent("purchase", "user-2", "2", null, null);
+    processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null, null);
+
+    assertTrue(processor.getBuffer().isEmpty());
+    flushAndWait(processor);
+    assertEquals(postsAfterClose, recorder.count());
+  }
+
+  @Test
+  public void trackExposureEvent_unwrapsTraitConfigsAndDropsTransientTraits() {
+    EventProcessor processor = newProcessor(1000, 0);
+
+    Map<String, Object> traits = new LinkedHashMap<>();
+    traits.put("plan", "premium");
+    traits.put("tier", new TraitConfig("gold", false));
+    traits.put("session_id", new TraitConfig("abc123", true));
+
+    processor.trackExposureEvent("checkout_cta", "user-1", "treatment", traits, null);
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> buffered =
+        (Map<String, Object>) processor.getBuffer().get(0).get("traits");
+    assertEquals(2, buffered.size());
+    assertEquals("premium", buffered.get("plan"));
+    assertEquals("gold", buffered.get("tier"));
+    assertFalse(buffered.containsKey("session_id"), "a transient trait reached the events API");
+  }
+
+  @Test
+  public void trackEvent_copiesTheTraitMapAtBufferTime() {
+    EventProcessor processor = newProcessor(1000, 0);
+
+    Map<String, Object> traits = new LinkedHashMap<>();
+    traits.put("plan", "premium");
+    processor.trackEvent("purchase", "user-1", "1", traits, null);
+
+    traits.put("plan", "mutated");
+    traits.put("added_later", "nope");
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> buffered =
+        (Map<String, Object>) processor.getBuffer().get(0).get("traits");
+    assertEquals(Collections.singletonMap("plan", "premium"), buffered);
+  }
+
+  @Test
+  @SneakyThrows
   public void start_flushesOnTheTimer() {
-    EventProcessor processor = newProcessor(1000, 500);
+    EventProcessor processor = newProcessor(1000, 100);
     interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(ACCEPTED_BODY, MEDIATYPE_JSON);
 
     processor.start();
     processor.trackEvent("purchase", "user-1", "1", null, null);
-    Thread.sleep(800);
 
-    assertEquals(1, recorder.count());
+    assertTrue(recorder.awaitFirstRequest(WAIT_SECONDS), "the timer never flushed");
     assertTrue(processor.getBuffer().isEmpty());
   }
 
@@ -355,6 +513,7 @@ public class EventProcessorTest {
   private static class RecordingInterceptor implements Interceptor {
 
     private final List<String> bodies = Collections.synchronizedList(new ArrayList<>());
+    private final CountDownLatch firstRequest = new CountDownLatch(1);
 
     @Override
     public Response intercept(Chain chain) throws IOException {
@@ -364,6 +523,7 @@ public class EventProcessorTest {
         request.body().writeTo(buffer);
       }
       bodies.add(buffer.readUtf8());
+      firstRequest.countDown();
       return chain.proceed(request);
     }
 
@@ -373,6 +533,28 @@ public class EventProcessorTest {
 
     List<String> bodies() {
       return new ArrayList<>(bodies);
+    }
+
+    boolean awaitFirstRequest(long seconds) throws InterruptedException {
+      return firstRequest.await(seconds, TimeUnit.SECONDS);
+    }
+  }
+
+  /** Simulates a connection failure for the first n attempts. */
+  private static class FailingInterceptor implements Interceptor {
+
+    private final AtomicInteger remainingFailures;
+
+    FailingInterceptor(int failures) {
+      this.remainingFailures = new AtomicInteger(failures);
+    }
+
+    @Override
+    public Response intercept(Chain chain) throws IOException {
+      if (remainingFailures.getAndDecrement() > 0) {
+        throw new IOException("connection refused");
+      }
+      return chain.proceed(chain.request());
     }
   }
 }

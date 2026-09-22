@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 
 public class FlagsmithRetryTest {
@@ -64,6 +66,61 @@ public class FlagsmithRetryTest {
       attempts++;
     } while(retryObject.isRetry(401));
     assertTrue(attempts.equals(3));
+  }
+
+  private static Retry oneRetryOnServerErrors() {
+    Retry retry = new Retry(2);
+    retry.setStatusForcelist(new HashSet<>(Arrays.asList(500, 502, 503, 504)));
+    retry.setStatusForcelistOnly(Boolean.TRUE);
+    return retry;
+  }
+
+  @Test
+  public void FlagsmithRetry_statusForcelistOnly_retriesForcedStatusWithinBudget() {
+    Retry retry = oneRetryOnServerErrors();
+
+    retry.retryAttempted();
+    assertTrue(retry.isRetry(503), "a force-listed status should retry while attempts remain");
+  }
+
+  @Test
+  public void FlagsmithRetry_statusForcelistOnly_stopsAtTheAttemptsBudget() {
+    Retry retry = oneRetryOnServerErrors();
+
+    retry.retryAttempted();
+    retry.retryAttempted();
+    // This is the branch the one-retry-then-drop guarantee rests on: without it, a permanently
+    // failing endpoint loops forever.
+    assertFalse(retry.isRetry(503), "a force-listed status must not retry past the budget");
+    assertFalse(retry.isRetry(null), "a connection failure must not retry past the budget");
+  }
+
+  @Test
+  public void FlagsmithRetry_statusForcelistOnly_doesNotRetryUnlistedStatus() {
+    Retry retry = oneRetryOnServerErrors();
+
+    retry.retryAttempted();
+    assertFalse(retry.isRetry(400), "a 4xx must not be retried");
+    assertFalse(retry.isRetry(404), "a 4xx must not be retried");
+  }
+
+  @Test
+  public void FlagsmithRetry_statusForcelistOnly_retriesConnectionFailuresWithinBudget() {
+    Retry retry = oneRetryOnServerErrors();
+
+    retry.retryAttempted();
+    assertTrue(retry.isRetry(null), "a connection failure should retry while attempts remain");
+  }
+
+  @Test
+  public void FlagsmithRetry_defaultPolicyIsUnchanged() {
+    Retry retry = new Retry(1);
+
+    assertFalse(retry.getStatusForcelistOnly());
+    retry.retryAttempted();
+    // Historical behaviour: a force-listed status retries regardless of the budget.
+    assertTrue(retry.isRetry(503));
+    assertFalse(retry.isRetry(401));
   }
 
   @Test
