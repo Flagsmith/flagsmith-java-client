@@ -55,12 +55,19 @@ public class EventProcessor {
   private static final MediaType JSON_MEDIA_TYPE =
       MediaType.get("application/json; charset=utf-8");
   /**
-   * The most batches that may be waiting on the events API at once. Beyond it a flush drops its
-   * batch instead of queueing it: while the API is slow or down, batches are produced faster
+   * The most events that may be waiting on the events API at once. Once reached, a flush drops
+   * its batch instead of queueing it: while the API is slow or down, batches are produced faster
    * than they are retried and given up on, and an unbounded queue of them would grow with the
    * host application's traffic until it ran out of memory.
+   *
+   * <p>It counts events, not batches, so that it bounds memory without capping throughput on a
+   * healthy API: a batch count would throttle harder the smaller the configured buffer. At the
+   * default buffer size it is ten batches. A batch is admitted while the count is below the
+   * limit, so the bound is this plus one buffer's worth.
    */
-  static final int MAX_IN_FLIGHT_BATCHES = 10;
+  static final int MAX_IN_FLIGHT_EVENTS = 10_000;
+  /** The least time between two error lines reporting dropped events. */
+  private static final long DROP_LOG_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(10);
 
   /** The URL batches are POSTed to. */
   @Getter
@@ -82,6 +89,9 @@ public class EventProcessor {
   @Getter(AccessLevel.PACKAGE)
   private final ScheduledExecutorService scheduler;
   private final Set<CompletableFuture<Void>> inFlight = ConcurrentHashMap.newKeySet();
+  private int inFlightEvents = 0;                 // guarded by lock
+  private int droppedSinceLastReport = 0;         // guarded by lock
+  private Long lastDropReportNanos = null;        // guarded by lock
   @Getter(AccessLevel.PACKAGE)
   private final RequestProcessor requestProcessor;
   /** The API wrapper used to build requests; injected by {@code FlagsmithClient.Builder}. */
@@ -194,27 +204,29 @@ public class EventProcessor {
   public CompletableFuture<Void> flush() {
     List<Map<String, Object>> batch = null;
     CompletableFuture<Void> tracked = null;
-    int dropped = 0;
+    int droppedToReport = 0;
 
     // The batch is registered as in-flight under the same lock that empties the buffer, so a
     // concurrent flush() can never observe both an empty buffer and an unregistered batch.
     synchronized (lock) {
       if (!buffer.isEmpty()) {
-        if (inFlight.size() >= MAX_IN_FLIGHT_BATCHES) {
-          dropped = buffer.size();
+        if (inFlightEvents >= MAX_IN_FLIGHT_EVENTS) {
+          droppedToReport = recordDrop(buffer.size());
         } else {
           batch = new ArrayList<>(buffer);
           tracked = new CompletableFuture<>();
           inFlight.add(tracked);
+          inFlightEvents += batch.size();
         }
         buffer.clear();
       }
       dedupeKeys.clear();
     }
 
-    if (dropped > 0) {
-      logger.error("Dropping " + dropped + " events: " + MAX_IN_FLIGHT_BATCHES
-          + " earlier batches are still waiting on the events API.");
+    if (droppedToReport > 0) {
+      logger.error("Dropped " + droppedToReport + " events: at least " + MAX_IN_FLIGHT_EVENTS
+          + " earlier events are still waiting on the events API. Further drops are reported at"
+          + " most every " + TimeUnit.NANOSECONDS.toSeconds(DROP_LOG_INTERVAL_NANOS) + "s.");
     }
 
     if (batch != null) {
@@ -373,11 +385,14 @@ public class EventProcessor {
    * it.
    */
   private void send(List<Map<String, Object>> batch, CompletableFuture<Void> tracked) {
+    // The completion callback outlives this call by as long as the POST takes, so it captures
+    // the size rather than the list: the serialised request already holds the batch's content.
+    final int batchSize = batch.size();
     boolean submitted = false;
 
     try {
       if (api == null) {
-        logger.error("Dropping " + batch.size()
+        logger.error("Dropping " + batchSize
             + " events: the event processor has no API wrapper.");
         return;
       }
@@ -395,17 +410,17 @@ public class EventProcessor {
           .submit(request, new TypeReference<JsonNode>() {}, Boolean.FALSE, buildRetry())
           .whenComplete((response, error) -> {
             try {
-              logRejections(response, batch.size());
+              logRejections(response, batchSize);
             } finally {
-              settle(tracked);
+              settle(tracked, batchSize);
             }
           });
       submitted = true;
     } catch (Exception e) {
-      logger.error("Dropping " + batch.size() + " events: failed to send them.", e);
+      logger.error("Dropping " + batchSize + " events: failed to send them.", e);
     } finally {
       if (!submitted) {
-        settle(tracked);
+        settle(tracked, batchSize);
       }
     }
   }
@@ -422,9 +437,34 @@ public class EventProcessor {
     }
   }
 
-  private void settle(CompletableFuture<Void> tracked) {
-    inFlight.remove(tracked);
+  private void settle(CompletableFuture<Void> tracked, int batchSize) {
+    // Idempotent: only the call that actually removes the batch gives its events back.
+    if (inFlight.remove(tracked)) {
+      synchronized (lock) {
+        inFlightEvents -= batchSize;
+      }
+    }
     tracked.complete(null);
+  }
+
+  /**
+   * Count dropped events, and say whether it is time to report them. The first drop is reported
+   * at once; later ones accumulate and are reported at most once per
+   * {@link #DROP_LOG_INTERVAL_NANOS}, so a caller saturating the processor during an outage
+   * cannot turn every flush into an error line. Called under the lock.
+   *
+   * @return the number of drops to report now, or 0 to stay quiet
+   */
+  private int recordDrop(int count) {
+    droppedSinceLastReport += count;
+    long now = System.nanoTime();
+    if (lastDropReportNanos != null && now - lastDropReportNanos < DROP_LOG_INTERVAL_NANOS) {
+      return 0;
+    }
+    lastDropReportNanos = now;
+    int toReport = droppedSinceLastReport;
+    droppedSinceLastReport = 0;
+    return toReport;
   }
 
   private CompletableFuture<Void> awaitInFlight() {

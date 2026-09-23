@@ -8,10 +8,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -45,6 +48,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.mock.MockInterceptor;
 import okio.Buffer;
+import org.mockito.invocation.Invocation;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -559,36 +563,89 @@ public class EventProcessorTest {
 
   @Test
   @SneakyThrows
-  public void flush_dropsBatchesBeyondTheInFlightLimitInsteadOfQueueingThem() {
-    BlockingInterceptor blocking = new BlockingInterceptor();
-    EventProcessor processor = newProcessor(1000, 0, blocking);
+  public void flush_dropsEventsBeyondTheInFlightLimitInsteadOfQueueingThem() {
+    AcceptingInterceptor eventsApi = AcceptingInterceptor.blocked();
+    EventProcessor processor = newProcessor(1000, 0, eventsApi);
     FlagsmithLogger logger = mock(FlagsmithLogger.class);
     processor.setLogger(logger);
 
-    // The events API hangs: every batch stays in flight until it is released.
-    for (int i = 0; i < EventProcessor.MAX_IN_FLIGHT_BATCHES; i++) {
+    // The events API hangs, so every batch stays in flight until it is released. Each full
+    // buffer flushes itself, which puts exactly the limit in flight.
+    for (int i = 0; i < EventProcessor.MAX_IN_FLIGHT_EVENTS; i++) {
       processor.trackEvent("purchase", "user-" + i, "1", null, null);
-      processor.flush();
     }
     processor.trackEvent("purchase", "one-too-many", "1", null, null);
     CompletableFuture<Void> all = processor.flush();
 
     assertTrue(processor.bufferedEvents().isEmpty(), "the dropped batch stayed in the buffer");
-    verify(logger).error(contains("Dropping 1 events"));
+    verify(logger).error(contains("Dropped 1 events"));
     assertFalse(all.isDone());
 
-    blocking.release();
+    // A caller saturating the processor does not get an error line per flush.
+    for (int i = 0; i < 100; i++) {
+      processor.trackEvent("purchase", "also-dropped-" + i, "1", null, null);
+      processor.flush();
+    }
+    verify(logger, times(1)).error(startsWith("Dropped"));
+
+    eventsApi.release();
     all.get(WAIT_SECONDS, TimeUnit.SECONDS);
 
-    assertEquals(EventProcessor.MAX_IN_FLIGHT_BATCHES, recorder.count());
+    assertEquals(EventProcessor.MAX_IN_FLIGHT_EVENTS, deliveredEvents());
     for (String body : recorder.bodies()) {
       assertFalse(body.contains("one-too-many"));
+      assertFalse(body.contains("also-dropped"));
     }
 
     // Once the backlog clears, batches flow again.
     processor.trackEvent("purchase", "after", "1", null, null);
     flushAndWait(processor);
-    assertEquals(EventProcessor.MAX_IN_FLIGHT_BATCHES + 1, recorder.count());
+    assertEquals(EventProcessor.MAX_IN_FLIGHT_EVENTS + 1, deliveredEvents());
+  }
+
+  @Test
+  @SneakyThrows
+  public void flush_neverDropsEventsOnAHealthyApiWithASmallBuffer() {
+    // A one-event buffer sends a batch per event. Capping batches rather than events throttled
+    // exactly this configuration, dropping most events even against an instant API.
+    EventProcessor processor = newProcessor(1, 0, AcceptingInterceptor.open());
+    FlagsmithLogger logger = mock(FlagsmithLogger.class);
+    processor.setLogger(logger);
+    int events = 2000;
+
+    for (int i = 0; i < events; i++) {
+      processor.trackEvent("purchase", "user-" + i, "1", null, null);
+    }
+    flushAndWait(processor);
+
+    assertEquals(events, deliveredEvents());
+    assertEquals(Collections.emptyList(), errorCalls(logger));
+  }
+
+  /**
+   * Every error-level call made on a mocked logger, whatever its arguments. Matching on the
+   * invocations rather than with verify(...) avoids Mockito's varargs matching, under which a
+   * matcher list silently misses calls with a different number of arguments.
+   */
+  private static List<String> errorCalls(FlagsmithLogger logger) {
+    List<String> calls = new ArrayList<>();
+    for (Invocation invocation : mockingDetails(logger).getInvocations()) {
+      String method = invocation.getMethod().getName();
+      if (method.equals("error") || method.equals("httpError")) {
+        calls.add(invocation.toString());
+      }
+    }
+    return calls;
+  }
+
+  /** The number of events across every request the events API received. */
+  @SneakyThrows
+  private int deliveredEvents() {
+    int delivered = 0;
+    for (String body : recorder.bodies()) {
+      delivered += MapperFactory.getMapper().readTree(body).get("events").size();
+    }
+    return delivered;
   }
 
   @Test
@@ -621,18 +678,29 @@ public class EventProcessorTest {
     flushAndWait(processor);
 
     assertEquals(1, recorder.count());
-    verify(logger, never()).error(any());
-    verify(logger, never()).error(any(), any());
+    assertEquals(Collections.emptyList(), errorCalls(logger));
   }
 
   /**
-   * Holds every request until released, like an events API that has stopped answering, then
-   * accepts it. It answers itself rather than deferring to the MockInterceptor, whose canned
-   * response bodies share one buffer and break under concurrent calls.
+   * Accepts every request, optionally holding each one until released, like an events API that
+   * has stopped answering. It answers itself rather than deferring to the MockInterceptor, whose
+   * canned response bodies share one buffer and break under concurrent calls.
    */
-  private static class BlockingInterceptor implements Interceptor {
+  private static class AcceptingInterceptor implements Interceptor {
 
-    private final CountDownLatch released = new CountDownLatch(1);
+    private final CountDownLatch released;
+
+    private AcceptingInterceptor(boolean blocked) {
+      this.released = new CountDownLatch(blocked ? 1 : 0);
+    }
+
+    static AcceptingInterceptor blocked() {
+      return new AcceptingInterceptor(true);
+    }
+
+    static AcceptingInterceptor open() {
+      return new AcceptingInterceptor(false);
+    }
 
     void release() {
       released.countDown();
