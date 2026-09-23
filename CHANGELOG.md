@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.1.3](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.1.2...v8.1.3) (2026-09-23)
+
+
+### Bug Fixes
+
+* name generated engine classes from schema titles ([#227](https://github.com/Flagsmith/flagsmith-java-client/issues/227)) ([a0c4f54](https://github.com/Flagsmith/flagsmith-java-client/commit/a0c4f541af4d125a652f3098374d5e0f38e63b75))
+
 ## [8.1.2](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.1.1...v8.1.2) (2026-08-26)
 
 
