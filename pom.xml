@@ -227,6 +227,7 @@
           <targetPackage>com.flagsmith.flagengine</targetPackage>
           <outputDirectory>${project.build.directory}/generated-sources/jsonschema2pojo</outputDirectory>
           <generateBuilders>true</generateBuilders>
+          <useTitleAsClassname>true</useTitleAsClassname>
           <includeConstructors>true</includeConstructors>
           <includeCopyConstructor>true</includeCopyConstructor>
         </configuration>
