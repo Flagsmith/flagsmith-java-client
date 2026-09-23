@@ -1113,6 +1113,56 @@ public class FlagsmithClientTest {
         assertEquals("Events cannot be enabled in offline mode.", ex.getMessage());
     }
 
+    /**
+     * A client whose API wrapper returns null identity flags, as FlagsmithApiWrapper does when
+     * the identities request times out or is interrupted.
+     */
+    private static FlagsmithClient clientWithUnavailableIdentityFlags(
+            FlagsmithConfig config) {
+        FlagsmithApiWrapper mockApiWrapper = mock(FlagsmithApiWrapper.class);
+        when(mockApiWrapper.getConfig()).thenReturn(config);
+        when(mockApiWrapper.identifyUserWithTraits(any(), any(), anyBoolean(), anyBoolean()))
+                .thenReturn(null);
+
+        return FlagsmithClient.newBuilder()
+                .withFlagsmithApiWrapper(mockApiWrapper)
+                .withConfiguration(config)
+                .setApiKey("api-key")
+                .build();
+    }
+
+    @Test
+    public void testGetExperimentFlagServesTheDefaultWhenIdentityFlagsAreUnavailable()
+            throws FlagsmithClientError {
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithConfig config = FlagsmithConfig.newBuilder()
+                .withEventProcessor(processor)
+                .build();
+        FlagsmithFlagDefaults defaults = new FlagsmithFlagDefaults();
+        defaults.setDefaultFlagValueFunc(FlagsmithClientTest::defaultHandler);
+        config.setFlagsmithFlagDefaults(defaults);
+        FlagsmithClient client = clientWithUnavailableIdentityFlags(config);
+
+        BaseFlag flag = client.getExperimentFlag("checkout_cta", "user-1");
+
+        assertTrue(flag instanceof DefaultFlag);
+        assertEquals(DEFAULT_FLAG_VALUE, flag.getValue());
+        verify(processor, never()).trackExposureEvent(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testGetExperimentFlagThrowsWhenIdentityFlagsAreUnavailableWithoutADefault() {
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithConfig config = FlagsmithConfig.newBuilder()
+                .withEventProcessor(processor)
+                .build();
+        FlagsmithClient client = clientWithUnavailableIdentityFlags(config);
+
+        assertThrows(FlagsmithApiError.class,
+                () -> client.getExperimentFlag("checkout_cta", "user-1"));
+        verify(processor, never()).trackExposureEvent(any(), any(), any(), any(), any());
+    }
+
     @Test
     public void testFailedBuildDoesNotStartTheEventProcessor() {
         EventProcessor processor = mock(EventProcessor.class);

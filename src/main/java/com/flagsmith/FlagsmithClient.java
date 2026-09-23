@@ -214,6 +214,8 @@ public class FlagsmithClient {
    * @param identifier  identifier string
    * @return the flag for the given feature
    * @throws FlagsmithRuntimeError when events are not enabled
+   * @throws FlagsmithApiError     when identity flags are unavailable and no default flag handler
+   *                               is configured
    */
   public BaseFlag getExperimentFlag(String featureName, String identifier)
       throws FlagsmithClientError {
@@ -233,6 +235,8 @@ public class FlagsmithClient {
    * @param traits      a map of trait keys to trait values
    * @return the flag for the given feature
    * @throws FlagsmithRuntimeError when events are not enabled
+   * @throws FlagsmithApiError     when identity flags are unavailable and no default flag handler
+   *                               is configured
    */
   public BaseFlag getExperimentFlag(
       String featureName, String identifier, Map<String, Object> traits)
@@ -240,6 +244,19 @@ public class FlagsmithClient {
     requireEventProcessor("get experiment flags");
 
     Flags flags = getIdentityFlags(identifier, traits);
+
+    if (flags == null) {
+      // The API wrapper returns null rather than throwing when the identities request times out
+      // or is interrupted. Serve the default flag, as getFlag would with the API unavailable.
+      FlagsmithFlagDefaults defaults = getConfig().getFlagsmithFlagDefaults();
+      if (defaults == null) {
+        throw new FlagsmithApiError("Failed to get feature flags.");
+      }
+      logger.info("Not recording an exposure for feature {}: identity flags are unavailable, so "
+          + "the default flag handler served it.", featureName);
+      return defaults.evaluateDefaultFlag(featureName);
+    }
+
     BaseFlag flag = flags.getFlag(featureName);
 
     if (!(flag instanceof Flag)) {
