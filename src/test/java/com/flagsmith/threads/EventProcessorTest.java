@@ -129,11 +129,10 @@ public class EventProcessorTest {
     assertNull(event.get("feature_name"));
     assertEquals("user-123", event.get("identifier"));
     assertEquals("49.0", event.get("value"));
-    assertEquals(traits, event.get("traits"));
+    assertEquals(MapperFactory.getMapper().valueToTree(traits), event.get("traits"));
 
-    @SuppressWarnings("unchecked")
-    Map<String, Object> eventMetadata = (Map<String, Object>) event.get("metadata");
-    assertEquals("checkout", eventMetadata.get("source"));
+    JsonNode eventMetadata = (JsonNode) event.get("metadata");
+    assertEquals("checkout", eventMetadata.get("source").asText());
     assertNotNull(eventMetadata.get("sdk_version"));
 
     long timestamp = (Long) event.get("timestamp");
@@ -443,30 +442,59 @@ public class EventProcessorTest {
 
     processor.trackExposureEvent("checkout_cta", "user-1", "treatment", traits, null);
 
-    @SuppressWarnings("unchecked")
-    Map<String, Object> buffered =
-        (Map<String, Object>) processor.bufferedEvents().get(0).get("traits");
+    JsonNode buffered = (JsonNode) processor.bufferedEvents().get(0).get("traits");
     assertEquals(2, buffered.size());
-    assertEquals("premium", buffered.get("plan"));
-    assertEquals("gold", buffered.get("tier"));
-    assertFalse(buffered.containsKey("session_id"), "a transient trait reached the events API");
+    assertEquals("premium", buffered.get("plan").asText());
+    assertEquals("gold", buffered.get("tier").asText());
+    assertFalse(buffered.has("session_id"), "a transient trait reached the events API");
   }
 
   @Test
-  public void trackEvent_copiesTheTraitMapAtBufferTime() {
+  public void trackEvent_copiesTraitsAndMetadataDeeplyAtBufferTime() {
     EventProcessor processor = newProcessor(1000, 0);
 
     Map<String, Object> traits = new LinkedHashMap<>();
     traits.put("plan", "premium");
-    processor.trackEvent("purchase", "user-1", "1", traits, null);
+    Map<String, Object> nested = new HashMap<>();
+    nested.put("step", "payment");
+    Map<String, Object> metadata = new HashMap<>();
+    metadata.put("context", nested);
+    processor.trackEvent("purchase", "user-1", "1", traits, metadata);
 
     traits.put("plan", "mutated");
     traits.put("added_later", "nope");
+    nested.put("step", "mutated");
 
-    @SuppressWarnings("unchecked")
-    Map<String, Object> buffered =
-        (Map<String, Object>) processor.bufferedEvents().get(0).get("traits");
-    assertEquals(Collections.singletonMap("plan", "premium"), buffered);
+    Map<String, Object> event = processor.bufferedEvents().get(0);
+    assertEquals(
+        MapperFactory.getMapper().valueToTree(Collections.singletonMap("plan", "premium")),
+        event.get("traits"));
+    assertEquals("payment",
+        ((JsonNode) event.get("metadata")).get("context").get("step").asText());
+  }
+
+  @Test
+  @SneakyThrows
+  public void trackEvent_dropsOnlyTheEventWhoseValuesCannotBeSerialised() {
+    EventProcessor processor = newProcessor(1000, 0);
+    interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(ACCEPTED_BODY, MEDIATYPE_JSON);
+
+    processor.trackEvent("purchase", "user-1", "1", null, null);
+    // Jackson has no serialiser for a bean without properties.
+    processor.trackEvent("purchase", "user-2", "2",
+        Collections.singletonMap("opaque", new Object()), null);
+    processor.trackEvent("purchase", "user-3", "3", null,
+        Collections.singletonMap("opaque", new Object()));
+    processor.trackEvent("purchase", "user-4", "4", null, null);
+
+    assertEquals(2, processor.bufferedEvents().size());
+    flushAndWait(processor);
+
+    assertEquals(1, recorder.count());
+    JsonNode events = MapperFactory.getMapper().readTree(recorder.bodies().get(0)).get("events");
+    assertEquals(2, events.size());
+    assertEquals("user-1", events.get(0).get("identifier").asText());
+    assertEquals("user-4", events.get(1).get("identifier").asText());
   }
 
   @Test

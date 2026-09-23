@@ -2,6 +2,7 @@ package com.flagsmith.threads;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.Versions;
@@ -242,21 +243,29 @@ public class EventProcessor {
         eventMetadata.putAll(metadata);
       }
       eventMetadata.put(SDK_VERSION_KEY, Versions.getVersion());
+      final Object experimentId = eventMetadata.get(EXPERIMENT_ID_KEY);
+
+      // Traits and metadata are caller objects of any shape. Turning them into JSON trees here,
+      // rather than at flush time, means a value Jackson cannot serialise drops this one event
+      // (logged below) instead of failing the whole batch it would later be sent in. It is also
+      // a deep copy, so a caller mutating a nested map afterwards cannot change a buffered event.
+      ObjectMapper mapper = MapperFactory.getMapper();
+      Map<String, Object> eventTraits = eventTraits(traits);
 
       Map<String, Object> eventPayload = new LinkedHashMap<>();
       eventPayload.put("event", event);
       eventPayload.put("feature_name", featureName);
       eventPayload.put("identifier", identifier);
       eventPayload.put("value", stringValue);
-      eventPayload.put("traits", eventTraits(traits));
-      eventPayload.put("metadata", eventMetadata);
+      eventPayload.put("traits", eventTraits == null ? null : mapper.valueToTree(eventTraits));
+      eventPayload.put("metadata", mapper.valueToTree(eventMetadata));
       eventPayload.put("timestamp", System.currentTimeMillis());
 
       boolean isFull;
 
       synchronized (lock) {
-        if (dedupe && !dedupeKeys.add(dedupeKey(
-            event, featureName, identifier, stringValue, eventMetadata.get(EXPERIMENT_ID_KEY)))) {
+        if (dedupe && !dedupeKeys.add(
+            dedupeKey(event, featureName, identifier, stringValue, experimentId))) {
           return;
         }
         buffer.add(eventPayload);
@@ -275,8 +284,7 @@ public class EventProcessor {
    * Flatten a caller trait map into the flat map of trait values the events API expects. Values
    * wrapped in a {@link TraitConfig} are unwrapped, and traits the caller marked transient are
    * dropped: transient means "do not persist this against the identity", and an event store keeps
-   * what it is sent. The result is a copy, so a caller mutating its map afterwards cannot change
-   * an event already buffered.
+   * what it is sent.
    */
   private static Map<String, Object> eventTraits(Map<String, Object> traits) {
     if (traits == null) {
