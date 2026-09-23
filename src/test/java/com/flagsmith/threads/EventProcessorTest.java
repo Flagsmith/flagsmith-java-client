@@ -7,9 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -33,10 +36,13 @@ import java.util.regex.Pattern;
 import lombok.SneakyThrows;
 import okhttp3.HttpUrl;
 import okhttp3.Interceptor;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 import okhttp3.mock.MockInterceptor;
 import okio.Buffer;
 import org.junit.jupiter.api.AfterEach;
@@ -535,6 +541,105 @@ public class EventProcessorTest {
 
     assertEquals(0, recorder.count());
     assertTrue(processor.bufferedEvents().isEmpty());
+  }
+
+  @Test
+  @SneakyThrows
+  public void flush_dropsBatchesBeyondTheInFlightLimitInsteadOfQueueingThem() {
+    BlockingInterceptor blocking = new BlockingInterceptor();
+    EventProcessor processor = newProcessor(1000, 0, blocking);
+    FlagsmithLogger logger = mock(FlagsmithLogger.class);
+    processor.setLogger(logger);
+
+    // The events API hangs: every batch stays in flight until it is released.
+    for (int i = 0; i < EventProcessor.MAX_IN_FLIGHT_BATCHES; i++) {
+      processor.trackEvent("purchase", "user-" + i, "1", null, null);
+      processor.flush();
+    }
+    processor.trackEvent("purchase", "one-too-many", "1", null, null);
+    CompletableFuture<Void> all = processor.flush();
+
+    assertTrue(processor.bufferedEvents().isEmpty(), "the dropped batch stayed in the buffer");
+    verify(logger).error(contains("Dropping 1 events"));
+    assertFalse(all.isDone());
+
+    blocking.release();
+    all.get(WAIT_SECONDS, TimeUnit.SECONDS);
+
+    assertEquals(EventProcessor.MAX_IN_FLIGHT_BATCHES, recorder.count());
+    for (String body : recorder.bodies()) {
+      assertFalse(body.contains("one-too-many"));
+    }
+
+    // Once the backlog clears, batches flow again.
+    processor.trackEvent("purchase", "after", "1", null, null);
+    flushAndWait(processor);
+    assertEquals(EventProcessor.MAX_IN_FLIGHT_BATCHES + 1, recorder.count());
+  }
+
+  @Test
+  @SneakyThrows
+  public void flush_logsEventsTheApiRejects() {
+    EventProcessor processor = newProcessor(1000, 0);
+    FlagsmithLogger logger = mock(FlagsmithLogger.class);
+    processor.setLogger(logger);
+    interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(
+        "{\"accepted\": 1, \"rejected\": [{\"index\": 1, \"error\": \"event too long\"}]}",
+        MEDIATYPE_JSON);
+
+    processor.trackEvent("purchase", "user-1", "1", null, null);
+    processor.trackEvent("purchase", "user-2", "2", null, null);
+    flushAndWait(processor);
+
+    verify(logger).error(contains("rejected 1 of 2 events"));
+    verify(logger).error(contains("event too long"));
+  }
+
+  @Test
+  @SneakyThrows
+  public void flush_logsNothingWhenEveryEventIsAccepted() {
+    EventProcessor processor = newProcessor(1000, 0);
+    FlagsmithLogger logger = mock(FlagsmithLogger.class);
+    processor.setLogger(logger);
+    interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(ACCEPTED_BODY, MEDIATYPE_JSON);
+
+    processor.trackEvent("purchase", "user-1", "1", null, null);
+    flushAndWait(processor);
+
+    assertEquals(1, recorder.count());
+    verify(logger, never()).error(any());
+    verify(logger, never()).error(any(), any());
+  }
+
+  /**
+   * Holds every request until released, like an events API that has stopped answering, then
+   * accepts it. It answers itself rather than deferring to the MockInterceptor, whose canned
+   * response bodies share one buffer and break under concurrent calls.
+   */
+  private static class BlockingInterceptor implements Interceptor {
+
+    private final CountDownLatch released = new CountDownLatch(1);
+
+    void release() {
+      released.countDown();
+    }
+
+    @Override
+    public Response intercept(Chain chain) throws IOException {
+      try {
+        released.await(WAIT_SECONDS, TimeUnit.SECONDS);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IOException(e);
+      }
+      return new Response.Builder()
+          .request(chain.request())
+          .protocol(Protocol.HTTP_1_1)
+          .code(202)
+          .message("Accepted")
+          .body(ResponseBody.create(ACCEPTED_BODY, MediaType.get("application/json")))
+          .build();
+    }
   }
 
   /** Records every request that reaches the network, with its body. */

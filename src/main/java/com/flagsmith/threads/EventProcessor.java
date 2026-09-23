@@ -54,6 +54,13 @@ public class EventProcessor {
   private static final String KEY_SEPARATOR = "\u0000";
   private static final MediaType JSON_MEDIA_TYPE =
       MediaType.get("application/json; charset=utf-8");
+  /**
+   * The most batches that may be waiting on the events API at once. Beyond it a flush drops its
+   * batch instead of queueing it: while the API is slow or down, batches are produced faster
+   * than they are retried and given up on, and an unbounded queue of them would grow with the
+   * host application's traffic until it ran out of memory.
+   */
+  static final int MAX_IN_FLIGHT_BATCHES = 10;
 
   /** The URL batches are POSTed to. */
   @Getter
@@ -176,17 +183,27 @@ public class EventProcessor {
   public CompletableFuture<Void> flush() {
     List<Map<String, Object>> batch = null;
     CompletableFuture<Void> tracked = null;
+    int dropped = 0;
 
     // The batch is registered as in-flight under the same lock that empties the buffer, so a
     // concurrent flush() can never observe both an empty buffer and an unregistered batch.
     synchronized (lock) {
       if (!buffer.isEmpty()) {
-        batch = new ArrayList<>(buffer);
+        if (inFlight.size() >= MAX_IN_FLIGHT_BATCHES) {
+          dropped = buffer.size();
+        } else {
+          batch = new ArrayList<>(buffer);
+          tracked = new CompletableFuture<>();
+          inFlight.add(tracked);
+        }
         buffer.clear();
-        tracked = new CompletableFuture<>();
-        inFlight.add(tracked);
       }
       dedupeKeys.clear();
+    }
+
+    if (dropped > 0) {
+      logger.error("Dropping " + dropped + " events: " + MAX_IN_FLIGHT_BATCHES
+          + " earlier batches are still waiting on the events API.");
     }
 
     if (batch != null) {
@@ -343,7 +360,13 @@ public class EventProcessor {
 
       requestProcessor
           .submit(request, new TypeReference<JsonNode>() {}, Boolean.FALSE, buildRetry())
-          .whenComplete((response, error) -> settle(tracked));
+          .whenComplete((response, error) -> {
+            try {
+              logRejections(response, batch.size());
+            } finally {
+              settle(tracked);
+            }
+          });
       submitted = true;
     } catch (Exception e) {
       logger.error("Dropping " + batch.size() + " events: failed to send them.", e);
@@ -351,6 +374,18 @@ public class EventProcessor {
       if (!submitted) {
         settle(tracked);
       }
+    }
+  }
+
+  /**
+   * The events API accepts a batch with a 202 even when it rejects some of its events, listing
+   * those under {@code rejected}. Without this they would vanish without a trace.
+   */
+  private void logRejections(JsonNode response, int batchSize) {
+    JsonNode rejected = response == null ? null : response.get("rejected");
+    if (rejected != null && rejected.isArray() && rejected.size() > 0) {
+      logger.error("The events API rejected " + rejected.size() + " of " + batchSize
+          + " events. First rejection: " + rejected.get(0));
     }
   }
 
