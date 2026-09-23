@@ -1,8 +1,9 @@
 package com.flagsmith.threads;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.util.RawValue;
 import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.Versions;
@@ -39,8 +40,9 @@ import okhttp3.RequestBody;
  * Buffers experimentation events and ships them to the Flagsmith events API.
  *
  * <p>Events are flushed on a fixed interval, when the buffer fills up, and on {@link #close()}.
- * Exposure events are deduplicated within a flush window. Nothing thrown here ever reaches caller
- * code: every failure is logged instead.
+ * Exposure events are deduplicated within a flush window. No exception thrown here reaches caller
+ * code: every failure is logged instead, including traits or metadata that cannot be serialised,
+ * which drop only their own event. {@link Error}s such as {@code OutOfMemoryError} are not caught.
  */
 public class EventProcessor {
 
@@ -342,11 +344,15 @@ public class EventProcessor {
       eventMetadata.put(SDK_VERSION_KEY, Versions.getVersion());
       final Object experimentId = eventMetadata.get(EXPERIMENT_ID_KEY);
 
-      // Traits and metadata are caller objects of any shape. Turning them into JSON trees here,
-      // rather than at flush time, means a value Jackson cannot serialise drops this one event
-      // (logged below) instead of failing the whole batch it would later be sent in. It is also
-      // a deep copy, so a caller mutating a nested map afterwards cannot change a buffered event.
-      ObjectMapper mapper = MapperFactory.getMapper();
+      // Traits and metadata are caller objects of any shape. Serialising them here, rather than
+      // at flush time, means a value Jackson cannot serialise drops this one event (logged
+      // below) instead of failing the whole batch it would later be sent in. The JSON text is
+      // also a deep copy, so a caller mutating a nested map afterwards cannot change a buffered
+      // event, and is more compact to hold than the objects or a JSON tree.
+      //
+      // It must be writeValueAsString, not valueToTree: on a map or list that contains itself,
+      // valueToTree lets a raw StackOverflowError escape, where writeValueAsString reports it as
+      // a JsonMappingException that the catch below handles.
       Map<String, Object> eventTraits = eventTraits(traits);
 
       Map<String, Object> eventPayload = new LinkedHashMap<>();
@@ -354,8 +360,8 @@ public class EventProcessor {
       eventPayload.put("feature_name", featureName);
       eventPayload.put("identifier", identifier);
       eventPayload.put("value", stringValue);
-      eventPayload.put("traits", eventTraits == null ? null : mapper.valueToTree(eventTraits));
-      eventPayload.put("metadata", mapper.valueToTree(eventMetadata));
+      eventPayload.put("traits", eventTraits == null ? null : toJson(eventTraits));
+      eventPayload.put("metadata", toJson(eventMetadata));
       eventPayload.put("timestamp", System.currentTimeMillis());
 
       boolean isFull;
@@ -379,9 +385,14 @@ public class EventProcessor {
       if (isFull) {
         flush();
       }
-    } catch (RuntimeException e) {
+    } catch (JsonProcessingException | RuntimeException e) {
       logger.error("Failed to buffer event " + event + ".", e);
     }
+  }
+
+  /** JSON text Jackson writes out verbatim when the batch is serialised. */
+  private static RawValue toJson(Object value) throws JsonProcessingException {
+    return new RawValue(MapperFactory.getMapper().writeValueAsString(value));
   }
 
   private void logClosed(String event) {

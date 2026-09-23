@@ -19,6 +19,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.util.RawValue;
 import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.config.FlagsmithConfig;
@@ -117,6 +118,12 @@ public class EventProcessorTest {
     processor.flush().get(WAIT_SECONDS, TimeUnit.SECONDS);
   }
 
+  /** Parse a buffered event's pre-serialised traits or metadata. */
+  @SneakyThrows
+  private static JsonNode json(Object buffered) {
+    return MapperFactory.getMapper().readTree(((RawValue) buffered).rawValue().toString());
+  }
+
   @Test
   public void trackEvent_buffersStringifiedValueSdkVersionAndTimestamp() {
     EventProcessor processor = newProcessor(1000, 0);
@@ -140,9 +147,9 @@ public class EventProcessorTest {
     assertNull(event.get("feature_name"));
     assertEquals("user-123", event.get("identifier"));
     assertEquals("49.0", event.get("value"));
-    assertEquals(MapperFactory.getMapper().valueToTree(traits), event.get("traits"));
+    assertEquals(MapperFactory.getMapper().valueToTree(traits), json(event.get("traits")));
 
-    JsonNode eventMetadata = (JsonNode) event.get("metadata");
+    JsonNode eventMetadata = json(event.get("metadata"));
     assertEquals("checkout", eventMetadata.get("source").asText());
     assertNotNull(eventMetadata.get("sdk_version"));
 
@@ -487,7 +494,7 @@ public class EventProcessorTest {
 
     processor.trackExposureEvent("checkout_cta", "user-1", "treatment", traits, null);
 
-    JsonNode buffered = (JsonNode) processor.bufferedEvents().get(0).get("traits");
+    JsonNode buffered = json(processor.bufferedEvents().get(0).get("traits"));
     assertEquals(2, buffered.size());
     assertEquals("premium", buffered.get("plan").asText());
     assertEquals("gold", buffered.get("tier").asText());
@@ -513,9 +520,9 @@ public class EventProcessorTest {
     Map<String, Object> event = processor.bufferedEvents().get(0);
     assertEquals(
         MapperFactory.getMapper().valueToTree(Collections.singletonMap("plan", "premium")),
-        event.get("traits"));
+        json(event.get("traits")));
     assertEquals("payment",
-        ((JsonNode) event.get("metadata")).get("context").get("step").asText());
+        json(event.get("metadata")).get("context").get("step").asText());
   }
 
   @Test
@@ -540,6 +547,25 @@ public class EventProcessorTest {
     assertEquals(2, events.size());
     assertEquals("user-1", events.get(0).get("identifier").asText());
     assertEquals("user-4", events.get(1).get("identifier").asText());
+  }
+
+  @Test
+  public void trackEvent_dropsAnEventWhoseTraitsOrMetadataContainThemselves() {
+    EventProcessor processor = newProcessor(1000, 0);
+    Map<String, Object> cyclic = new HashMap<>();
+    cyclic.put("self", cyclic);
+    List<Object> cyclicList = new ArrayList<>();
+    cyclicList.add(cyclicList);
+
+    // A caller bug, but it must stay out of caller code: serialising these recurses without
+    // end, and it has to surface as a dropped event, not a StackOverflowError.
+    processor.trackEvent("purchase", "user-1", "1", cyclic, null);
+    processor.trackEvent("purchase", "user-2", "2", null,
+        Collections.singletonMap("list", cyclicList));
+    processor.trackEvent("purchase", "user-3", "3", null, null);
+
+    assertEquals(1, processor.bufferedEvents().size());
+    assertEquals("user-3", processor.bufferedEvents().get(0).get("identifier"));
   }
 
   @Test
