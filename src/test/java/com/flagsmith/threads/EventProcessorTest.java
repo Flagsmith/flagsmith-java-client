@@ -21,6 +21,8 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.MapperFactory;
+import com.flagsmith.config.FlagsmithConfig;
+import com.flagsmith.config.Retry;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.models.TraitConfig;
 import java.io.IOException;
@@ -105,7 +107,6 @@ public class EventProcessorTest {
         HttpUrl.get(EVENTS_URI),
         maxBufferItems,
         flushIntervalMillis,
-        3000,
         new RequestProcessor(client, new FlagsmithLogger()));
     eventProcessor.setApi(api);
     return eventProcessor;
@@ -548,6 +549,84 @@ public class EventProcessorTest {
     processor.start();
 
     assertTrue(processor.getScheduler().isShutdown());
+  }
+
+  @Test
+  public void worstCaseBatchMillis_coversEveryAttemptAtTheClientTimeoutsPlusBackoff() {
+    OkHttpClient client = new OkHttpClient.Builder()
+        .connectTimeout(1000, TimeUnit.MILLISECONDS)
+        .writeTimeout(2000, TimeUnit.MILLISECONDS)
+        .readTimeout(3000, TimeUnit.MILLISECONDS)
+        .build();
+    Retry retry = new Retry(2);
+
+    // Two attempts of connect + write + read, and the 200ms backoff before the second.
+    assertEquals(2 * 6000 + 200, EventProcessor.worstCaseBatchMillis(client, retry));
+  }
+
+  @Test
+  public void worstCaseBatchMillis_prefersTheCallTimeout() {
+    OkHttpClient client = new OkHttpClient.Builder()
+        .callTimeout(4000, TimeUnit.MILLISECONDS)
+        .build();
+
+    assertEquals(2 * 4000 + 200,
+        EventProcessor.worstCaseBatchMillis(client, new Retry(2)));
+  }
+
+  @Test
+  public void worstCaseBatchMillis_isUnboundedWhenATimeoutIsOff() {
+    OkHttpClient client = new OkHttpClient.Builder()
+        .readTimeout(0, TimeUnit.MILLISECONDS)
+        .build();
+
+    assertEquals(EventProcessor.UNBOUNDED,
+        EventProcessor.worstCaseBatchMillis(client, new Retry(2)));
+  }
+
+  @Test
+  @SneakyThrows
+  public void close_stopsWaitingAtTheWorstCaseBound() {
+    // A call timeout of 100ms bounds a batch at 2 x 100ms + 200ms backoff. The hung API below
+    // ignores the cancellation, as a stuck interceptor or proxy would.
+    AcceptingInterceptor eventsApi = AcceptingInterceptor.blocked();
+    OkHttpClient client = new OkHttpClient.Builder()
+        .callTimeout(100, TimeUnit.MILLISECONDS)
+        .addInterceptor(eventsApi)
+        .build();
+    EventProcessor processor = new EventProcessor(
+        HttpUrl.get(EVENTS_URI), 1000, 0, new RequestProcessor(client, new FlagsmithLogger()));
+    processor.setApi(api);
+    FlagsmithLogger logger = mock(FlagsmithLogger.class);
+    processor.setLogger(logger);
+    assertEquals(400, processor.getCloseTimeoutMillis());
+
+    try {
+      processor.trackEvent("purchase", "user-1", "1", null, null);
+      long start = System.nanoTime();
+      processor.close();
+      long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+
+      verify(logger).error(contains("Stopped waiting"));
+      assertTrue(elapsedMillis < TimeUnit.SECONDS.toMillis(WAIT_SECONDS) / 2,
+          "close() waited " + elapsedMillis + "ms");
+    } finally {
+      eventsApi.release();
+    }
+  }
+
+  @Test
+  public void closeTimeout_followsTheConfiguredTimeouts() {
+    FlagsmithConfig config = FlagsmithConfig.newBuilder()
+        .connectTimeout(1000)
+        .writeTimeout(2000)
+        .readTimeout(30000)
+        .withEnableEvents(Boolean.TRUE)
+        .build();
+
+    // The read timeout the caller configured, not the SDK default.
+    assertEquals(2 * (1000 + 2000 + 30000) + 200,
+        config.getEventProcessor().getCloseTimeoutMillis());
   }
 
   @Test

@@ -101,7 +101,7 @@ public final class FlagsmithConfig {
       eventProcessor = builder.eventProcessor != null
           ? builder.eventProcessor
           : new EventProcessor(httpClient, eventsUri, builder.eventsMaxBufferItems,
-              builder.eventsFlushIntervalMillis, DEFAULT_READ_TIMEOUT_MILLIS);
+              builder.eventsFlushIntervalMillis);
     } else if (builder.eventsConfigured) {
       throw new IllegalArgumentException(
           "Events must be enabled with withEnableEvents(true) to configure the event processor.");

@@ -24,6 +24,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -66,6 +67,8 @@ public class EventProcessor {
    * limit, so the bound is this plus one buffer's worth.
    */
   static final int MAX_IN_FLIGHT_EVENTS = 10_000;
+  /** The close timeout when the HTTP client's timeouts do not bound a request. */
+  static final long UNBOUNDED = -1L;
   /** The least time between two error lines reporting dropped events. */
   private static final long DROP_LOG_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(10);
 
@@ -78,9 +81,6 @@ public class EventProcessor {
   /** The interval between timed flushes; 0 means there is no timer. */
   @Getter
   private final int flushIntervalMillis;
-  /** How long a single POST is expected to take; {@link #close()} waits up to twice this. */
-  @Getter
-  private final int requestTimeoutMillis;
   // Everything below is internal state, deliberately not exposed: once published, a getter
   // would be public API for as long as the SDK is supported.
   private final List<Map<String, Object>> buffer = new ArrayList<>();
@@ -94,6 +94,12 @@ public class EventProcessor {
   private Long lastDropReportNanos = null;        // guarded by lock
   @Getter(AccessLevel.PACKAGE)
   private final RequestProcessor requestProcessor;
+  /**
+   * How long {@link #close()} waits for in-flight batches: the worst case of one batch under the
+   * HTTP client's timeouts and the retry policy, or {@link #UNBOUNDED} when a timeout is off.
+   */
+  @Getter(AccessLevel.PACKAGE)
+  private final long closeTimeoutMillis;
   /** The API wrapper used to build requests; injected by {@code FlagsmithClient.Builder}. */
   @Setter
   private FlagsmithSdk api;
@@ -109,14 +115,12 @@ public class EventProcessor {
    * @param maxBufferItems       number of buffered events that triggers an immediate flush; at
    *                             least 1
    * @param flushIntervalMillis  interval between timed flushes; 0 disables the timer
-   * @param requestTimeoutMillis how long a single POST is expected to take; {@link #close()}
-   *                             waits up to twice this for in-flight batches
    * @throws IllegalArgumentException when maxBufferItems is below 1 or flushIntervalMillis is
    *                                  negative
    */
   public EventProcessor(OkHttpClient client, HttpUrl eventsUri, int maxBufferItems,
-      int flushIntervalMillis, int requestTimeoutMillis) {
-    this(eventsUri, maxBufferItems, flushIntervalMillis, requestTimeoutMillis,
+      int flushIntervalMillis) {
+    this(eventsUri, maxBufferItems, flushIntervalMillis,
         new RequestProcessor(client, new FlagsmithLogger(), buildRetry()));
   }
 
@@ -125,7 +129,7 @@ public class EventProcessor {
    * something callers should come to depend on.
    */
   EventProcessor(HttpUrl eventsUri, int maxBufferItems, int flushIntervalMillis,
-      int requestTimeoutMillis, RequestProcessor requestProcessor) {
+      RequestProcessor requestProcessor) {
     // Without a positive buffer limit nothing bounds the buffer between timed flushes, and with
     // the timer off as well it would grow for as long as the process runs.
     if (maxBufferItems < 1) {
@@ -137,8 +141,8 @@ public class EventProcessor {
     this.eventsEndpoint = eventsUri.newBuilder(EVENTS_PATH).build();
     this.maxBufferItems = maxBufferItems;
     this.flushIntervalMillis = flushIntervalMillis;
-    this.requestTimeoutMillis = requestTimeoutMillis;
     this.requestProcessor = requestProcessor;
+    this.closeTimeoutMillis = worstCaseBatchMillis(requestProcessor.getClient(), buildRetry());
     this.scheduler = Executors.newSingleThreadScheduledExecutor((runnable) -> {
       Thread thread = new Thread(runnable, "flagsmith-events");
       thread.setDaemon(true);
@@ -155,6 +159,36 @@ public class EventProcessor {
     retry.setStatusForcelist(new HashSet<>(Arrays.asList(500, 502, 503, 504)));
     retry.setStatusForcelistOnly(Boolean.TRUE);
     return retry;
+  }
+
+  /**
+   * The longest one batch can take to be delivered or given up on: every attempt the retry
+   * policy allows, each running to the client's timeouts, plus the backoff between them. An
+   * attempt is bounded by the call timeout when one is set, and otherwise by connect, write and
+   * read in turn. When none of those bounds it, neither is the batch.
+   *
+   * @return the worst case in milliseconds, or {@link #UNBOUNDED}
+   */
+  static long worstCaseBatchMillis(OkHttpClient client, Retry retry) {
+    long attemptMillis;
+    if (client.callTimeoutMillis() > 0) {
+      attemptMillis = client.callTimeoutMillis();
+    } else if (client.connectTimeoutMillis() > 0 && client.writeTimeoutMillis() > 0
+        && client.readTimeoutMillis() > 0) {
+      attemptMillis = (long) client.connectTimeoutMillis() + client.writeTimeoutMillis()
+          + client.readTimeoutMillis();
+    } else {
+      return UNBOUNDED;
+    }
+
+    // Walk a copy of the policy the way RequestProcessor does: back off, then attempt.
+    Retry walk = retry.toBuilder().build();
+    long total = 0;
+    for (int attempt = 0; attempt < walk.getTotal(); attempt++) {
+      total += walk.calculateSleepTime() + attemptMillis;
+      walk.retryAttempted();
+    }
+    return total;
   }
 
   /**
@@ -259,7 +293,9 @@ public class EventProcessor {
 
   /**
    * Stop the flush timer, ship whatever is left on a best-effort basis and release the HTTP
-   * resources.
+   * resources. Blocks until in-flight batches settle, for at most the worst case of one batch
+   * under the HTTP client's timeouts and the retry policy; with a timeout switched off there is
+   * no such bound, and it waits as long as the request does.
    */
   public void close() {
     synchronized (this) {
@@ -268,14 +304,24 @@ public class EventProcessor {
     }
 
     try {
-      flush().get(requestTimeoutMillis * 2L, TimeUnit.MILLISECONDS);
+      CompletableFuture<Void> remaining = flush();
+      if (closeTimeoutMillis == UNBOUNDED) {
+        remaining.get();
+      } else {
+        remaining.get(closeTimeoutMillis, TimeUnit.MILLISECONDS);
+      }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       logger.error("Interrupted while flushing events on close.", e);
+    } catch (TimeoutException e) {
+      logger.error("Stopped waiting for events to be delivered after " + closeTimeoutMillis
+          + "ms on close; batches still in flight carry on in the background.");
     } catch (Exception e) {
       logger.error("Failed to flush events on close.", e);
     }
 
+    // shutdown(), never shutdownNow(): interrupting a POST mid-flight loses its batch, where
+    // letting it finish delivers it if the JVM stays up long enough.
     requestProcessor.close();
   }
 
