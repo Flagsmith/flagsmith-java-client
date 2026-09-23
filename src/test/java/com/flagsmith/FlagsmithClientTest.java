@@ -1157,6 +1157,72 @@ public class FlagsmithClientTest {
     }
 
     @Test
+    public void testTrackEventRejectsBlankEventNames() {
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(FlagsmithConfig.newBuilder()
+                        .withEventProcessor(processor)
+                        .build())
+                .setApiKey("api-key")
+                .build();
+
+        assertThrows(IllegalArgumentException.class, () -> client.trackEvent(null));
+        assertThrows(IllegalArgumentException.class, () -> client.trackEvent("  ", "user-1"));
+        verify(processor, never()).trackEvent(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testTrackExposureEventRejectsBlankFeatureNames() {
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(FlagsmithConfig.newBuilder()
+                        .withEventProcessor(processor)
+                        .build())
+                .setApiKey("api-key")
+                .build();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> client.trackExposureEvent(null, "user-1", "treatment"));
+        assertThrows(IllegalArgumentException.class,
+                () -> client.trackExposureEvent("", "user-1", "treatment"));
+        verify(processor, never()).trackExposureEvent(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testInvalidEventProcessorSettingsThrowAtBuild() {
+        assertThrows(IllegalArgumentException.class, () -> FlagsmithConfig.newBuilder()
+                .withEnableEvents(Boolean.TRUE)
+                .withEventsMaxBufferItems(0)
+                .build());
+        assertThrows(IllegalArgumentException.class, () -> FlagsmithConfig.newBuilder()
+                .withEnableEvents(Boolean.TRUE)
+                .withEventsFlushIntervalMillis(-1)
+                .build());
+    }
+
+    @Test
+    public void testEventsSettingsReachTheProcessor() {
+        FlagsmithConfig config = FlagsmithConfig.newBuilder()
+                .eventsUri("http://events-uri")
+                .withEnableEvents(Boolean.TRUE)
+                .withEventsMaxBufferItems(5)
+                .withEventsFlushIntervalMillis(0)
+                .build();
+
+        EventProcessor processor = config.getEventProcessor();
+        assertEquals("http://events-uri/v1/events", processor.getEventsEndpoint().toString());
+        assertEquals(5, processor.getMaxBufferItems());
+        assertEquals(0, processor.getFlushIntervalMillis());
+    }
+
+    @Test
+    public void testNullEnableEventsLeavesEventsDisabled() {
+        FlagsmithConfig config = FlagsmithConfig.newBuilder().withEnableEvents(null).build();
+
+        assertNull(config.getEventProcessor());
+    }
+
+    @Test
     public void testTrackExposureEventWithBlankIdentifierSendsNothing() {
         EventProcessor processor = mock(EventProcessor.class);
         FlagsmithClient client = FlagsmithClient.newBuilder()

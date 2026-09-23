@@ -272,7 +272,7 @@ public class FlagsmithClient {
    *
    * @param event event name
    * @throws FlagsmithRuntimeError    when events are not enabled
-   * @throws IllegalArgumentException when the event name starts with "$"
+   * @throws IllegalArgumentException when the event name is blank or starts with "$"
    */
   public void trackEvent(String event) {
     trackEvent(event, null, null, null, null);
@@ -284,7 +284,7 @@ public class FlagsmithClient {
    * @param event      event name
    * @param identifier identifier string
    * @throws FlagsmithRuntimeError    when events are not enabled
-   * @throws IllegalArgumentException when the event name starts with "$"
+   * @throws IllegalArgumentException when the event name is blank or starts with "$"
    */
   public void trackEvent(String event, String identifier) {
     trackEvent(event, identifier, null, null, null);
@@ -299,13 +299,16 @@ public class FlagsmithClient {
    * @param traits     a map of trait keys to trait values
    * @param metadata   a map of metadata to attach to the event
    * @throws FlagsmithRuntimeError    when events are not enabled
-   * @throws IllegalArgumentException when the event name starts with "$"
+   * @throws IllegalArgumentException when the event name is blank or starts with "$"
    */
   public void trackEvent(String event, String identifier, Object value,
       Map<String, Object> traits, Map<String, Object> metadata) {
     EventProcessor processor = requireEventProcessor("track events");
 
-    if (event != null && event.startsWith("$")) {
+    if (StringUtils.isBlank(event)) {
+      throw new IllegalArgumentException("An event name is required.");
+    }
+    if (event.startsWith("$")) {
       throw new IllegalArgumentException("Event names starting with \"$\" are reserved; use "
           + "trackExposureEvent to record \"" + EventProcessor.FLAG_EXPOSURE_EVENT + "\".");
     }
@@ -320,7 +323,8 @@ public class FlagsmithClient {
    * @param featureName feature the identity was exposed to
    * @param identifier  identifier string
    * @param value       variant the identity was bucketed into
-   * @throws FlagsmithRuntimeError when events are not enabled
+   * @throws FlagsmithRuntimeError    when events are not enabled
+   * @throws IllegalArgumentException when the feature name is blank
    */
   public void trackExposureEvent(String featureName, String identifier, Object value) {
     trackExposureEvent(featureName, identifier, value, null, null);
@@ -335,12 +339,18 @@ public class FlagsmithClient {
    * @param value       variant the identity was bucketed into
    * @param traits      a map of trait keys to trait values
    * @param metadata    a map of metadata to attach to the event
-   * @throws FlagsmithRuntimeError when events are not enabled
+   * @throws FlagsmithRuntimeError    when events are not enabled
+   * @throws IllegalArgumentException when the feature name is blank
    */
   public void trackExposureEvent(String featureName, String identifier, Object value,
       Map<String, Object> traits, Map<String, Object> metadata) {
     EventProcessor processor = requireEventProcessor("track exposure events");
 
+    // A missing feature name is a bug in the caller, and the events API rejects the exposure. A
+    // missing identifier is ordinary at runtime (an anonymous visitor), so it is logged instead.
+    if (StringUtils.isBlank(featureName)) {
+      throw new IllegalArgumentException("An exposure requires a feature name.");
+    }
     if (StringUtils.isBlank(identifier)) {
       logger.info("Not sending {} for feature {}: an exposure requires an identifier.",
           EventProcessor.FLAG_EXPOSURE_EVENT, featureName);

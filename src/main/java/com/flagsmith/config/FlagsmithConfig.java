@@ -97,7 +97,7 @@ public final class FlagsmithConfig {
 
     this.eventsUri = builder.eventsUri;
 
-    if (builder.enableEvents) {
+    if (Boolean.TRUE.equals(builder.enableEvents)) {
       eventProcessor = builder.eventProcessor != null
           ? builder.eventProcessor
           : new EventProcessor(httpClient, eventsUri, builder.eventsMaxBufferItems,
@@ -338,7 +338,7 @@ public final class FlagsmithConfig {
 
     /**
      * Set the number of buffered events that triggers an immediate flush. Requires events to be
-     * enabled.
+     * enabled; {@link #build()} throws IllegalArgumentException when it is below 1.
      *
      * @param items the maximum number of buffered events
      * @return the Builder
@@ -351,7 +351,8 @@ public final class FlagsmithConfig {
 
     /**
      * Set the interval between timed event flushes, in milliseconds. Zero disables the timer.
-     * Requires events to be enabled.
+     * Requires events to be enabled; {@link #build()} throws IllegalArgumentException when it is
+     * negative.
      *
      * @param millis the flush interval in milliseconds
      * @return the Builder

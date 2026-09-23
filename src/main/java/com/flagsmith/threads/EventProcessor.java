@@ -96,10 +96,13 @@ public class EventProcessor {
    *
    * @param client               client instance
    * @param eventsUri            base URI of the events API, e.g. https://events.api.flagsmith.com/
-   * @param maxBufferItems       number of buffered events that triggers an immediate flush
+   * @param maxBufferItems       number of buffered events that triggers an immediate flush; at
+   *                             least 1
    * @param flushIntervalMillis  interval between timed flushes; 0 disables the timer
    * @param requestTimeoutMillis how long a single POST is expected to take; {@link #close()}
    *                             waits up to twice this for in-flight batches
+   * @throws IllegalArgumentException when maxBufferItems is below 1 or flushIntervalMillis is
+   *                                  negative
    */
   public EventProcessor(OkHttpClient client, HttpUrl eventsUri, int maxBufferItems,
       int flushIntervalMillis, int requestTimeoutMillis) {
@@ -113,6 +116,14 @@ public class EventProcessor {
    */
   EventProcessor(HttpUrl eventsUri, int maxBufferItems, int flushIntervalMillis,
       int requestTimeoutMillis, RequestProcessor requestProcessor) {
+    // Without a positive buffer limit nothing bounds the buffer between timed flushes, and with
+    // the timer off as well it would grow for as long as the process runs.
+    if (maxBufferItems < 1) {
+      throw new IllegalArgumentException("maxBufferItems must be at least 1.");
+    }
+    if (flushIntervalMillis < 0) {
+      throw new IllegalArgumentException("flushIntervalMillis must not be negative.");
+    }
     this.eventsEndpoint = eventsUri.newBuilder(EVENTS_PATH).build();
     this.maxBufferItems = maxBufferItems;
     this.flushIntervalMillis = flushIntervalMillis;
@@ -304,7 +315,7 @@ public class EventProcessor {
           return;
         }
         buffer.add(eventPayload);
-        isFull = maxBufferItems > 0 && buffer.size() >= maxBufferItems;
+        isFull = buffer.size() >= maxBufferItems;
       }
 
       if (isFull) {
