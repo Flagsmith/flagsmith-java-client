@@ -118,9 +118,9 @@ public class EventProcessorTest {
     long before = System.currentTimeMillis();
     processor.trackEvent("purchase", "user-123", 49.0, traits, metadata);
 
-    assertEquals(1, processor.getBuffer().size());
+    assertEquals(1, processor.bufferedEvents().size());
 
-    Map<String, Object> event = processor.getBuffer().get(0);
+    Map<String, Object> event = processor.bufferedEvents().get(0);
     assertEquals(
         Arrays.asList("event", "feature_name", "identifier", "value", "traits", "metadata",
             "timestamp"),
@@ -146,7 +146,7 @@ public class EventProcessorTest {
 
     processor.trackEvent("purchase", "user-123", null, null, null);
 
-    Map<String, Object> event = processor.getBuffer().get(0);
+    Map<String, Object> event = processor.bufferedEvents().get(0);
     assertNull(event.get("value"));
     assertNull(event.get("traits"));
   }
@@ -159,7 +159,7 @@ public class EventProcessorTest {
     processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null, metadata);
     processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null, metadata);
 
-    assertEquals(1, processor.getBuffer().size());
+    assertEquals(1, processor.bufferedEvents().size());
   }
 
   @Test
@@ -174,7 +174,7 @@ public class EventProcessorTest {
     processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null,
         Collections.singletonMap("experiment_id", 43));
 
-    assertEquals(5, processor.getBuffer().size());
+    assertEquals(5, processor.bufferedEvents().size());
   }
 
   @Test
@@ -189,7 +189,7 @@ public class EventProcessorTest {
 
     processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null, metadata);
 
-    assertEquals(1, processor.getBuffer().size());
+    assertEquals(1, processor.bufferedEvents().size());
     assertEquals(1, recorder.count());
   }
 
@@ -200,7 +200,7 @@ public class EventProcessorTest {
     processor.trackEvent("purchase", "user-1", "49.00", null, null);
     processor.trackEvent("purchase", "user-1", "49.00", null, null);
 
-    assertEquals(2, processor.getBuffer().size());
+    assertEquals(2, processor.bufferedEvents().size());
   }
 
   @Test
@@ -232,7 +232,7 @@ public class EventProcessorTest {
     assertEquals(42, event.get("metadata").get("experiment_id").asInt());
     assertTrue(event.get("metadata").has("sdk_version"));
     assertTrue(event.get("timestamp").isNumber());
-    assertTrue(processor.getBuffer().isEmpty());
+    assertTrue(processor.bufferedEvents().isEmpty());
   }
 
   @Test
@@ -252,10 +252,10 @@ public class EventProcessorTest {
     interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(ACCEPTED_BODY, MEDIATYPE_JSON);
 
     processor.trackEvent("purchase", "user-1", "1", null, null);
-    assertEquals(1, processor.getBuffer().size());
+    assertEquals(1, processor.bufferedEvents().size());
 
     processor.trackEvent("purchase", "user-2", "2", null, null);
-    assertTrue(processor.getBuffer().isEmpty());
+    assertTrue(processor.bufferedEvents().isEmpty());
 
     flushAndWait(processor);
 
@@ -308,7 +308,7 @@ public class EventProcessorTest {
     flushAndWait(processor);
 
     assertEquals(2, recorder.count());
-    assertTrue(processor.getBuffer().isEmpty());
+    assertTrue(processor.bufferedEvents().isEmpty());
   }
 
   @Test
@@ -321,7 +321,7 @@ public class EventProcessorTest {
     flushAndWait(processor);
 
     assertEquals(1, recorder.count());
-    assertTrue(processor.getBuffer().isEmpty());
+    assertTrue(processor.bufferedEvents().isEmpty());
   }
 
   @Test
@@ -346,7 +346,7 @@ public class EventProcessorTest {
     flushAndWait(processor);
 
     assertEquals(2, recorder.count());
-    assertTrue(processor.getBuffer().isEmpty());
+    assertTrue(processor.bufferedEvents().isEmpty());
   }
 
   @Test
@@ -427,7 +427,7 @@ public class EventProcessorTest {
     processor.trackEvent("purchase", "user-2", "2", null, null);
     processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null, null);
 
-    assertTrue(processor.getBuffer().isEmpty());
+    assertTrue(processor.bufferedEvents().isEmpty());
     flushAndWait(processor);
     assertEquals(postsAfterClose, recorder.count());
   }
@@ -445,7 +445,7 @@ public class EventProcessorTest {
 
     @SuppressWarnings("unchecked")
     Map<String, Object> buffered =
-        (Map<String, Object>) processor.getBuffer().get(0).get("traits");
+        (Map<String, Object>) processor.bufferedEvents().get(0).get("traits");
     assertEquals(2, buffered.size());
     assertEquals("premium", buffered.get("plan"));
     assertEquals("gold", buffered.get("tier"));
@@ -465,7 +465,7 @@ public class EventProcessorTest {
 
     @SuppressWarnings("unchecked")
     Map<String, Object> buffered =
-        (Map<String, Object>) processor.getBuffer().get(0).get("traits");
+        (Map<String, Object>) processor.bufferedEvents().get(0).get("traits");
     assertEquals(Collections.singletonMap("plan", "premium"), buffered);
   }
 
@@ -479,7 +479,7 @@ public class EventProcessorTest {
     processor.trackEvent("purchase", "user-1", "1", null, null);
 
     assertTrue(recorder.awaitFirstRequest(WAIT_SECONDS), "the timer never flushed");
-    assertTrue(processor.getBuffer().isEmpty());
+    assertTrue(processor.bufferedEvents().isEmpty());
   }
 
   @Test
@@ -506,7 +506,7 @@ public class EventProcessorTest {
     processor.trackEvent("purchase", "user-1", "1", null, null);
 
     assertEquals(0, recorder.count());
-    assertTrue(processor.getBuffer().isEmpty());
+    assertTrue(processor.bufferedEvents().isEmpty());
   }
 
   /** Records every request that reaches the network, with its body. */

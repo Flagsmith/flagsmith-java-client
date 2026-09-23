@@ -24,6 +24,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import okhttp3.HttpUrl;
@@ -39,7 +40,6 @@ import okhttp3.RequestBody;
  * Exposure events are deduplicated within a flush window. Nothing thrown here ever reaches caller
  * code: every failure is logged instead.
  */
-@Getter
 public class EventProcessor {
 
   /** Name of the reserved event recorded when an identity is exposed to an experiment. */
@@ -54,16 +54,29 @@ public class EventProcessor {
   private static final MediaType JSON_MEDIA_TYPE =
       MediaType.get("application/json; charset=utf-8");
 
+  /** The URL batches are POSTed to. */
+  @Getter
   private final HttpUrl eventsEndpoint;
+  /** The number of buffered events that triggers an immediate flush. */
+  @Getter
   private final int maxBufferItems;
+  /** The interval between timed flushes; 0 means there is no timer. */
+  @Getter
   private final int flushIntervalMillis;
+  /** How long a single POST is expected to take; {@link #close()} waits up to twice this. */
+  @Getter
   private final int requestTimeoutMillis;
+  // Everything below is internal state, deliberately not exposed: once published, a getter
+  // would be public API for as long as the SDK is supported.
   private final List<Map<String, Object>> buffer = new ArrayList<>();
   private final Set<String> dedupeKeys = new HashSet<>();
   private final Object lock = new Object();
+  @Getter(AccessLevel.PACKAGE)
   private final ScheduledExecutorService scheduler;
   private final Set<CompletableFuture<Void>> inFlight = ConcurrentHashMap.newKeySet();
+  @Getter(AccessLevel.PACKAGE)
   private final RequestProcessor requestProcessor;
+  /** The API wrapper used to build requests; injected by {@code FlagsmithClient.Builder}. */
   @Setter
   private FlagsmithSdk api;
   private FlagsmithLogger logger = new FlagsmithLogger();
@@ -77,7 +90,8 @@ public class EventProcessor {
    * @param eventsUri            base URI of the events API, e.g. https://events.api.flagsmith.com/
    * @param maxBufferItems       number of buffered events that triggers an immediate flush
    * @param flushIntervalMillis  interval between timed flushes; 0 disables the timer
-   * @param requestTimeoutMillis how long {@link #close()} waits for each in-flight batch
+   * @param requestTimeoutMillis how long a single POST is expected to take; {@link #close()}
+   *                             waits up to twice this for in-flight batches
    */
   public EventProcessor(OkHttpClient client, HttpUrl eventsUri, int maxBufferItems,
       int flushIntervalMillis, int requestTimeoutMillis) {
@@ -86,15 +100,10 @@ public class EventProcessor {
   }
 
   /**
-   * Instantiate with a request processor, for tests.
-   *
-   * @param eventsUri            base URI of the events API
-   * @param maxBufferItems       number of buffered events that triggers an immediate flush
-   * @param flushIntervalMillis  interval between timed flushes; 0 disables the timer
-   * @param requestTimeoutMillis how long {@link #close()} waits for each in-flight batch
-   * @param requestProcessor     request processor used to POST batches
+   * Instantiate with a request processor. Package-private: it exists for tests, and is not
+   * something callers should come to depend on.
    */
-  public EventProcessor(HttpUrl eventsUri, int maxBufferItems, int flushIntervalMillis,
+  EventProcessor(HttpUrl eventsUri, int maxBufferItems, int flushIntervalMillis,
       int requestTimeoutMillis, RequestProcessor requestProcessor) {
     this.eventsEndpoint = eventsUri.newBuilder(EVENTS_PATH).build();
     this.maxBufferItems = maxBufferItems;
@@ -344,5 +353,15 @@ public class EventProcessor {
 
   private CompletableFuture<Void> awaitInFlight() {
     return CompletableFuture.allOf(inFlight.toArray(new CompletableFuture[0]));
+  }
+
+  /**
+   * A snapshot of the buffer, for tests. Taken under the lock, so a test never iterates the live
+   * list while another thread is appending to it.
+   */
+  List<Map<String, Object>> bufferedEvents() {
+    synchronized (lock) {
+      return new ArrayList<>(buffer);
+    }
   }
 }
