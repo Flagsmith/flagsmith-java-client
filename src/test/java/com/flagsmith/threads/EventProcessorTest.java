@@ -443,6 +443,40 @@ public class EventProcessorTest {
   }
 
   @Test
+  @SneakyThrows
+  public void trackEvent_refusesAnEventThatRacesCloseInsteadOfStrandingIt() {
+    EventProcessor processor = newProcessor(1000, 0);
+    interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(ACCEPTED_BODY, MEDIATYPE_JSON);
+
+    // Serialising the traits happens after the first closed check and before the buffer lock,
+    // so a getter that blocks parks the tracking thread exactly in that window.
+    CountDownLatch serialising = new CountDownLatch(1);
+    CountDownLatch proceed = new CountDownLatch(1);
+    Object slowTrait = new Object() {
+      @SuppressWarnings("unused")
+      public String getValue() throws InterruptedException {
+        serialising.countDown();
+        proceed.await(WAIT_SECONDS, TimeUnit.SECONDS);
+        return "slow";
+      }
+    };
+    Thread tracker = new Thread(() -> processor.trackEvent(
+        "purchase", "user-1", "1", Collections.singletonMap("slow", slowTrait), null));
+    tracker.start();
+    assertTrue(serialising.await(WAIT_SECONDS, TimeUnit.SECONDS));
+
+    // close() runs its final flush while the event is still on its way into the buffer.
+    processor.close();
+    eventProcessor = null;
+    proceed.countDown();
+    tracker.join(TimeUnit.SECONDS.toMillis(WAIT_SECONDS));
+
+    // Without the check under the lock, the event lands in a buffer nothing will flush again.
+    assertTrue(processor.bufferedEvents().isEmpty(), "an event was stranded after close()");
+    assertEquals(0, recorder.count());
+  }
+
+  @Test
   public void trackExposureEvent_unwrapsTraitConfigsAndDropsTransientTraits() {
     EventProcessor processor = newProcessor(1000, 0);
 
