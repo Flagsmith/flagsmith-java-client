@@ -692,6 +692,9 @@ public class FlagsmithClient {
         if (configuration.getOfflineHandler() == null) {
           throw new FlagsmithRuntimeError("Offline handler must be provided to use offline mode.");
         }
+        if (configuration.getEventProcessor() != null) {
+          throw new FlagsmithRuntimeError("Events cannot be enabled in offline mode.");
+        }
       }
 
       if (this.flagsmithApiWrapper != null) {
@@ -714,15 +717,6 @@ public class FlagsmithClient {
       if (configuration.getAnalyticsProcessor() != null) {
         configuration.getAnalyticsProcessor().setApi(client.flagsmithSdk);
         configuration.getAnalyticsProcessor().setLogger(client.logger);
-      }
-
-      if (configuration.getEventProcessor() != null) {
-        if (configuration.getOfflineMode()) {
-          throw new FlagsmithRuntimeError("Events cannot be enabled in offline mode.");
-        }
-        configuration.getEventProcessor().setApi(client.flagsmithSdk);
-        configuration.getEventProcessor().setLogger(client.logger);
-        configuration.getEventProcessor().start();
       }
 
       if (configuration.getEnableLocalEvaluation()) {
@@ -755,6 +749,14 @@ public class FlagsmithClient {
         }
         client.evaluationContext = EngineMappers.mapEnvironmentToContext(
           configuration.getOfflineHandler().getEnvironment());
+      }
+
+      // Last, once nothing else can throw: starting the processor starts its flush timer, which a
+      // failed build would otherwise leave running with no client to close it.
+      if (configuration.getEventProcessor() != null) {
+        configuration.getEventProcessor().setApi(client.flagsmithSdk);
+        configuration.getEventProcessor().setLogger(client.logger);
+        configuration.getEventProcessor().start();
       }
 
       return this.client;

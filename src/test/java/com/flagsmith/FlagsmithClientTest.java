@@ -1114,6 +1114,23 @@ public class FlagsmithClientTest {
     }
 
     @Test
+    public void testFailedBuildDoesNotStartTheEventProcessor() {
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithConfig config = FlagsmithConfig.newBuilder()
+                .withLocalEvaluation(true)
+                .withEventProcessor(processor)
+                .build();
+
+        FlagsmithClient.Builder clientBuilder = FlagsmithClient.newBuilder()
+                .withConfiguration(config)
+                // Local evaluation needs a server key, so this build fails.
+                .setApiKey("api-key");
+
+        assertThrows(FlagsmithRuntimeError.class, clientBuilder::build);
+        verify(processor, never()).start();
+    }
+
+    @Test
     public void testEventApisThrowWhenEventsAreDisabled() {
         FlagsmithClient client = FlagsmithClient.newBuilder().setApiKey("api-key").build();
 

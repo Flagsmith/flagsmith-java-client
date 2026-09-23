@@ -533,6 +533,20 @@ public class EventProcessorTest {
   }
 
   @Test
+  @SneakyThrows
+  public void start_isANoOpAfterClose() {
+    EventProcessor processor = newProcessor(1000, 100);
+    interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(ACCEPTED_BODY, MEDIATYPE_JSON);
+    processor.close();
+    eventProcessor = null;
+
+    // Scheduling on the shut-down scheduler would throw RejectedExecutionException.
+    processor.start();
+
+    assertTrue(processor.getScheduler().isShutdown());
+  }
+
+  @Test
   public void trackEvent_neverThrowsWhenTheApiIsMissing() {
     EventProcessor processor = newProcessor(1, 0);
     processor.setApi(null);

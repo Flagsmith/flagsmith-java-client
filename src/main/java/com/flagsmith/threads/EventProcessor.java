@@ -214,10 +214,19 @@ public class EventProcessor {
   }
 
   /**
-   * Start the flush timer. Does nothing when the flush interval is not positive.
+   * Start the flush timer. Does nothing when the flush interval is not positive, when the timer
+   * is already running, or once the processor is closed.
    */
-  public void start() {
+  public synchronized void start() {
     if (flushIntervalMillis <= 0 || scheduledFlush != null) {
+      return;
+    }
+
+    if (closed.get()) {
+      // The scheduler is shut down, and scheduling on it would throw. This happens when a
+      // FlagsmithConfig, which owns the processor, is reused after a client built from it was
+      // closed.
+      logger.error("Not starting the event processor: it has been closed.");
       return;
     }
 
@@ -230,8 +239,10 @@ public class EventProcessor {
    * resources.
    */
   public void close() {
-    closed.set(true);
-    scheduler.shutdownNow();
+    synchronized (this) {
+      closed.set(true);
+      scheduler.shutdownNow();
+    }
 
     try {
       flush().get(requestTimeoutMillis * 2L, TimeUnit.MILLISECONDS);
@@ -248,7 +259,7 @@ public class EventProcessor {
   private void bufferEvent(String event, String featureName, String identifier, Object value,
       Map<String, Object> traits, Map<String, Object> metadata, boolean dedupe) {
     if (closed.get()) {
-      logger.info("Not buffering event {}: the event processor is closed.", event);
+      logClosed(event);
       return;
     }
 
@@ -281,6 +292,13 @@ public class EventProcessor {
       boolean isFull;
 
       synchronized (lock) {
+        // Checked again under the lock: close() sets the flag before its final flush takes the
+        // lock, so an event either lands in the buffer ahead of that flush or is refused here.
+        // Checking only above would let an event slip in after the final flush and be lost.
+        if (closed.get()) {
+          logClosed(event);
+          return;
+        }
         if (dedupe && !dedupeKeys.add(
             dedupeKey(event, featureName, identifier, stringValue, experimentId))) {
           return;
@@ -295,6 +313,10 @@ public class EventProcessor {
     } catch (RuntimeException e) {
       logger.error("Failed to buffer event " + event + ".", e);
     }
+  }
+
+  private void logClosed(String event) {
+    logger.info("Not buffering event {}: the event processor is closed.", event);
   }
 
   /**
