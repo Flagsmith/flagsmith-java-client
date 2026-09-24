@@ -26,11 +26,9 @@ public class Retry {
       add(503);
     }};
   /**
-   * When true, a response is only retried if its status code is in {@link #statusForcelist}, and
-   * never beyond the {@link #total} attempts budget. A connection failure (a null status code) is
-   * still retried while attempts remain. Defaults to false, which keeps the historical behaviour
-   * of retrying any status while attempts remain, and retrying a force-listed status regardless of
-   * the budget.
+   * When true, only force-listed statuses and connection failures (null status) are retried, and
+   * never past {@link #total} attempts. False keeps the historical policy: any status retries
+   * within the budget, and a force-listed one regardless of it.
    */
   private Boolean statusForcelistOnly = Boolean.FALSE;
 
@@ -39,7 +37,7 @@ public class Retry {
   }
 
   /**
-   * Instantiate without a status forcelist policy, which keeps the historical behaviour.
+   * Create a policy with {@code statusForcelistOnly} off.
    *
    * @param total           number of attempts before giving up
    * @param attempts        attempts made so far

@@ -478,7 +478,6 @@ public class EventProcessorTest {
     proceed.countDown();
     tracker.join(TimeUnit.SECONDS.toMillis(WAIT_SECONDS));
 
-    // Without the check under the lock, the event lands in a buffer nothing will flush again.
     assertTrue(processor.bufferedEvents().isEmpty(), "an event was stranded after close()");
     assertEquals(0, recorder.count());
   }
@@ -557,8 +556,7 @@ public class EventProcessorTest {
     List<Object> cyclicList = new ArrayList<>();
     cyclicList.add(cyclicList);
 
-    // A caller bug, but it must stay out of caller code: serialising these recurses without
-    // end, and it has to surface as a dropped event, not a StackOverflowError.
+    // Serialising these recurses without end; it must surface as a dropped event, not an Error.
     processor.trackEvent("purchase", "user-1", "1", cyclic, null);
     processor.trackEvent("purchase", "user-2", "2", null,
         Collections.singletonMap("list", cyclicList));
@@ -745,8 +743,7 @@ public class EventProcessorTest {
   @Test
   @SneakyThrows
   public void flush_neverDropsEventsOnAHealthyApiWithASmallBuffer() {
-    // A one-event buffer sends a batch per event. Capping batches rather than events throttled
-    // exactly this configuration, dropping most events even against an instant API.
+    // A one-event buffer sends a batch per event: the case a cap on batches would throttle.
     EventProcessor processor = newProcessor(1, 0, AcceptingInterceptor.open());
     FlagsmithLogger logger = mock(FlagsmithLogger.class);
     processor.setLogger(logger);
@@ -762,9 +759,8 @@ public class EventProcessorTest {
   }
 
   /**
-   * Every error-level call made on a mocked logger, whatever its arguments. Matching on the
-   * invocations rather than with verify(...) avoids Mockito's varargs matching, under which a
-   * matcher list silently misses calls with a different number of arguments.
+   * Every error-level call on a mocked logger. Reads invocations rather than verify(...), whose
+   * varargs matching silently misses calls with a different argument count.
    */
   private static List<String> errorCalls(FlagsmithLogger logger) {
     List<String> calls = new ArrayList<>();
@@ -821,9 +817,8 @@ public class EventProcessorTest {
   }
 
   /**
-   * Accepts every request, optionally holding each one until released, like an events API that
-   * has stopped answering. It answers itself rather than deferring to the MockInterceptor, whose
-   * canned response bodies share one buffer and break under concurrent calls.
+   * Accepts every request, optionally holding each until released. Answers itself because
+   * MockInterceptor's canned bodies share one buffer and break under concurrent calls.
    */
   private static class AcceptingInterceptor implements Interceptor {
 

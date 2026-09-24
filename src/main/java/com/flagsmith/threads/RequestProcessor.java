@@ -84,14 +84,13 @@ public class RequestProcessor {
   }
 
   /**
-   * Execute the request in async mode, returning a CompletableFuture so callers can compose on
-   * its completion.
+   * Execute the request in async mode, returning a future callers can compose on.
    *
-   * @param request Request object
-   * @param clazz class type of response
-   * @param doThrow should throw Exception
-   * @param retries no of retries before failing
-   * @param <T> Type inference for the response
+   * @param request request to send
+   * @param clazz type to unmarshal the response body into
+   * @param doThrow whether a failed call completes the future exceptionally
+   * @param retries retry policy, copied for this call
+   * @param <T> response type
    * @return a future completed with the unmarshalled response, or null when the call failed and
    *     doThrow is false
    */

@@ -203,12 +203,7 @@ public class FlagsmithClient {
   }
 
   /**
-   * Resolve a flag for an identity and record one {@code $flag_exposure} event when the identity
-   * is enrolled in a running experiment on that feature. Identity flags are fetched exactly as
-   * {@link #getIdentityFlags(String)} fetches them.
-   *
-   * <p>Experiment metadata is only carried by remote evaluation. With local evaluation or offline
-   * mode the flag is still returned but no exposure is recorded.
+   * As {@link #getExperimentFlag(String, String, Map)}, with no traits.
    *
    * @param featureName feature name
    * @param identifier  identifier string
@@ -223,12 +218,9 @@ public class FlagsmithClient {
   }
 
   /**
-   * Resolve a flag for an identity and record one {@code $flag_exposure} event when the identity
-   * is enrolled in a running experiment on that feature. Identity flags are fetched exactly as
-   * {@link #getIdentityFlags(String, Map)} fetches them.
-   *
-   * <p>Experiment metadata is only carried by remote evaluation. With local evaluation or offline
-   * mode the flag is still returned but no exposure is recorded.
+   * Get an identity's flag, recording one {@code $flag_exposure} event if the identity is enrolled
+   * in a running experiment on it. Only remote evaluation carries experiment metadata, so local
+   * evaluation and offline mode record no exposure.
    *
    * @param featureName feature name
    * @param identifier  identifier string
@@ -246,8 +238,7 @@ public class FlagsmithClient {
     Flags flags = getIdentityFlags(identifier, traits);
 
     if (flags == null) {
-      // The API wrapper returns null rather than throwing when the identities request times out
-      // or is interrupted. Serve the default flag, as getFlag would with the API unavailable.
+      // The API wrapper returns null, not throws, on a timed-out or interrupted request.
       FlagsmithFlagDefaults defaults = getConfig().getFlagsmithFlagDefaults();
       if (defaults == null) {
         throw new FlagsmithApiError("Failed to get feature flags.");

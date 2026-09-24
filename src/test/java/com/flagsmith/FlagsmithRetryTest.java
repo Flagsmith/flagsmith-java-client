@@ -89,8 +89,7 @@ public class FlagsmithRetryTest {
 
     retry.retryAttempted();
     retry.retryAttempted();
-    // This is the branch the one-retry-then-drop guarantee rests on: without it, a permanently
-    // failing endpoint loops forever.
+    // Without this bound a permanently failing endpoint retries forever.
     assertFalse(retry.isRetry(503), "a force-listed status must not retry past the budget");
     assertFalse(retry.isRetry(null), "a connection failure must not retry past the budget");
   }

@@ -299,9 +299,8 @@ public final class FlagsmithConfig {
     }
 
     /**
-     * Set the base URL of the Flagsmith events API, overriding the default one. Harmless when
-     * events are not enabled, so that a shared configuration can carry the URL for the services
-     * that do enable them.
+     * Override the events API base URL. Allowed with events disabled, so a shared configuration
+     * can carry it.
      *
      * @param eventsUri the new base URI for the events API
      * @return the Builder
@@ -325,9 +324,9 @@ public final class FlagsmithConfig {
     }
 
     /**
-     * Set the event processor.
+     * Use a custom event processor. Also enables events.
      *
-     * @param processor event processor object
+     * @param processor the processor that buffers and sends events
      * @return the Builder
      */
     public Builder withEventProcessor(EventProcessor processor) {

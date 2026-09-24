@@ -1028,7 +1028,6 @@ public class FlagsmithClientTest {
 
     @Test
     public void testEventsUriWithoutEnableEventsIsHarmless() {
-        // A shared configuration may carry the events URL for the services that do enable events.
         FlagsmithConfig config = FlagsmithConfig.newBuilder()
                 .eventsUri("http://events-uri")
                 .build();
