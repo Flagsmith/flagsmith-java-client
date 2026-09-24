@@ -42,11 +42,15 @@ public final class FlagsmithConfig {
   private final OkHttpClient httpClient;
   private final HttpUrl baseUri;
   private final HttpUrl eventsUri;
+  private final Boolean enableEvents;
+  private final int eventsMaxBufferItems;
+  private final int eventsFlushIntervalMillis;
 
   private final Retry retries;
   private Boolean enableLocalEvaluation;
   private Integer environmentRefreshIntervalSeconds;
   private AnalyticsProcessor analyticsProcessor;
+  /** The processor from withEventProcessor, or null; each client otherwise builds its own. */
   private EventProcessor eventProcessor;
   private FlagsmithFlagDefaults flagsmithFlagDefaults = null;
   private Boolean raiseUpdateEnvironmentErrorsOnStartup = true;
@@ -96,12 +100,18 @@ public final class FlagsmithConfig {
     }
 
     this.eventsUri = builder.eventsUri;
+    this.enableEvents = Boolean.TRUE.equals(builder.enableEvents);
+    this.eventsMaxBufferItems = builder.eventsMaxBufferItems;
+    this.eventsFlushIntervalMillis = builder.eventsFlushIntervalMillis;
 
-    if (Boolean.TRUE.equals(builder.enableEvents)) {
-      eventProcessor = builder.eventProcessor != null
-          ? builder.eventProcessor
-          : new EventProcessor(httpClient, eventsUri, builder.eventsMaxBufferItems,
-              builder.eventsFlushIntervalMillis);
+    if (enableEvents) {
+      if (eventsMaxBufferItems < 1) {
+        throw new IllegalArgumentException("maxBufferItems must be at least 1.");
+      }
+      if (eventsFlushIntervalMillis < 0) {
+        throw new IllegalArgumentException("flushIntervalMillis must not be negative.");
+      }
+      eventProcessor = builder.eventProcessor;
     } else if (builder.eventsConfigured) {
       throw new IllegalArgumentException(
           "Events must be enabled with withEnableEvents(true) to configure the event processor.");
@@ -324,7 +334,8 @@ public final class FlagsmithConfig {
     }
 
     /**
-     * Use a custom event processor. Also enables events.
+     * Use a custom event processor. Also enables events. Unlike the default, the processor is
+     * shared by every client built from this configuration.
      *
      * @param processor the processor that buffers and sends events
      * @return the Builder

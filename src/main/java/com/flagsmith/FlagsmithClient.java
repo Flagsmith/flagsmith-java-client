@@ -28,8 +28,11 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +47,9 @@ public class FlagsmithClient {
   private FlagsmithSdk flagsmithSdk;
   private EvaluationContext evaluationContext;
   private PollingManager pollingManager;
+  @Getter(AccessLevel.PACKAGE)
+  @Setter(AccessLevel.NONE)
+  private EventProcessor eventProcessor;
 
   private FlagsmithClient() {
   }
@@ -375,13 +381,11 @@ public class FlagsmithClient {
    *     are not enabled
    */
   public CompletableFuture<Void> flushEvents() {
-    EventProcessor processor = getEventProcessor();
-
-    if (processor == null) {
+    if (eventProcessor == null) {
       return CompletableFuture.completedFuture(null);
     }
 
-    return processor.flush();
+    return eventProcessor.flush();
   }
 
   /**
@@ -393,7 +397,6 @@ public class FlagsmithClient {
       pollingManager.stopPolling();
     }
 
-    EventProcessor eventProcessor = getEventProcessor();
     if (eventProcessor != null) {
       eventProcessor.close();
     }
@@ -401,20 +404,13 @@ public class FlagsmithClient {
     flagsmithSdk.close();
   }
 
-  private EventProcessor getEventProcessor() {
-    FlagsmithConfig config = getConfig();
-    return config != null ? config.getEventProcessor() : null;
-  }
-
   private EventProcessor requireEventProcessor(String action) {
-    EventProcessor processor = getEventProcessor();
-
-    if (processor == null) {
+    if (eventProcessor == null) {
       throw new FlagsmithRuntimeError(
           "Events must be enabled to " + action + ". Use withEnableEvents(true).");
     }
 
-    return processor;
+    return eventProcessor;
   }
 
   private Flags getEnvironmentFlagsFromEvaluationContext() throws FlagsmithClientError {
@@ -710,7 +706,7 @@ public class FlagsmithClient {
         if (configuration.getOfflineHandler() == null) {
           throw new FlagsmithRuntimeError("Offline handler must be provided to use offline mode.");
         }
-        if (configuration.getEventProcessor() != null) {
+        if (configuration.getEnableEvents()) {
           throw new FlagsmithRuntimeError("Events cannot be enabled in offline mode.");
         }
       }
@@ -771,10 +767,18 @@ public class FlagsmithClient {
 
       // Last, once nothing else can throw: starting the processor starts its flush timer, which a
       // failed build would otherwise leave running with no client to close it.
-      if (configuration.getEventProcessor() != null) {
-        configuration.getEventProcessor().setApi(client.flagsmithSdk);
-        configuration.getEventProcessor().setLogger(client.logger);
-        configuration.getEventProcessor().start();
+      if (configuration.getEnableEvents()) {
+        EventProcessor processor = configuration.getEventProcessor() != null
+            ? configuration.getEventProcessor()
+            : new EventProcessor(
+                configuration.getHttpClient(),
+                configuration.getEventsUri(),
+                configuration.getEventsMaxBufferItems(),
+                configuration.getEventsFlushIntervalMillis());
+        processor.setApi(client.flagsmithSdk);
+        processor.setLogger(client.logger);
+        processor.start();
+        client.eventProcessor = processor;
       }
 
       return this.client;

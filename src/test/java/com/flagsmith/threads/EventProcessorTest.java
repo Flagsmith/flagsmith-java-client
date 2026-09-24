@@ -679,12 +679,13 @@ public class EventProcessorTest {
         .connectTimeout(1000)
         .writeTimeout(2000)
         .readTimeout(30000)
-        .withEnableEvents(Boolean.TRUE)
         .build();
+    EventProcessor processor =
+        new EventProcessor(config.getHttpClient(), config.getEventsUri(), 1, 0);
 
     // The read timeout the caller configured, not the SDK default.
-    assertEquals(2 * (1000 + 2000 + 30000) + 200,
-        config.getEventProcessor().getCloseTimeoutMillis());
+    assertEquals(2 * (1000 + 2000 + 30000) + 200, processor.getCloseTimeoutMillis());
+    processor.close();
   }
 
   @Test

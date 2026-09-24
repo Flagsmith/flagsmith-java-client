@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -40,9 +41,11 @@ import com.flagsmith.threads.RequestProcessor;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -1032,7 +1035,7 @@ public class FlagsmithClientTest {
                 .eventsUri("http://events-uri")
                 .build();
 
-        assertNull(config.getEventProcessor());
+        assertFalse(config.getEnableEvents());
         assertEquals("http://events-uri/", config.getEventsUri().toString());
     }
 
@@ -1226,18 +1229,23 @@ public class FlagsmithClientTest {
                 .withEventsMaxBufferItems(5)
                 .withEventsFlushIntervalMillis(0)
                 .build();
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(config)
+                .setApiKey("api-key")
+                .build();
 
-        EventProcessor processor = config.getEventProcessor();
+        EventProcessor processor = client.getEventProcessor();
         assertEquals("http://events-uri/v1/events", processor.getEventsEndpoint().toString());
         assertEquals(5, processor.getMaxBufferItems());
         assertEquals(0, processor.getFlushIntervalMillis());
+        client.close();
     }
 
     @Test
     public void testNullEnableEventsLeavesEventsDisabled() {
         FlagsmithConfig config = FlagsmithConfig.newBuilder().withEnableEvents(null).build();
 
-        assertNull(config.getEventProcessor());
+        assertFalse(config.getEnableEvents());
     }
 
     @Test
@@ -1446,5 +1454,95 @@ public class FlagsmithClientTest {
         assertEquals("user-1", events.get(0).get("identifier").asText());
         assertEquals("treatment", events.get(0).get("value").asText());
         assertEquals(42, events.get(0).get("metadata").get("experiment_id").asInt());
+    }
+
+    /** An events-enabled config that records each events batch as "environment key|body". */
+    private static FlagsmithConfig recordingEventsConfig(List<String> batches) {
+        MockInterceptor interceptor = new MockInterceptor();
+        interceptor.addRule()
+                .post("http://events-uri/v1/events")
+                .anyTimes()
+                .respond("{\"accepted\": 1, \"rejected\": []}", MEDIATYPE_JSON);
+        return FlagsmithConfig.newBuilder()
+                .baseUri("http://bad-url")
+                .addHttpInterceptor((chain) -> {
+                    Request request = chain.request();
+                    if (request.url().toString().endsWith("/v1/events")) {
+                        Buffer buffer = new Buffer();
+                        request.body().writeTo(buffer);
+                        batches.add(request.header("X-Environment-Key") + "|" + buffer.readUtf8());
+                    }
+                    return chain.proceed(request);
+                })
+                .addHttpInterceptor(interceptor)
+                .eventsUri("http://events-uri")
+                .withEnableEvents(Boolean.TRUE)
+                .withEventsFlushIntervalMillis(0)
+                .build();
+    }
+
+    @Test
+    public void testClientsSharingAConfigSendEventsUnderTheirOwnKeys() throws Exception {
+        List<String> batches = Collections.synchronizedList(new ArrayList<>());
+        FlagsmithConfig config = recordingEventsConfig(batches);
+        FlagsmithClient clientA = FlagsmithClient.newBuilder()
+                .withConfiguration(config).setApiKey("key-a").build();
+        FlagsmithClient clientB = FlagsmithClient.newBuilder()
+                .withConfiguration(config).setApiKey("key-b").build();
+
+        assertNotSame(clientA.getEventProcessor(), clientB.getEventProcessor());
+
+        clientA.trackEvent("purchase", "user-a");
+        clientB.trackEvent("purchase", "user-b");
+        clientA.flushEvents().get(5, TimeUnit.SECONDS);
+        clientB.flushEvents().get(5, TimeUnit.SECONDS);
+
+        assertEquals(2, batches.size());
+        assertTrue(batches.get(0).startsWith("key-a|"));
+        assertTrue(batches.get(0).contains("user-a") && !batches.get(0).contains("user-b"));
+        assertTrue(batches.get(1).startsWith("key-b|"));
+        assertTrue(batches.get(1).contains("user-b") && !batches.get(1).contains("user-a"));
+        clientA.close();
+        clientB.close();
+    }
+
+    @Test
+    public void testClosingOneClientLeavesAnotherOnTheSameConfigTracking() throws Exception {
+        List<String> batches = Collections.synchronizedList(new ArrayList<>());
+        FlagsmithConfig config = recordingEventsConfig(batches);
+        FlagsmithClient clientA = FlagsmithClient.newBuilder()
+                .withConfiguration(config).setApiKey("key-a").build();
+        FlagsmithClient clientB = FlagsmithClient.newBuilder()
+                .withConfiguration(config).setApiKey("key-b").build();
+
+        clientA.close();
+        clientB.trackEvent("purchase", "user-b");
+        clientB.flushEvents().get(5, TimeUnit.SECONDS);
+
+        assertEquals(1, batches.size());
+        assertTrue(batches.get(0).startsWith("key-b|"));
+        assertTrue(batches.get(0).contains("user-b"));
+        clientB.close();
+    }
+
+    @Test
+    public void testCustomApiWrapperWithAnEventsConfigDeliversEvents() throws Exception {
+        List<String> batches = Collections.synchronizedList(new ArrayList<>());
+        FlagsmithApiWrapper wrapper = new FlagsmithApiWrapper(
+                FlagsmithConfig.newBuilder().baseUri("http://bad-url").build(),
+                null, new FlagsmithLogger(), "wrapper-key");
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withFlagsmithApiWrapper(wrapper)
+                .withConfiguration(recordingEventsConfig(batches))
+                .setApiKey("wrapper-key")
+                .build();
+
+        client.trackEvent("purchase", "user-1");
+        client.flushEvents().get(5, TimeUnit.SECONDS);
+
+        assertEquals(1, batches.size());
+        assertTrue(batches.get(0).startsWith("wrapper-key|"));
+        assertTrue(batches.get(0).contains("user-1"));
+        client.close();
     }
 }
