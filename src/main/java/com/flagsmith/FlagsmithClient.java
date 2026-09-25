@@ -775,6 +775,7 @@ public class FlagsmithClient {
                 configuration.getEventsUri(),
                 configuration.getEventsMaxBufferItems(),
                 configuration.getEventsFlushIntervalMillis());
+        processor.claim();
         processor.setApi(client.flagsmithSdk);
         processor.setLogger(client.logger);
         processor.start();

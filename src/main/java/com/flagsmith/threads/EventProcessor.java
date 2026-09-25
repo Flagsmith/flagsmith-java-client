@@ -8,6 +8,7 @@ import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.Versions;
 import com.flagsmith.config.Retry;
+import com.flagsmith.exceptions.FlagsmithRuntimeError;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.models.TraitConfig;
 import java.util.ArrayList;
@@ -99,6 +100,7 @@ public class EventProcessor {
   private FlagsmithSdk api;
   private FlagsmithLogger logger = new FlagsmithLogger();
   private final AtomicBoolean closed = new AtomicBoolean(false);
+  private final AtomicBoolean claimed = new AtomicBoolean(false);
   private ScheduledFuture<?> scheduledFlush;
 
   /**
@@ -141,8 +143,8 @@ public class EventProcessor {
   }
 
   /**
-   * The retry policy for an event batch: at most one retry, on a connection failure or a 5xx,
-   * and never on a 4xx.
+   * The retry policy for an event batch: at most one retry, on a connection failure or a 500,
+   * 502, 503 or 504, and never on any other status.
    */
   private static Retry buildRetry() {
     Retry retry = new Retry(2);
@@ -178,6 +180,17 @@ public class EventProcessor {
       walk.retryAttempted();
     }
     return total;
+  }
+
+  /**
+   * Reserve this processor for one client; called by {@code FlagsmithClient.Builder}.
+   *
+   * @throws FlagsmithRuntimeError when another client already holds it
+   */
+  public void claim() {
+    if (!claimed.compareAndSet(false, true)) {
+      throw new FlagsmithRuntimeError("This event processor already backs another client.");
+    }
   }
 
   /**
@@ -269,8 +282,8 @@ public class EventProcessor {
     }
 
     if (closed.get()) {
-      // Scheduling on the shut-down scheduler would throw. Reached when a FlagsmithConfig is
-      // reused after a client built from it was closed.
+      // Scheduling on the shut-down scheduler would throw. Reached when an injected processor
+      // was closed before its client was built.
       logger.error("Not starting the event processor: it has been closed.");
       return;
     }

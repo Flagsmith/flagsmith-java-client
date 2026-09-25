@@ -1148,6 +1148,7 @@ public class FlagsmithClientTest {
                 .setApiKey("api-key");
 
         assertThrows(FlagsmithRuntimeError.class, clientBuilder::build);
+        verify(processor, never()).claim();
         verify(processor, never()).start();
     }
 
@@ -1458,6 +1459,10 @@ public class FlagsmithClientTest {
 
     /** An events-enabled config that records each events batch as "environment key|body". */
     private static FlagsmithConfig recordingEventsConfig(List<String> batches) {
+        return recordingEventsConfigBuilder(batches).build();
+    }
+
+    private static FlagsmithConfig.Builder recordingEventsConfigBuilder(List<String> batches) {
         MockInterceptor interceptor = new MockInterceptor();
         interceptor.addRule()
                 .post("http://events-uri/v1/events")
@@ -1477,8 +1482,7 @@ public class FlagsmithClientTest {
                 .addHttpInterceptor(interceptor)
                 .eventsUri("http://events-uri")
                 .withEnableEvents(Boolean.TRUE)
-                .withEventsFlushIntervalMillis(0)
-                .build();
+                .withEventsFlushIntervalMillis(0);
     }
 
     @Test
@@ -1544,5 +1548,28 @@ public class FlagsmithClientTest {
         assertTrue(batches.get(0).startsWith("wrapper-key|"));
         assertTrue(batches.get(0).contains("user-1"));
         client.close();
+    }
+
+    @Test
+    public void testAnInjectedEventProcessorBacksOnlyOneClient() throws Exception {
+        List<String> batches = Collections.synchronizedList(new ArrayList<>());
+        FlagsmithConfig.Builder configBuilder = recordingEventsConfigBuilder(batches);
+        FlagsmithConfig probe = configBuilder.build();
+        FlagsmithConfig config = configBuilder
+                .withEventProcessor(new EventProcessor(
+                        probe.getHttpClient(), probe.getEventsUri(), 1000, 0))
+                .build();
+        FlagsmithClient clientA = FlagsmithClient.newBuilder()
+                .withConfiguration(config).setApiKey("key-a").build();
+        FlagsmithClient.Builder clientBBuilder = FlagsmithClient.newBuilder()
+                .withConfiguration(config).setApiKey("key-b");
+
+        assertThrows(FlagsmithRuntimeError.class, clientBBuilder::build);
+
+        clientA.trackEvent("purchase", "user-a");
+        clientA.flushEvents().get(5, TimeUnit.SECONDS);
+        assertEquals(1, batches.size());
+        assertTrue(batches.get(0).startsWith("key-a|"));
+        clientA.close();
     }
 }

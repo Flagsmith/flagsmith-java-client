@@ -334,8 +334,8 @@ public final class FlagsmithConfig {
     }
 
     /**
-     * Use a custom event processor. Also enables events. Unlike the default, the processor is
-     * shared by every client built from this configuration.
+     * Use a custom event processor. Also enables events. The processor can back only one client:
+     * building a second client from this configuration throws.
      *
      * @param processor the processor that buffers and sends events
      * @return the Builder
