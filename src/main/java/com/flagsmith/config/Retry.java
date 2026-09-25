@@ -25,17 +25,45 @@ public class Retry {
       add(429);
       add(503);
     }};
+  /**
+   * When true, only force-listed statuses and connection failures (null status) are retried, and
+   * never past {@link #total} attempts. False keeps the historical policy: any status retries
+   * within the budget, and a force-listed one regardless of it.
+   */
+  private Boolean statusForcelistOnly = Boolean.FALSE;
 
   public Retry(Integer total) {
     this.total = total;
   }
 
   /**
+   * Create a policy with {@code statusForcelistOnly} off.
+   *
+   * @param total           number of attempts before giving up
+   * @param attempts        attempts made so far
+   * @param backoffFactor   factor applied to the backoff between attempts
+   * @param backoffMax      upper bound on the backoff, in seconds
+   * @param statusForcelist status codes that are always retried
+   */
+  public Retry(Integer total, Integer attempts, Float backoffFactor, Float backoffMax,
+      Set<Integer> statusForcelist) {
+    this(total, attempts, backoffFactor, backoffMax, statusForcelist, Boolean.FALSE);
+  }
+
+  /**
    * Should Retry or not?.
    *
-   * @param statusCode status code of last call
+   * @param statusCode status code of last call, or null if the call did not get a response
    */
   public Boolean isRetry(Integer statusCode) {
+    if (Boolean.TRUE.equals(statusForcelistOnly)) {
+      if (total <= attempts) {
+        return Boolean.FALSE;
+      }
+      return statusCode == null
+          || (statusForcelist != null && statusForcelist.contains(statusCode));
+    }
+
     if (statusForcelist != null && !statusForcelist.isEmpty()
         && statusForcelist.contains(statusCode)) {
       return Boolean.TRUE;

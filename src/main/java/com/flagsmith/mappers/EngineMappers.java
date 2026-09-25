@@ -62,6 +62,7 @@ public class EngineMappers {
     flag.setFeatureName(flagResult.getName());
     flag.setValue(flagResult.getValue());
     flag.setEnabled(flagResult.getEnabled());
+    flag.setReason(flagResult.getReason());
     return flag;
   }
 

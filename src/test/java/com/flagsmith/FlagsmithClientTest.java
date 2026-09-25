@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -16,6 +17,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.config.FlagsmithCacheConfig;
 import com.flagsmith.config.FlagsmithConfig;
+import com.flagsmith.exceptions.FeatureNotFoundError;
 import com.flagsmith.exceptions.FlagsmithApiError;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.exceptions.FlagsmithRuntimeError;
@@ -26,20 +28,24 @@ import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.DefaultFlag;
 import com.flagsmith.models.environments.EnvironmentModel;
 import com.flagsmith.models.features.FeatureStateModel;
+import com.flagsmith.models.Flag;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.SdkTraitModel;
 import com.flagsmith.models.Segment;
 import com.flagsmith.models.TraitConfig;
 import com.flagsmith.models.TraitModel;
 import com.flagsmith.responses.FlagsAndTraitsResponse;
+import com.flagsmith.threads.EventProcessor;
 import com.flagsmith.threads.PollingManager;
 import com.flagsmith.threads.RequestProcessor;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -997,5 +1003,573 @@ public class FlagsmithClientTest {
         // Then
         assertTrue(environmentFlags.isFeatureEnabled("some_feature"));
         assertTrue(identityFlags.isFeatureEnabled("some_feature"));
+    }
+
+    private static FlagsmithConfig.Builder eventsConfigBuilder(
+            String baseUrl, MockInterceptor interceptor) {
+        return FlagsmithConfig.newBuilder()
+                .baseUri(baseUrl)
+                .addHttpInterceptor(interceptor)
+                .eventsUri("http://events-uri")
+                .withEnableEvents(Boolean.TRUE);
+    }
+
+    private static void respondWithExperimentFlags(String baseUrl, MockInterceptor interceptor) {
+        interceptor.addRule()
+                .post(baseUrl + "/identities/")
+                .anyTimes()
+                .respond(FlagsmithTestHelper.getIdentitiesFlagsWithExperiment(), MEDIATYPE_JSON);
+    }
+
+    @Test
+    public void testEventsConfigWithoutEnableEventsThrows() {
+        assertThrows(IllegalArgumentException.class,
+                () -> FlagsmithConfig.newBuilder().withEventsMaxBufferItems(10).build());
+        assertThrows(IllegalArgumentException.class,
+                () -> FlagsmithConfig.newBuilder().withEventsFlushIntervalMillis(10).build());
+    }
+
+    @Test
+    public void testEventsUriWithoutEnableEventsIsHarmless() {
+        FlagsmithConfig config = FlagsmithConfig.newBuilder()
+                .eventsUri("http://events-uri")
+                .build();
+
+        assertFalse(config.getEnableEvents());
+        assertEquals("http://events-uri/", config.getEventsUri().toString());
+    }
+
+    @Test
+    public void testGetExperimentFlagPassesTraitsThroughToTheExposure()
+            throws FlagsmithClientError {
+        String baseUrl = "http://bad-url";
+        MockInterceptor interceptor = new MockInterceptor();
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(eventsConfigBuilder(baseUrl, interceptor)
+                        .withEventProcessor(processor)
+                        .build())
+                .setApiKey("api-key")
+                .build();
+        respondWithExperimentFlags(baseUrl, interceptor);
+
+        Map<String, Object> traits = new HashMap<>();
+        traits.put("plan", "premium");
+        traits.put("session_id", new TraitConfig("abc123", true));
+
+        client.getExperimentFlag("checkout_cta", "user-1", traits);
+        verify(processor, times(1)).trackExposureEvent(
+                eq("checkout_cta"), eq("user-1"), eq("treatment"), eq(traits), any());
+
+        // The two-argument overload passes an empty map rather than null.
+        client.getExperimentFlag("checkout_cta", "user-2");
+        verify(processor, times(1)).trackExposureEvent(
+                eq("checkout_cta"), eq("user-2"), eq("treatment"), eq(new HashMap<>()), any());
+    }
+
+    @Test
+    public void testEventsInOfflineModeThrowsAtBuild() {
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithConfig config = FlagsmithConfig.newBuilder()
+                .withOfflineMode(Boolean.TRUE)
+                .withOfflineHandler(new DummyOfflineHandler())
+                .withEventProcessor(processor)
+                .build();
+
+        FlagsmithClient.Builder clientBuilder = FlagsmithClient.newBuilder()
+                .withConfiguration(config)
+                .setApiKey("api-key");
+
+        FlagsmithRuntimeError ex = assertThrows(FlagsmithRuntimeError.class, clientBuilder::build);
+        assertEquals("Events cannot be enabled in offline mode.", ex.getMessage());
+    }
+
+    /**
+     * A client whose API wrapper returns null identity flags, as FlagsmithApiWrapper does when
+     * the identities request times out or is interrupted.
+     */
+    private static FlagsmithClient clientWithUnavailableIdentityFlags(
+            FlagsmithConfig config) {
+        FlagsmithApiWrapper mockApiWrapper = mock(FlagsmithApiWrapper.class);
+        when(mockApiWrapper.getConfig()).thenReturn(config);
+        when(mockApiWrapper.identifyUserWithTraits(any(), any(), anyBoolean(), anyBoolean()))
+                .thenReturn(null);
+
+        return FlagsmithClient.newBuilder()
+                .withFlagsmithApiWrapper(mockApiWrapper)
+                .withConfiguration(config)
+                .setApiKey("api-key")
+                .build();
+    }
+
+    @Test
+    public void testGetExperimentFlagServesTheDefaultWhenIdentityFlagsAreUnavailable()
+            throws FlagsmithClientError {
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithConfig config = FlagsmithConfig.newBuilder()
+                .withEventProcessor(processor)
+                .build();
+        FlagsmithFlagDefaults defaults = new FlagsmithFlagDefaults();
+        defaults.setDefaultFlagValueFunc(FlagsmithClientTest::defaultHandler);
+        config.setFlagsmithFlagDefaults(defaults);
+        FlagsmithClient client = clientWithUnavailableIdentityFlags(config);
+
+        BaseFlag flag = client.getExperimentFlag("checkout_cta", "user-1");
+
+        assertTrue(flag instanceof DefaultFlag);
+        assertEquals(DEFAULT_FLAG_VALUE, flag.getValue());
+        verify(processor, never()).trackExposureEvent(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testGetExperimentFlagThrowsWhenIdentityFlagsAreUnavailableWithoutADefault() {
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithConfig config = FlagsmithConfig.newBuilder()
+                .withEventProcessor(processor)
+                .build();
+        FlagsmithClient client = clientWithUnavailableIdentityFlags(config);
+
+        assertThrows(FlagsmithApiError.class,
+                () -> client.getExperimentFlag("checkout_cta", "user-1"));
+        verify(processor, never()).trackExposureEvent(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testFailedBuildDoesNotStartTheEventProcessor() {
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithConfig config = FlagsmithConfig.newBuilder()
+                .withLocalEvaluation(true)
+                .withEventProcessor(processor)
+                .build();
+
+        FlagsmithClient.Builder clientBuilder = FlagsmithClient.newBuilder()
+                .withConfiguration(config)
+                // Local evaluation needs a server key, so this build fails.
+                .setApiKey("api-key");
+
+        assertThrows(FlagsmithRuntimeError.class, clientBuilder::build);
+        verify(processor, never()).claim();
+        verify(processor, never()).start();
+    }
+
+    @Test
+    public void testEventApisThrowWhenEventsAreDisabled() {
+        FlagsmithClient client = FlagsmithClient.newBuilder().setApiKey("api-key").build();
+
+        assertThrows(FlagsmithRuntimeError.class,
+                () -> client.getExperimentFlag("checkout_cta", "user-1"));
+        assertThrows(FlagsmithRuntimeError.class, () -> client.trackEvent("purchase"));
+        assertThrows(FlagsmithRuntimeError.class,
+                () -> client.trackExposureEvent("checkout_cta", "user-1", "treatment"));
+        assertTrue(client.flushEvents().isDone());
+    }
+
+    @Test
+    public void testTrackEventRejectsReservedEventNames() {
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(FlagsmithConfig.newBuilder()
+                        .withEventProcessor(processor)
+                        .build())
+                .setApiKey("api-key")
+                .build();
+
+        assertThrows(IllegalArgumentException.class, () -> client.trackEvent("$flag_exposure"));
+        verify(processor, never()).trackEvent(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testTrackEventRejectsBlankEventNames() {
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(FlagsmithConfig.newBuilder()
+                        .withEventProcessor(processor)
+                        .build())
+                .setApiKey("api-key")
+                .build();
+
+        assertThrows(IllegalArgumentException.class, () -> client.trackEvent(null));
+        assertThrows(IllegalArgumentException.class, () -> client.trackEvent("  ", "user-1"));
+        verify(processor, never()).trackEvent(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testTrackExposureEventRejectsBlankFeatureNames() {
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(FlagsmithConfig.newBuilder()
+                        .withEventProcessor(processor)
+                        .build())
+                .setApiKey("api-key")
+                .build();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> client.trackExposureEvent(null, "user-1", "treatment"));
+        assertThrows(IllegalArgumentException.class,
+                () -> client.trackExposureEvent("", "user-1", "treatment"));
+        verify(processor, never()).trackExposureEvent(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testInvalidEventProcessorSettingsThrowAtBuild() {
+        assertThrows(IllegalArgumentException.class, () -> FlagsmithConfig.newBuilder()
+                .withEnableEvents(Boolean.TRUE)
+                .withEventsMaxBufferItems(0)
+                .build());
+        assertThrows(IllegalArgumentException.class, () -> FlagsmithConfig.newBuilder()
+                .withEnableEvents(Boolean.TRUE)
+                .withEventsFlushIntervalMillis(-1)
+                .build());
+    }
+
+    @Test
+    public void testEventsSettingsReachTheProcessor() {
+        FlagsmithConfig config = FlagsmithConfig.newBuilder()
+                .eventsUri("http://events-uri")
+                .withEnableEvents(Boolean.TRUE)
+                .withEventsMaxBufferItems(5)
+                .withEventsFlushIntervalMillis(0)
+                .build();
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(config)
+                .setApiKey("api-key")
+                .build();
+
+        EventProcessor processor = client.getEventProcessor();
+        assertEquals("http://events-uri/v1/events", processor.getEventsEndpoint().toString());
+        assertEquals(5, processor.getMaxBufferItems());
+        assertEquals(0, processor.getFlushIntervalMillis());
+        client.close();
+    }
+
+    @Test
+    public void testNullEnableEventsLeavesEventsDisabled() {
+        FlagsmithConfig config = FlagsmithConfig.newBuilder().withEnableEvents(null).build();
+
+        assertFalse(config.getEnableEvents());
+    }
+
+    @Test
+    public void testTrackExposureEventWithBlankIdentifierSendsNothing() {
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(FlagsmithConfig.newBuilder()
+                        .withEventProcessor(processor)
+                        .build())
+                .setApiKey("api-key")
+                .build();
+
+        client.trackExposureEvent("checkout_cta", "  ", "treatment");
+        client.trackExposureEvent("checkout_cta", null, "treatment");
+
+        verify(processor, never()).trackExposureEvent(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testGetExperimentFlagRecordsAnExposureWhenEnrolled() throws FlagsmithClientError {
+        String baseUrl = "http://bad-url";
+        MockInterceptor interceptor = new MockInterceptor();
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(eventsConfigBuilder(baseUrl, interceptor)
+                        .withEventProcessor(processor)
+                        .build())
+                .setApiKey("api-key")
+                .build();
+        respondWithExperimentFlags(baseUrl, interceptor);
+
+        BaseFlag flag = client.getExperimentFlag("checkout_cta", "user-1");
+
+        assertTrue(flag instanceof Flag);
+        assertEquals("treatment", ((Flag) flag).getVariant());
+        assertEquals("SPLIT; weight=70.0", ((Flag) flag).getReason());
+        assertEquals(42, ((Flag) flag).getExperiment().getId());
+        assertEquals(Boolean.TRUE, ((Flag) flag).getExperiment().getInExperiment());
+
+        Map<String, Object> expectedMetadata = new HashMap<>();
+        expectedMetadata.put("experiment_id", 42);
+        verify(processor, times(1)).trackExposureEvent(
+                eq("checkout_cta"), eq("user-1"), eq("treatment"), any(), eq(expectedMetadata));
+    }
+
+    @Test
+    public void testGetExperimentFlagRecordsNoExposureWhenNotEnrolledOrDisabled()
+            throws FlagsmithClientError {
+        String baseUrl = "http://bad-url";
+        MockInterceptor interceptor = new MockInterceptor();
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(eventsConfigBuilder(baseUrl, interceptor)
+                        .withEventProcessor(processor)
+                        .build())
+                .setApiKey("api-key")
+                .build();
+        respondWithExperimentFlags(baseUrl, interceptor);
+
+        // bucketed but outside the rollout
+        assertEquals("control",
+                ((Flag) client.getExperimentFlag("pricing_page", "user-1")).getVariant());
+        // no metadata at all
+        assertNull(((Flag) client.getExperimentFlag("some_feature", "user-1")).getExperiment());
+        // enrolled, but the flag is off
+        assertEquals(Boolean.FALSE,
+                client.getExperimentFlag("disabled_feature", "user-1").getEnabled());
+
+        verify(processor, never()).trackExposureEvent(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testGetExperimentFlagUsesTheDefaultHandlerForAMissingFeature()
+            throws FlagsmithClientError {
+        String baseUrl = "http://bad-url";
+        MockInterceptor interceptor = new MockInterceptor();
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(eventsConfigBuilder(baseUrl, interceptor)
+                        .withEventProcessor(processor)
+                        .build())
+                .setDefaultFlagValueFunction(FlagsmithClientTest::defaultHandler)
+                .setApiKey("api-key")
+                .build();
+        respondWithExperimentFlags(baseUrl, interceptor);
+
+        BaseFlag flag = client.getExperimentFlag("no_such_feature", "user-1");
+
+        assertTrue(flag instanceof DefaultFlag);
+        assertEquals(DEFAULT_FLAG_VALUE, flag.getValue());
+        verify(processor, never()).trackExposureEvent(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testGetExperimentFlagThrowsForAMissingFeatureWithoutADefaultHandler() {
+        String baseUrl = "http://bad-url";
+        MockInterceptor interceptor = new MockInterceptor();
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(eventsConfigBuilder(baseUrl, interceptor)
+                        .withEventProcessor(processor)
+                        .build())
+                .setApiKey("api-key")
+                .build();
+        respondWithExperimentFlags(baseUrl, interceptor);
+
+        assertThrows(FeatureNotFoundError.class,
+                () -> client.getExperimentFlag("no_such_feature", "user-1"));
+    }
+
+    @Test
+    public void testGetExperimentFlagRecordsNoExposureWithLocalEvaluation()
+            throws JsonProcessingException, FlagsmithClientError {
+        String baseUrl = "http://bad-url";
+        MockInterceptor interceptor = new MockInterceptor();
+        EventProcessor processor = mock(EventProcessor.class);
+        interceptor.addRule()
+                .get(baseUrl + "/environment-document/")
+                .anyTimes()
+                .respond(
+                        MapperFactory.getMapper()
+                                .writeValueAsString(FlagsmithTestHelper.environmentModel()),
+                        MEDIATYPE_JSON);
+
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(eventsConfigBuilder(baseUrl, interceptor)
+                        .withEventProcessor(processor)
+                        .withLocalEvaluation(true)
+                        .build())
+                .setApiKey("ser.abcdefg")
+                .build();
+        client.updateEnvironment();
+
+        BaseFlag flag = client.getExperimentFlag("some_feature", "user-1");
+
+        assertTrue(flag instanceof Flag);
+        assertNull(((Flag) flag).getVariant());
+        assertNull(((Flag) flag).getExperiment());
+        verify(processor, never()).trackExposureEvent(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testGetExperimentFlagRecordsOneExposurePerIdentity() throws FlagsmithClientError {
+        String baseUrl = "http://bad-url";
+        MockInterceptor interceptor = new MockInterceptor();
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(eventsConfigBuilder(baseUrl, interceptor)
+                        .withEventProcessor(processor)
+                        .build())
+                .setApiKey("api-key")
+                .build();
+        respondWithExperimentFlags(baseUrl, interceptor);
+
+        client.getExperimentFlag("checkout_cta", "user-1");
+        client.getExperimentFlag("checkout_cta", "user-2");
+
+        verify(processor, times(1)).trackExposureEvent(
+                eq("checkout_cta"), eq("user-1"), eq("treatment"), any(), any());
+        verify(processor, times(1)).trackExposureEvent(
+                eq("checkout_cta"), eq("user-2"), eq("treatment"), any(), any());
+    }
+
+    @Test
+    public void testCloseFlushesBufferedEvents() throws FlagsmithClientError, IOException {
+        String baseUrl = "http://bad-url";
+        MockInterceptor interceptor = new MockInterceptor();
+        List<String> eventBodies = new ArrayList<>();
+        // Added before the MockInterceptor, which short-circuits the chain once it matches.
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(FlagsmithConfig.newBuilder()
+                        .baseUri(baseUrl)
+                        .addHttpInterceptor((chain) -> {
+                            Request request = chain.request();
+                            if (request.url().toString().endsWith("/v1/events")) {
+                                Buffer buffer = new Buffer();
+                                request.body().writeTo(buffer);
+                                eventBodies.add(buffer.readUtf8());
+                            }
+                            return chain.proceed(request);
+                        })
+                        .addHttpInterceptor(interceptor)
+                        .eventsUri("http://events-uri")
+                        .withEnableEvents(Boolean.TRUE)
+                        .withEventsFlushIntervalMillis(0)
+                        .build())
+                .setApiKey("api-key")
+                .build();
+        respondWithExperimentFlags(baseUrl, interceptor);
+        interceptor.addRule()
+                .post("http://events-uri/v1/events")
+                .headerMatches("Flagsmith-SDK-User-Agent", Pattern.compile("flagsmith-java-sdk/.*"))
+                .anyTimes()
+                .respond("{\"accepted\": 1, \"rejected\": []}", MEDIATYPE_JSON);
+
+        client.getExperimentFlag("checkout_cta", "user-1");
+        assertTrue(eventBodies.isEmpty());
+
+        client.close();
+
+        assertEquals(1, eventBodies.size());
+        JsonNode events = MapperFactory.getMapper().readTree(eventBodies.get(0)).get("events");
+        assertEquals(1, events.size());
+        assertEquals("$flag_exposure", events.get(0).get("event").asText());
+        assertEquals("checkout_cta", events.get(0).get("feature_name").asText());
+        assertEquals("user-1", events.get(0).get("identifier").asText());
+        assertEquals("treatment", events.get(0).get("value").asText());
+        assertEquals(42, events.get(0).get("metadata").get("experiment_id").asInt());
+    }
+
+    /** An events-enabled config that records each events batch as "environment key|body". */
+    private static FlagsmithConfig recordingEventsConfig(List<String> batches) {
+        return recordingEventsConfigBuilder(batches).build();
+    }
+
+    private static FlagsmithConfig.Builder recordingEventsConfigBuilder(List<String> batches) {
+        MockInterceptor interceptor = new MockInterceptor();
+        interceptor.addRule()
+                .post("http://events-uri/v1/events")
+                .anyTimes()
+                .respond("{\"accepted\": 1, \"rejected\": []}", MEDIATYPE_JSON);
+        return FlagsmithConfig.newBuilder()
+                .baseUri("http://bad-url")
+                .addHttpInterceptor((chain) -> {
+                    Request request = chain.request();
+                    if (request.url().toString().endsWith("/v1/events")) {
+                        Buffer buffer = new Buffer();
+                        request.body().writeTo(buffer);
+                        batches.add(request.header("X-Environment-Key") + "|" + buffer.readUtf8());
+                    }
+                    return chain.proceed(request);
+                })
+                .addHttpInterceptor(interceptor)
+                .eventsUri("http://events-uri")
+                .withEnableEvents(Boolean.TRUE)
+                .withEventsFlushIntervalMillis(0);
+    }
+
+    @Test
+    public void testClientsSharingAConfigSendEventsUnderTheirOwnKeys() throws Exception {
+        List<String> batches = Collections.synchronizedList(new ArrayList<>());
+        FlagsmithConfig config = recordingEventsConfig(batches);
+        FlagsmithClient clientA = FlagsmithClient.newBuilder()
+                .withConfiguration(config).setApiKey("key-a").build();
+        FlagsmithClient clientB = FlagsmithClient.newBuilder()
+                .withConfiguration(config).setApiKey("key-b").build();
+
+        assertNotSame(clientA.getEventProcessor(), clientB.getEventProcessor());
+
+        clientA.trackEvent("purchase", "user-a");
+        clientB.trackEvent("purchase", "user-b");
+        clientA.flushEvents().get(5, TimeUnit.SECONDS);
+        clientB.flushEvents().get(5, TimeUnit.SECONDS);
+
+        assertEquals(2, batches.size());
+        assertTrue(batches.get(0).startsWith("key-a|"));
+        assertTrue(batches.get(0).contains("user-a") && !batches.get(0).contains("user-b"));
+        assertTrue(batches.get(1).startsWith("key-b|"));
+        assertTrue(batches.get(1).contains("user-b") && !batches.get(1).contains("user-a"));
+        clientA.close();
+        clientB.close();
+    }
+
+    @Test
+    public void testClosingOneClientLeavesAnotherOnTheSameConfigTracking() throws Exception {
+        List<String> batches = Collections.synchronizedList(new ArrayList<>());
+        FlagsmithConfig config = recordingEventsConfig(batches);
+        FlagsmithClient clientA = FlagsmithClient.newBuilder()
+                .withConfiguration(config).setApiKey("key-a").build();
+        FlagsmithClient clientB = FlagsmithClient.newBuilder()
+                .withConfiguration(config).setApiKey("key-b").build();
+
+        clientA.close();
+        clientB.trackEvent("purchase", "user-b");
+        clientB.flushEvents().get(5, TimeUnit.SECONDS);
+
+        assertEquals(1, batches.size());
+        assertTrue(batches.get(0).startsWith("key-b|"));
+        assertTrue(batches.get(0).contains("user-b"));
+        clientB.close();
+    }
+
+    @Test
+    public void testCustomApiWrapperWithAnEventsConfigDeliversEvents() throws Exception {
+        List<String> batches = Collections.synchronizedList(new ArrayList<>());
+        FlagsmithApiWrapper wrapper = new FlagsmithApiWrapper(
+                FlagsmithConfig.newBuilder().baseUri("http://bad-url").build(),
+                null, new FlagsmithLogger(), "wrapper-key");
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withFlagsmithApiWrapper(wrapper)
+                .withConfiguration(recordingEventsConfig(batches))
+                .setApiKey("wrapper-key")
+                .build();
+
+        client.trackEvent("purchase", "user-1");
+        client.flushEvents().get(5, TimeUnit.SECONDS);
+
+        assertEquals(1, batches.size());
+        assertTrue(batches.get(0).startsWith("wrapper-key|"));
+        assertTrue(batches.get(0).contains("user-1"));
+        client.close();
+    }
+
+    @Test
+    public void testAnInjectedEventProcessorBacksOnlyOneClient() throws Exception {
+        List<String> batches = Collections.synchronizedList(new ArrayList<>());
+        FlagsmithConfig.Builder configBuilder = recordingEventsConfigBuilder(batches);
+        FlagsmithConfig probe = configBuilder.build();
+        FlagsmithConfig config = configBuilder
+                .withEventProcessor(new EventProcessor(
+                        probe.getHttpClient(), probe.getEventsUri(), 1000, 0))
+                .build();
+        FlagsmithClient clientA = FlagsmithClient.newBuilder()
+                .withConfiguration(config).setApiKey("key-a").build();
+        FlagsmithClient.Builder clientBBuilder = FlagsmithClient.newBuilder()
+                .withConfiguration(config).setApiKey("key-b");
+
+        assertThrows(FlagsmithRuntimeError.class, clientBBuilder::build);
+
+        clientA.trackEvent("purchase", "user-a");
+        clientA.flushEvents().get(5, TimeUnit.SECONDS);
+        assertEquals(1, batches.size());
+        assertTrue(batches.get(0).startsWith("key-a|"));
+        clientA.close();
     }
 }

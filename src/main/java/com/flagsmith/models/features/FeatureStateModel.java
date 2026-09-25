@@ -20,4 +20,7 @@ public class FeatureStateModel extends BaseModel {
   private Object value;
   @JsonProperty("feature_segment")
   private FeatureSegmentModel featureSegment;
+  private String variant;
+  private String reason;
+  private FeatureStateMetadata metadata;
 }

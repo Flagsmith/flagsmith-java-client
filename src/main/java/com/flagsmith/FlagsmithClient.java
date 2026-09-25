@@ -13,19 +13,27 @@ import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.mappers.EngineMappers;
 import com.flagsmith.models.BaseFlag;
+import com.flagsmith.models.ExperimentMetadata;
+import com.flagsmith.models.Flag;
 import com.flagsmith.models.Flags;
 import com.flagsmith.models.Segment;
 import com.flagsmith.models.SegmentMetadata;
+import com.flagsmith.threads.EventProcessor;
 import com.flagsmith.threads.PollingManager;
 import com.flagsmith.utils.ModelUtils;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +47,9 @@ public class FlagsmithClient {
   private FlagsmithSdk flagsmithSdk;
   private EvaluationContext evaluationContext;
   private PollingManager pollingManager;
+  @Getter(AccessLevel.PACKAGE)
+  @Setter(AccessLevel.NONE)
+  private EventProcessor eventProcessor;
 
   private FlagsmithClient() {
   }
@@ -198,6 +209,186 @@ public class FlagsmithClient {
   }
 
   /**
+   * As {@link #getExperimentFlag(String, String, Map)}, with no traits.
+   *
+   * @param featureName feature name
+   * @param identifier  identifier string
+   * @return the flag for the given feature
+   * @throws FlagsmithRuntimeError when events are not enabled
+   * @throws FlagsmithApiError     when identity flags are unavailable and no default flag handler
+   *                               is configured
+   */
+  public BaseFlag getExperimentFlag(String featureName, String identifier)
+      throws FlagsmithClientError {
+    return getExperimentFlag(featureName, identifier, new HashMap<>());
+  }
+
+  /**
+   * Get an identity's flag, recording one {@code $flag_exposure} event if the identity is enrolled
+   * in a running experiment on it. Only remote evaluation carries experiment metadata, so local
+   * evaluation and offline mode record no exposure.
+   *
+   * @param featureName feature name
+   * @param identifier  identifier string
+   * @param traits      a map of trait keys to trait values
+   * @return the flag for the given feature
+   * @throws FlagsmithRuntimeError when events are not enabled
+   * @throws FlagsmithApiError     when identity flags are unavailable and no default flag handler
+   *                               is configured
+   */
+  public BaseFlag getExperimentFlag(
+      String featureName, String identifier, Map<String, Object> traits)
+      throws FlagsmithClientError {
+    requireEventProcessor("get experiment flags");
+
+    Flags flags = getIdentityFlags(identifier, traits);
+
+    if (flags == null) {
+      // The API wrapper returns null, not throws, on a timed-out or interrupted request.
+      FlagsmithFlagDefaults defaults = getConfig().getFlagsmithFlagDefaults();
+      if (defaults == null) {
+        throw new FlagsmithApiError("Failed to get feature flags.");
+      }
+      logger.info("Not recording an exposure for feature {}: identity flags are unavailable, so "
+          + "the default flag handler served it.", featureName);
+      return defaults.evaluateDefaultFlag(featureName);
+    }
+
+    BaseFlag flag = flags.getFlag(featureName);
+
+    if (!(flag instanceof Flag)) {
+      logger.info("Not recording an exposure for feature {}: served by the default flag handler.",
+          featureName);
+      return flag;
+    }
+
+    if (!Boolean.TRUE.equals(flag.getEnabled())) {
+      logger.info("Not recording an exposure for feature {}: the flag is disabled.", featureName);
+      return flag;
+    }
+
+    ExperimentMetadata experiment = ((Flag) flag).getExperiment();
+    if (experiment == null || !Boolean.TRUE.equals(experiment.getInExperiment())) {
+      logger.info("Not recording an exposure for feature {}: the identity is not enrolled in a "
+          + "running experiment.", featureName);
+      return flag;
+    }
+
+    Map<String, Object> metadata = new HashMap<>();
+    metadata.put("experiment_id", experiment.getId());
+    trackExposureEvent(featureName, identifier, ((Flag) flag).getVariant(), traits, metadata);
+
+    return flag;
+  }
+
+  /**
+   * Record a custom event.
+   *
+   * @param event event name
+   * @throws FlagsmithRuntimeError    when events are not enabled
+   * @throws IllegalArgumentException when the event name is blank or starts with "$"
+   */
+  public void trackEvent(String event) {
+    trackEvent(event, null, null, null, null);
+  }
+
+  /**
+   * Record a custom event for an identity.
+   *
+   * @param event      event name
+   * @param identifier identifier string
+   * @throws FlagsmithRuntimeError    when events are not enabled
+   * @throws IllegalArgumentException when the event name is blank or starts with "$"
+   */
+  public void trackEvent(String event, String identifier) {
+    trackEvent(event, identifier, null, null, null);
+  }
+
+  /**
+   * Record a custom event for an identity, with a value, traits and metadata.
+   *
+   * @param event      event name
+   * @param identifier identifier string
+   * @param value      event value, stringified before sending
+   * @param traits     a map of trait keys to trait values
+   * @param metadata   a map of metadata to attach to the event
+   * @throws FlagsmithRuntimeError    when events are not enabled
+   * @throws IllegalArgumentException when the event name is blank or starts with "$"
+   */
+  public void trackEvent(String event, String identifier, Object value,
+      Map<String, Object> traits, Map<String, Object> metadata) {
+    EventProcessor processor = requireEventProcessor("track events");
+
+    if (StringUtils.isBlank(event)) {
+      throw new IllegalArgumentException("An event name is required.");
+    }
+    if (event.startsWith("$")) {
+      throw new IllegalArgumentException("Event names starting with \"$\" are reserved; use "
+          + "trackExposureEvent to record \"" + EventProcessor.FLAG_EXPOSURE_EVENT + "\".");
+    }
+
+    processor.trackEvent(event, identifier, value, traits, metadata);
+  }
+
+  /**
+   * Record a {@code $flag_exposure} event. Skipped, with a log line, when the identifier is
+   * blank.
+   *
+   * @param featureName feature the identity was exposed to
+   * @param identifier  identifier string
+   * @param value       variant the identity was bucketed into
+   * @throws FlagsmithRuntimeError    when events are not enabled
+   * @throws IllegalArgumentException when the feature name is blank
+   */
+  public void trackExposureEvent(String featureName, String identifier, Object value) {
+    trackExposureEvent(featureName, identifier, value, null, null);
+  }
+
+  /**
+   * Record a {@code $flag_exposure} event, with traits and metadata. Skipped, with a log line,
+   * when the identifier is blank.
+   *
+   * @param featureName feature the identity was exposed to
+   * @param identifier  identifier string
+   * @param value       variant the identity was bucketed into
+   * @param traits      a map of trait keys to trait values
+   * @param metadata    a map of metadata to attach to the event
+   * @throws FlagsmithRuntimeError    when events are not enabled
+   * @throws IllegalArgumentException when the feature name is blank
+   */
+  public void trackExposureEvent(String featureName, String identifier, Object value,
+      Map<String, Object> traits, Map<String, Object> metadata) {
+    EventProcessor processor = requireEventProcessor("track exposure events");
+
+    // A missing feature name is a bug in the caller, and the events API rejects the exposure. A
+    // missing identifier is ordinary at runtime (an anonymous visitor), so it is logged instead.
+    if (StringUtils.isBlank(featureName)) {
+      throw new IllegalArgumentException("An exposure requires a feature name.");
+    }
+    if (StringUtils.isBlank(identifier)) {
+      logger.info("Not sending {} for feature {}: an exposure requires an identifier.",
+          EventProcessor.FLAG_EXPOSURE_EVENT, featureName);
+      return;
+    }
+
+    processor.trackExposureEvent(featureName, identifier, value, traits, metadata);
+  }
+
+  /**
+   * Send buffered events now.
+   *
+   * @return a future completing once every in-flight batch is done, already completed when events
+   *     are not enabled
+   */
+  public CompletableFuture<Void> flushEvents() {
+    if (eventProcessor == null) {
+      return CompletableFuture.completedFuture(null);
+    }
+
+    return eventProcessor.flush();
+  }
+
+  /**
    * Should be called when terminating the client to clean up any resources that
    * need cleaning up.
    **/
@@ -205,7 +396,21 @@ public class FlagsmithClient {
     if (pollingManager != null) {
       pollingManager.stopPolling();
     }
+
+    if (eventProcessor != null) {
+      eventProcessor.close();
+    }
+
     flagsmithSdk.close();
+  }
+
+  private EventProcessor requireEventProcessor(String action) {
+    if (eventProcessor == null) {
+      throw new FlagsmithRuntimeError(
+          "Events must be enabled to " + action + ". Use withEnableEvents(true).");
+    }
+
+    return eventProcessor;
   }
 
   private Flags getEnvironmentFlagsFromEvaluationContext() throws FlagsmithClientError {
@@ -501,6 +706,9 @@ public class FlagsmithClient {
         if (configuration.getOfflineHandler() == null) {
           throw new FlagsmithRuntimeError("Offline handler must be provided to use offline mode.");
         }
+        if (configuration.getEnableEvents()) {
+          throw new FlagsmithRuntimeError("Events cannot be enabled in offline mode.");
+        }
       }
 
       if (this.flagsmithApiWrapper != null) {
@@ -555,6 +763,23 @@ public class FlagsmithClient {
         }
         client.evaluationContext = EngineMappers.mapEnvironmentToContext(
           configuration.getOfflineHandler().getEnvironment());
+      }
+
+      // Last, once nothing else can throw: starting the processor starts its flush timer, which a
+      // failed build would otherwise leave running with no client to close it.
+      if (configuration.getEnableEvents()) {
+        EventProcessor processor = configuration.getEventProcessor() != null
+            ? configuration.getEventProcessor()
+            : new EventProcessor(
+                configuration.getHttpClient(),
+                configuration.getEventsUri(),
+                configuration.getEventsMaxBufferItems(),
+                configuration.getEventsFlushIntervalMillis());
+        processor.claim();
+        processor.setApi(client.flagsmithSdk);
+        processor.setLogger(client.logger);
+        processor.start();
+        client.eventProcessor = processor;
       }
 
       return this.client;
