@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,6 +72,7 @@ public class EventProcessor {
   private final int flushIntervalMillis;
   private final List<Map<String, Object>> buffer = new ArrayList<>();
   private final Set<List<String>> dedupeKeys = new HashSet<>();
+  private final Map<Map<String, Object>, List<String>> dedupeKeyByEvent = new IdentityHashMap<>();
   private final Object lock = new Object();
   @Getter(AccessLevel.PACKAGE)
   private final ScheduledExecutorService scheduler;
@@ -234,6 +236,7 @@ public class EventProcessor {
         batch = new ArrayList<>(buffer);
         buffer.clear();
         dedupeKeys.clear();
+        dedupeKeyByEvent.clear();
         tracked = nextBatch;
         nextBatch = new CompletableFuture<>();
         inFlight.add(tracked);
@@ -330,15 +333,18 @@ public class EventProcessor {
           logClosed(event);
           return;
         }
-        if (dedupe && !dedupeKeys.add(
-            dedupeKey(event, featureName, identifier, stringValue, experimentId))) {
-          return;
+        if (dedupe) {
+          List<String> key = dedupeKey(event, featureName, identifier, stringValue, experimentId);
+          if (!dedupeKeys.add(key)) {
+            return;
+          }
+          dedupeKeyByEvent.put(eventPayload, key);
         }
         buffer.add(eventPayload);
         if (inFlight.size() < MAX_IN_FLIGHT_BATCHES) {
           isFull = buffer.size() >= maxBufferItems;
         } else if (buffer.size() > Math.max(maxBufferItems, MAX_BUFFERED_EVENTS)) {
-          buffer.remove(0);
+          dedupeKeys.remove(dedupeKeyByEvent.remove(buffer.remove(0)));
           droppedToReport = recordDrop(1);
         }
       }

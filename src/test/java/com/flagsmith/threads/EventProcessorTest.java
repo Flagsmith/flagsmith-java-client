@@ -690,6 +690,28 @@ public class EventProcessorTest {
     assertTrue(bodies.contains("overflow-500-"));
   }
 
+  @Test
+  @SneakyThrows
+  public void trackExposureEvent_buffersAnExposureAgainOnceItsCopyWasDropped() {
+    AcceptingInterceptor eventsApi = AcceptingInterceptor.blocked();
+    EventProcessor processor = newProcessor(1000, 0, eventsApi);
+    mockLogger(processor);
+
+    for (int i = 0; i < EventProcessor.MAX_IN_FLIGHT_BATCHES * 1000; i++) {
+      processor.trackEvent("purchase", "user-" + i, "1", null, null);
+    }
+    processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null, null);
+    for (int i = 0; i < EventProcessor.MAX_BUFFERED_EVENTS; i++) {
+      processor.trackEvent("purchase", "overflow-" + i, "1", null, null);
+    }
+    processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null, null);
+
+    List<Map<String, Object>> buffered = processor.bufferedEvents();
+    assertEquals(EventProcessor.MAX_BUFFERED_EVENTS, buffered.size());
+    assertEquals("$flag_exposure", buffered.get(buffered.size() - 1).get("event"));
+    eventsApi.release();
+  }
+
   private static Stream<Arguments> healthyApiLoads() {
     return Stream.of(
         Arguments.of(Integer.MAX_VALUE, EventProcessor.MAX_BUFFERED_EVENTS + 1),
