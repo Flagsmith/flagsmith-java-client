@@ -223,7 +223,8 @@ public final class FlagsmithConfig {
     }
 
     /**
-     * Add a custom HTTP interceptor.
+     * Add a custom HTTP interceptor. It runs on every request, including those to the events
+     * API, so an interceptor that adds credentials should check the request's host.
      *
      * @param interceptor the HTTP interceptor
      * @return the Builder
