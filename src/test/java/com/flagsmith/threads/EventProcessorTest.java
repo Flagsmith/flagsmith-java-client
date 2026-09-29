@@ -631,6 +631,25 @@ public class EventProcessorTest {
 
   @Test
   @SneakyThrows
+  public void settle_sendsEventsThatWaitedBehindTheInFlightLimit() {
+    AcceptingInterceptor eventsApi = AcceptingInterceptor.blocked();
+    EventProcessor processor = newProcessor(1000, 0, eventsApi);
+
+    for (int i = 0; i < EventProcessor.MAX_IN_FLIGHT_EVENTS + 5; i++) {
+      processor.trackEvent("purchase", "user-" + i, "1", null, null);
+    }
+    eventsApi.release();
+
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(WAIT_SECONDS);
+    while (deliveredEvents() < EventProcessor.MAX_IN_FLIGHT_EVENTS + 5
+        && System.nanoTime() < deadline) {
+      Thread.sleep(10);
+    }
+    assertEquals(EventProcessor.MAX_IN_FLIGHT_EVENTS + 5, deliveredEvents());
+  }
+
+  @Test
+  @SneakyThrows
   public void flush_sendsWhatFitsUnderTheInFlightLimit() {
     AcceptingInterceptor eventsApi = AcceptingInterceptor.blocked();
     EventProcessor processor = newProcessor(Integer.MAX_VALUE, 0, eventsApi);

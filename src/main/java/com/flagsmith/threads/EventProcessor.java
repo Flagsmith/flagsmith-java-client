@@ -456,12 +456,17 @@ public class EventProcessor {
   }
 
   private void settle(CompletableFuture<Void> tracked, int batchSize) {
+    boolean waiting;
     synchronized (lock) {
       if (inFlight.remove(tracked)) {
         inFlightEvents -= batchSize;
       }
+      waiting = !buffer.isEmpty();
     }
     tracked.complete(null);
+    if (waiting) {
+      flush();
+    }
   }
 
   private int recordDrop(int count) {
