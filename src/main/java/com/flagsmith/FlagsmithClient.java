@@ -374,8 +374,8 @@ public class FlagsmithClient {
   /**
    * Send buffered events now.
    *
-   * @return a future completing once every in-flight batch is done, already completed when events
-   *     are not enabled
+   * @return a future completing once every event buffered so far has been sent or dropped, already
+   *     completed when events are not enabled
    */
   public CompletableFuture<Void> flushEvents() {
     if (eventProcessor == null) {

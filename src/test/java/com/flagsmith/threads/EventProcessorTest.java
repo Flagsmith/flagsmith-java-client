@@ -625,6 +625,41 @@ public class EventProcessorTest {
 
   @Test
   @SneakyThrows
+  public void flush_waitsForTheEventsBufferedBehindTheInFlightLimit() {
+    CountDownLatch inFlightReleased = new CountDownLatch(1);
+    CountDownLatch waitingReleased = new CountDownLatch(1);
+    EventProcessor processor = newProcessor(1000, 0, (chain) -> {
+      Buffer body = new Buffer();
+      chain.request().body().writeTo(body);
+      try {
+        (body.readUtf8().contains("waiting") ? waitingReleased : inFlightReleased)
+            .await(WAIT_SECONDS, TimeUnit.SECONDS);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IOException(e);
+      }
+      return AcceptingInterceptor.accepted(chain.request());
+    });
+
+    for (int i = 0; i < EventProcessor.MAX_IN_FLIGHT_BATCHES; i++) {
+      processor.trackEvent("purchase", "user-" + i, "1", null, null);
+      processor.flush();
+    }
+    processor.trackEvent("purchase", "waiting", "1", null, null);
+    CompletableFuture<Void> flushed = processor.flush();
+
+    assertTrue(recorder.awaitCount(EventProcessor.MAX_IN_FLIGHT_BATCHES));
+    inFlightReleased.countDown();
+    assertTrue(recorder.awaitCount(EventProcessor.MAX_IN_FLIGHT_BATCHES + 1));
+    assertFalse(flushed.isDone());
+
+    waitingReleased.countDown();
+    flushed.get(WAIT_SECONDS, TimeUnit.SECONDS);
+    assertEquals(EventProcessor.MAX_IN_FLIGHT_BATCHES + 1, deliveredEvents());
+  }
+
+  @Test
+  @SneakyThrows
   public void trackEvent_dropsTheOldestEventsOnceTheBufferIsFullBehindTheLimit() {
     AcceptingInterceptor eventsApi = AcceptingInterceptor.blocked();
     EventProcessor processor = newProcessor(1000, 0, eventsApi);
@@ -761,8 +796,12 @@ public class EventProcessorTest {
         Thread.currentThread().interrupt();
         throw new IOException(e);
       }
+      return accepted(chain.request());
+    }
+
+    static Response accepted(Request request) {
       return new Response.Builder()
-          .request(chain.request())
+          .request(request)
           .protocol(Protocol.HTTP_1_1)
           .code(202)
           .message("Accepted")

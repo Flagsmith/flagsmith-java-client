@@ -75,6 +75,7 @@ public class EventProcessor {
   @Getter(AccessLevel.PACKAGE)
   private final ScheduledExecutorService scheduler;
   private final Set<CompletableFuture<Void>> inFlight = ConcurrentHashMap.newKeySet();
+  private CompletableFuture<Void> nextBatch = new CompletableFuture<>();
   private int droppedSinceLastReport = 0;         // guarded by lock
   private Long lastDropReportNanos = null;        // guarded by lock
   @Getter(AccessLevel.PACKAGE)
@@ -221,19 +222,23 @@ public class EventProcessor {
   /**
    * Send everything buffered so far.
    *
-   * @return a future completing once every in-flight batch is done
+   * @return a future completing once every event buffered so far has been sent or dropped
    */
   public CompletableFuture<Void> flush() {
     List<Map<String, Object>> batch = null;
     CompletableFuture<Void> tracked = null;
+    CompletableFuture<Void> waiting = null;
 
     synchronized (lock) {
       if (!buffer.isEmpty() && (inFlight.size() < MAX_IN_FLIGHT_BATCHES || closed.get())) {
         batch = new ArrayList<>(buffer);
         buffer.clear();
         dedupeKeys.clear();
-        tracked = new CompletableFuture<>();
+        tracked = nextBatch;
+        nextBatch = new CompletableFuture<>();
         inFlight.add(tracked);
+      } else if (!buffer.isEmpty()) {
+        waiting = nextBatch;
       }
     }
 
@@ -241,7 +246,8 @@ public class EventProcessor {
       send(batch, tracked);
     }
 
-    return awaitInFlight();
+    CompletableFuture<Void> sent = awaitInFlight();
+    return waiting == null ? sent : CompletableFuture.allOf(sent, waiting);
   }
 
   /**
