@@ -744,16 +744,6 @@ public class FlagsmithClient {
               "In order to use local evaluation, please generate a server key "
                   + "in the environment settings page.");
         }
-
-        if (this.pollingManager != null) {
-          client.pollingManager = pollingManager;
-        } else {
-          client.pollingManager = new PollingManager(
-              client,
-              configuration.getEnvironmentRefreshIntervalSeconds());
-        }
-
-        client.pollingManager.startPolling();
       }
 
       if (configuration.getOfflineHandler() != null) {
@@ -765,10 +755,11 @@ public class FlagsmithClient {
           configuration.getOfflineHandler().getEnvironment());
       }
 
-      // Last, once nothing else can throw: starting the processor starts its flush timer, which a
-      // failed build would otherwise leave running with no client to close it.
+      // Claimed after validation, so an invalid build never claims the processor, and before
+      // polling starts, so a failed claim leaves no polling thread behind.
+      EventProcessor processor = null;
       if (configuration.getEnableEvents()) {
-        EventProcessor processor = configuration.getEventProcessor() != null
+        processor = configuration.getEventProcessor() != null
             ? configuration.getEventProcessor()
             : new EventProcessor(
                 configuration.getHttpClient(),
@@ -776,6 +767,23 @@ public class FlagsmithClient {
                 configuration.getEventsMaxBufferItems(),
                 configuration.getEventsFlushIntervalMillis());
         processor.claim();
+      }
+
+      if (configuration.getEnableLocalEvaluation()) {
+        if (this.pollingManager != null) {
+          client.pollingManager = pollingManager;
+        } else {
+          client.pollingManager = new PollingManager(
+              client,
+              configuration.getEnvironmentRefreshIntervalSeconds());
+        }
+
+        client.pollingManager.startPolling();
+      }
+
+      // Last, once nothing else can throw: starting the processor starts its flush timer, which a
+      // failed build would otherwise leave running with no client to close it.
+      if (processor != null) {
         processor.setApi(client.flagsmithSdk);
         processor.setLogger(client.logger);
         processor.start();

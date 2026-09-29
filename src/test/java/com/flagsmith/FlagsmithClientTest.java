@@ -1404,4 +1404,28 @@ public class FlagsmithClientTest {
         assertTrue(batches.get(0).startsWith("key-a|"));
         clientA.close();
     }
+
+    @Test
+    public void testFailedClaimDoesNotStartPolling() {
+        FlagsmithConfig probe = FlagsmithConfig.newBuilder().build();
+        FlagsmithConfig config = FlagsmithConfig.newBuilder()
+                .withLocalEvaluation(true)
+                .withEventProcessor(new EventProcessor(
+                        probe.getHttpClient(), probe.getEventsUri(), 1000, 0))
+                .build();
+        FlagsmithClient clientA = FlagsmithClient.newBuilder()
+                .withConfiguration(config)
+                .withPollingManager(mock(PollingManager.class))
+                .setApiKey("ser.key-a")
+                .build();
+        PollingManager pollingB = mock(PollingManager.class);
+        FlagsmithClient.Builder clientBBuilder = FlagsmithClient.newBuilder()
+                .withConfiguration(config)
+                .withPollingManager(pollingB)
+                .setApiKey("ser.key-b");
+
+        assertThrows(FlagsmithRuntimeError.class, clientBBuilder::build);
+        verify(pollingB, never()).startPolling();
+        clientA.close();
+    }
 }
