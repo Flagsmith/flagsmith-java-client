@@ -58,7 +58,8 @@ public class EventProcessor {
   private static final String KEY_SEPARATOR = "\u0000";
   private static final MediaType JSON_MEDIA_TYPE =
       MediaType.get("application/json; charset=utf-8");
-  static final int MAX_IN_FLIGHT_EVENTS = 10_000;
+  static final int MAX_IN_FLIGHT_BATCHES = 2;
+  static final int MAX_BUFFERED_EVENTS = 10_000;
   static final long CLOSE_TIMEOUT_MILLIS = 25_000L;
   private static final long DROP_LOG_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(10);
 
@@ -74,7 +75,6 @@ public class EventProcessor {
   @Getter(AccessLevel.PACKAGE)
   private final ScheduledExecutorService scheduler;
   private final Set<CompletableFuture<Void>> inFlight = ConcurrentHashMap.newKeySet();
-  private int inFlightEvents = 0;                 // guarded by lock
   private int droppedSinceLastReport = 0;         // guarded by lock
   private Long lastDropReportNanos = null;        // guarded by lock
   @Getter(AccessLevel.PACKAGE)
@@ -221,40 +221,27 @@ public class EventProcessor {
   /**
    * Send everything buffered so far.
    *
-   * @return a future completing once every event buffered so far has been delivered or dropped
+   * @return a future completing once every in-flight batch is done
    */
   public CompletableFuture<Void> flush() {
     List<Map<String, Object>> batch = null;
     CompletableFuture<Void> tracked = null;
-    int droppedToReport = 0;
-    boolean carried;
 
     synchronized (lock) {
-      int admitted = Math.min(buffer.size(), MAX_IN_FLIGHT_EVENTS - inFlightEvents);
-      if (admitted > 0) {
-        List<Map<String, Object>> head = buffer.subList(0, admitted);
-        batch = new ArrayList<>(head);
-        head.clear();
+      if (!buffer.isEmpty() && (inFlight.size() < MAX_IN_FLIGHT_BATCHES || closed.get())) {
+        batch = new ArrayList<>(buffer);
+        buffer.clear();
+        dedupeKeys.clear();
         tracked = new CompletableFuture<>();
         inFlight.add(tracked);
-        inFlightEvents += admitted;
       }
-      int excess = buffer.size() - maxBufferItems;
-      if (excess > 0) {
-        buffer.subList(0, excess).clear();
-        droppedToReport = recordDrop(excess);
-      }
-      carried = !buffer.isEmpty();
-      dedupeKeys.clear();
     }
 
-    logDrops(droppedToReport);
     if (batch != null) {
       send(batch, tracked);
     }
 
-    CompletableFuture<Void> sent = awaitInFlight();
-    return carried ? sent.thenCompose((ignored) -> flush()) : sent;
+    return awaitInFlight();
   }
 
   /**
@@ -278,7 +265,7 @@ public class EventProcessor {
   /**
    * Stop the timer, flush what is left and release HTTP resources. Blocks until in-flight
    * batches settle, for at most one batch's worst case under the client's timeouts, or
-   * {@link #CLOSE_TIMEOUT_MILLIS} if a timeout is off, then abandons the batches left.
+   * {@link #CLOSE_TIMEOUT_MILLIS} if a timeout is off.
    */
   public void close() {
     synchronized (this) {
@@ -286,26 +273,19 @@ public class EventProcessor {
       scheduler.shutdownNow();
     }
 
-    boolean settled = false;
     try {
       flush().get(closeTimeoutMillis, TimeUnit.MILLISECONDS);
-      settled = true;
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       logger.error("Interrupted while flushing events on close.", e);
     } catch (TimeoutException e) {
       logger.error("Stopped waiting for events to be delivered after " + closeTimeoutMillis
-          + "ms on close; abandoning the batches still in flight.");
+          + "ms on close.");
     } catch (Exception e) {
       logger.error("Failed to flush events on close.", e);
     }
 
-    if (settled) {
-      requestProcessor.close();
-    } else {
-      requestProcessor.closeNow();
-      inFlight.forEach((tracked) -> tracked.complete(null));
-    }
+    requestProcessor.close();
   }
 
   private void bufferEvent(String event, String featureName, String identifier, Object value,
@@ -349,9 +329,9 @@ public class EventProcessor {
           return;
         }
         buffer.add(eventPayload);
-        if (inFlightEvents < MAX_IN_FLIGHT_EVENTS) {
+        if (inFlight.size() < MAX_IN_FLIGHT_BATCHES) {
           isFull = buffer.size() >= maxBufferItems;
-        } else if (buffer.size() > maxBufferItems) {
+        } else if (buffer.size() > Math.max(maxBufferItems, MAX_BUFFERED_EVENTS)) {
           buffer.remove(0);
           droppedToReport = recordDrop(1);
         }
@@ -435,7 +415,7 @@ public class EventProcessor {
             try {
               logRejections(response, batchSize);
             } finally {
-              settle(tracked, batchSize);
+              settle(tracked);
             }
           });
       submitted = true;
@@ -443,7 +423,7 @@ public class EventProcessor {
       logger.error("Dropping " + batchSize + " events: failed to send them.", e);
     } finally {
       if (!submitted) {
-        settle(tracked, batchSize);
+        settle(tracked);
       }
     }
   }
@@ -456,12 +436,10 @@ public class EventProcessor {
     }
   }
 
-  private void settle(CompletableFuture<Void> tracked, int batchSize) {
+  private void settle(CompletableFuture<Void> tracked) {
     boolean waiting;
     synchronized (lock) {
-      if (inFlight.remove(tracked)) {
-        inFlightEvents -= batchSize;
-      }
+      inFlight.remove(tracked);
       waiting = !buffer.isEmpty();
     }
     tracked.complete(null);
@@ -484,8 +462,8 @@ public class EventProcessor {
 
   private void logDrops(int dropped) {
     if (dropped > 0) {
-      logger.error("Dropped the " + dropped + " oldest events: " + MAX_IN_FLIGHT_EVENTS
-          + " events are in flight to the events API and the buffer is full. Further drops are"
+      logger.error("Dropped the " + dropped + " oldest events: " + MAX_IN_FLIGHT_BATCHES
+          + " batches are in flight to the events API and the buffer is full. Further drops are"
           + " reported at most every " + TimeUnit.NANOSECONDS.toSeconds(DROP_LOG_INTERVAL_NANOS)
           + "s.");
     }

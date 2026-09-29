@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -554,30 +553,25 @@ public class EventProcessorTest {
 
   @Test
   @SneakyThrows
-  public void close_abandonsTheBatchesStillInFlightAtTheTimeout() {
+  public void close_sendsTheLastBatchAlongsideTheBatchesInFlight() {
     AcceptingInterceptor eventsApi = AcceptingInterceptor.blocked();
     EventProcessor processor = newProcessor(1, 0, eventsApi);
     eventProcessor = null;
-    processor.setCloseTimeoutMillis(200);
+    FlagsmithLogger logger = mockLogger(processor);
 
-    try {
-      // Three batches hang on the three request threads; the fourth is queued behind them.
-      for (int i = 0; i < 4; i++) {
-        processor.trackEvent("purchase", "user-" + i, "1", null, null);
-      }
-      assertTrue(recorder.awaitCount(3));
-      CompletableFuture<Void> pending = processor.flush();
-      processor.close();
-
-      assertTrue(pending.isDone());
-      ExecutorService executor = processor.getRequestProcessor().getExecutor();
-      assertTrue(executor.awaitTermination(WAIT_SECONDS, TimeUnit.SECONDS),
-          "a request thread outlived close()");
-      assertEquals(3, eventsApi.interrupted.get());
-      assertEquals(3, recorder.count(), "the queued batch was sent after close()");
-    } finally {
-      eventsApi.release();
+    for (int i = 0; i <= EventProcessor.MAX_IN_FLIGHT_BATCHES; i++) {
+      processor.trackEvent("purchase", "user-" + i, "1", null, null);
     }
+    assertTrue(recorder.awaitCount(EventProcessor.MAX_IN_FLIGHT_BATCHES));
+    assertEquals(1, processor.bufferedEvents().size());
+
+    CompletableFuture<Void> closed = CompletableFuture.runAsync(processor::close);
+    assertTrue(recorder.awaitCount(EventProcessor.MAX_IN_FLIGHT_BATCHES + 1));
+    eventsApi.release();
+    closed.get(WAIT_SECONDS, TimeUnit.SECONDS);
+
+    assertEquals(EventProcessor.MAX_IN_FLIGHT_BATCHES + 1, deliveredEvents());
+    assertEquals(Collections.emptyList(), errorCalls(logger));
   }
 
   @Test
@@ -606,98 +600,51 @@ public class EventProcessorTest {
 
   @Test
   @SneakyThrows
-  public void flush_carriesEventsBeyondTheInFlightLimitToALaterFlush() {
+  public void settle_sendsEventsThatWaitedBehindTheInFlightLimit() {
     AcceptingInterceptor eventsApi = AcceptingInterceptor.blocked();
     EventProcessor processor = newProcessor(1000, 0, eventsApi);
     FlagsmithLogger logger = mockLogger(processor);
 
-    // The events API hangs, so every batch stays in flight until it is released.
-    for (int i = 0; i < EventProcessor.MAX_IN_FLIGHT_EVENTS; i++) {
+    for (int i = 0; i < EventProcessor.MAX_IN_FLIGHT_BATCHES; i++) {
       processor.trackEvent("purchase", "user-" + i, "1", null, null);
-    }
-    for (int i = 0; i < 100; i++) {
-      processor.trackEvent("purchase", "carried-" + i, "1", null, null);
       processor.flush();
     }
-    CompletableFuture<Void> all = processor.flush();
+    for (int i = 0; i < 100; i++) {
+      processor.trackEvent("purchase", "waiting-" + i, "1", null, null);
+      processor.flush();
+    }
 
+    assertTrue(recorder.awaitCount(EventProcessor.MAX_IN_FLIGHT_BATCHES));
     assertEquals(100, processor.bufferedEvents().size());
-    assertFalse(all.isDone());
 
     eventsApi.release();
-    all.get(WAIT_SECONDS, TimeUnit.SECONDS);
 
-    assertEquals(EventProcessor.MAX_IN_FLIGHT_EVENTS + 100, deliveredEvents());
+    assertTrue(awaitDelivered(EventProcessor.MAX_IN_FLIGHT_BATCHES + 100));
     assertEquals(Collections.emptyList(), errorCalls(logger));
   }
 
   @Test
   @SneakyThrows
-  public void settle_sendsEventsThatWaitedBehindTheInFlightLimit() {
+  public void trackEvent_dropsTheOldestEventsOnceTheBufferIsFullBehindTheLimit() {
     AcceptingInterceptor eventsApi = AcceptingInterceptor.blocked();
     EventProcessor processor = newProcessor(1000, 0, eventsApi);
-
-    for (int i = 0; i < EventProcessor.MAX_IN_FLIGHT_EVENTS + 5; i++) {
-      processor.trackEvent("purchase", "user-" + i, "1", null, null);
-    }
-    eventsApi.release();
-
-    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(WAIT_SECONDS);
-    while (deliveredEvents() < EventProcessor.MAX_IN_FLIGHT_EVENTS + 5
-        && System.nanoTime() < deadline) {
-      Thread.sleep(10);
-    }
-    assertEquals(EventProcessor.MAX_IN_FLIGHT_EVENTS + 5, deliveredEvents());
-  }
-
-  @Test
-  @SneakyThrows
-  public void flush_sendsWhatFitsUnderTheInFlightLimit() {
-    AcceptingInterceptor eventsApi = AcceptingInterceptor.blocked();
-    EventProcessor processor = newProcessor(Integer.MAX_VALUE, 0, eventsApi);
-    int inFlight = EventProcessor.MAX_IN_FLIGHT_EVENTS - 500;
+    FlagsmithLogger logger = mockLogger(processor);
+    int inFlight = EventProcessor.MAX_IN_FLIGHT_BATCHES * 1000;
 
     for (int i = 0; i < inFlight; i++) {
       processor.trackEvent("purchase", "user-" + i, "1", null, null);
     }
-    processor.flush();
-    for (int i = 0; i < 1000; i++) {
-      processor.trackEvent("purchase", "next-" + i, "1", null, null);
-    }
-    CompletableFuture<Void> all = processor.flush();
-
-    assertTrue(recorder.awaitCount(2));
-    assertEquals(500, processor.bufferedEvents().size());
-
-    eventsApi.release();
-    all.get(WAIT_SECONDS, TimeUnit.SECONDS);
-
-    assertEquals(inFlight + 1000, deliveredEvents());
-  }
-
-  @Test
-  @SneakyThrows
-  public void flush_dropsTheOldestEventsOnceTheBufferIsFullBehindTheLimit() {
-    AcceptingInterceptor eventsApi = AcceptingInterceptor.blocked();
-    EventProcessor processor = newProcessor(1000, 0, eventsApi);
-    FlagsmithLogger logger = mockLogger(processor);
-
-    for (int i = 0; i < EventProcessor.MAX_IN_FLIGHT_EVENTS; i++) {
-      processor.trackEvent("purchase", "user-" + i, "1", null, null);
-    }
-    for (int i = 0; i < 1500; i++) {
+    for (int i = 0; i < EventProcessor.MAX_BUFFERED_EVENTS + 500; i++) {
       processor.trackEvent("purchase", "overflow-" + i + "-", "1", null, null);
     }
 
-    assertEquals(1000, processor.bufferedEvents().size());
+    assertEquals(EventProcessor.MAX_BUFFERED_EVENTS, processor.bufferedEvents().size());
     verify(logger).error(contains("Dropped the 1 oldest events"));
     verify(logger, times(1)).error(startsWith("Dropped"));
 
-    CompletableFuture<Void> all = processor.flush();
     eventsApi.release();
-    all.get(WAIT_SECONDS, TimeUnit.SECONDS);
 
-    assertEquals(EventProcessor.MAX_IN_FLIGHT_EVENTS + 1000, deliveredEvents());
+    assertTrue(awaitDelivered(inFlight + EventProcessor.MAX_BUFFERED_EVENTS));
     String bodies = String.join("", recorder.bodies());
     assertFalse(bodies.contains("overflow-499-"));
     assertTrue(bodies.contains("overflow-500-"));
@@ -705,7 +652,7 @@ public class EventProcessorTest {
 
   private static Stream<Arguments> healthyApiLoads() {
     return Stream.of(
-        Arguments.of(Integer.MAX_VALUE, EventProcessor.MAX_IN_FLIGHT_EVENTS + 1),
+        Arguments.of(Integer.MAX_VALUE, EventProcessor.MAX_BUFFERED_EVENTS + 1),
         Arguments.of(1, 2000));
   }
 
@@ -719,9 +666,9 @@ public class EventProcessorTest {
     for (int i = 0; i < events; i++) {
       processor.trackEvent("purchase", "user-" + i, "1", null, null);
     }
-    flushAndWait(processor);
+    processor.flush();
 
-    assertEquals(events, deliveredEvents());
+    assertTrue(awaitDelivered(events));
     assertEquals(Collections.emptyList(), errorCalls(logger));
   }
 
@@ -748,6 +695,15 @@ public class EventProcessorTest {
       delivered += MapperFactory.getMapper().readTree(body).get("events").size();
     }
     return delivered;
+  }
+
+  @SneakyThrows
+  private boolean awaitDelivered(int expected) {
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(WAIT_SECONDS);
+    while (deliveredEvents() < expected && System.nanoTime() < deadline) {
+      Thread.sleep(10);
+    }
+    return deliveredEvents() == expected;
   }
 
   @Test
@@ -780,7 +736,6 @@ public class EventProcessorTest {
   private static class AcceptingInterceptor implements Interceptor {
 
     private final CountDownLatch released;
-    private final AtomicInteger interrupted = new AtomicInteger();
 
     private AcceptingInterceptor(boolean blocked) {
       this.released = new CountDownLatch(blocked ? 1 : 0);
@@ -803,7 +758,6 @@ public class EventProcessorTest {
       try {
         released.await(WAIT_SECONDS, TimeUnit.SECONDS);
       } catch (InterruptedException e) {
-        interrupted.incrementAndGet();
         Thread.currentThread().interrupt();
         throw new IOException(e);
       }

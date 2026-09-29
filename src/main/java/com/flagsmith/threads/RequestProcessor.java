@@ -13,7 +13,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import okhttp3.Call;
@@ -23,7 +22,6 @@ import okhttp3.Response;
 
 public class RequestProcessor {
 
-  @Getter(AccessLevel.PACKAGE)
   private ExecutorService executor = Executors.newFixedThreadPool(3);
   @Getter
   private OkHttpClient client;
@@ -145,9 +143,5 @@ public class RequestProcessor {
 
   public void close() {
     this.executor.shutdown();
-  }
-
-  public void closeNow() {
-    this.executor.shutdownNow();
   }
 }
