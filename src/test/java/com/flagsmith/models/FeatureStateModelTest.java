@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 public class FeatureStateModelTest {
 
@@ -33,6 +34,11 @@ public class FeatureStateModelTest {
     assertEquals(167, experiment.getId());
     assertEquals("flutter_demo_exp", experiment.getName());
     assertEquals(Boolean.TRUE, experiment.getInExperiment());
+
+    Flag flag = Flag.fromFeatureStateModel(featureState);
+    assertEquals("treatment", flag.getVariant());
+    assertEquals("SPLIT; weight=70.0", flag.getReason());
+    assertSame(experiment, flag.getExperiment());
   }
 
   @Test
@@ -67,5 +73,10 @@ public class FeatureStateModelTest {
     assertNull(featureState.getReason());
     assertNull(featureState.getMetadata());
     assertEquals("some-value", featureState.getValue());
+
+    Flag flag = Flag.fromFeatureStateModel(featureState);
+    assertNull(flag.getVariant());
+    assertNull(flag.getReason());
+    assertNull(flag.getExperiment());
   }
 }
