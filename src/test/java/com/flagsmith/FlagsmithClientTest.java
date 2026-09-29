@@ -1318,6 +1318,41 @@ public class FlagsmithClientTest {
     }
 
     @Test
+    public void testEventsRequestLeavesOutCustomHeaders() {
+        List<Request> requests = Collections.synchronizedList(new ArrayList<>());
+        MockInterceptor interceptor = new MockInterceptor();
+        interceptor.addRule()
+                .post("http://events-uri/v1/events")
+                .anyTimes()
+                .respond("{\"accepted\": 1, \"rejected\": []}", MEDIATYPE_JSON);
+        HashMap<String, String> customHeaders = new HashMap<>();
+        customHeaders.put("Authorization", "Bearer flags-api-only");
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(FlagsmithConfig.newBuilder()
+                        .baseUri("http://bad-url")
+                        .addHttpInterceptor((chain) -> {
+                            requests.add(chain.request());
+                            return chain.proceed(chain.request());
+                        })
+                        .addHttpInterceptor(interceptor)
+                        .eventsUri("http://events-uri")
+                        .withEnableEvents(Boolean.TRUE)
+                        .withEventsFlushIntervalMillis(0)
+                        .build())
+                .withCustomHttpHeaders(customHeaders)
+                .setApiKey("api-key")
+                .build();
+
+        client.trackEvent("purchase", "user-1");
+        client.close();
+
+        assertEquals(1, requests.size());
+        assertNull(requests.get(0).header("Authorization"));
+        assertEquals("api-key", requests.get(0).header("X-Environment-Key"));
+        assertTrue(requests.get(0).header("User-Agent").startsWith("flagsmith-java-sdk/"));
+    }
+
+    @Test
     public void testClientsSharingAConfigSendEventsUnderTheirOwnKeys() throws Exception {
         List<String> batches = Collections.synchronizedList(new ArrayList<>());
         FlagsmithConfig config = recordingEventsConfig(batches).build();
