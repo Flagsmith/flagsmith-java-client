@@ -12,6 +12,7 @@ import com.flagsmith.exceptions.FlagsmithRuntimeError;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.models.TraitConfig;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -55,7 +56,6 @@ public class EventProcessor {
   private static final String SDK_USER_AGENT_PREFIX = "flagsmith-java-sdk/";
   private static final String SDK_VERSION_KEY = "sdk_version";
   private static final String EXPERIMENT_ID_KEY = "experiment_id";
-  private static final String KEY_SEPARATOR = "\u0000";
   private static final MediaType JSON_MEDIA_TYPE =
       MediaType.get("application/json; charset=utf-8");
   static final int MAX_IN_FLIGHT_BATCHES = 2;
@@ -70,7 +70,7 @@ public class EventProcessor {
   @Getter
   private final int flushIntervalMillis;
   private final List<Map<String, Object>> buffer = new ArrayList<>();
-  private final Set<String> dedupeKeys = new HashSet<>();
+  private final Set<List<String>> dedupeKeys = new HashSet<>();
   private final Object lock = new Object();
   @Getter(AccessLevel.PACKAGE)
   private final ScheduledExecutorService scheduler;
@@ -377,18 +377,10 @@ public class EventProcessor {
     return flattened.isEmpty() ? null : flattened;
   }
 
-  private static String dedupeKey(String event, String featureName, String identifier,
+  private static List<String> dedupeKey(String event, String featureName, String identifier,
       String value, Object experimentId) {
-    return String.join(KEY_SEPARATOR,
-        nullToEmpty(event),
-        nullToEmpty(featureName),
-        nullToEmpty(identifier),
-        nullToEmpty(value),
-        experimentId == null ? "" : String.valueOf(experimentId));
-  }
-
-  private static String nullToEmpty(String value) {
-    return value == null ? "" : value;
+    return Arrays.asList(event, featureName, identifier, value,
+        experimentId == null ? null : String.valueOf(experimentId));
   }
 
   private void send(List<Map<String, Object>> batch, CompletableFuture<Void> tracked) {

@@ -189,11 +189,13 @@ public class EventProcessorTest {
     processor.trackExposureEvent("pricing_page", "user-1", "treatment", null, metadata);
     processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null,
         Collections.singletonMap("experiment_id", 43));
-    assertEquals(5, processor.bufferedEvents().size());
+    processor.trackExposureEvent("checkout_cta", "a\u0000b", "c", null, metadata);
+    processor.trackExposureEvent("checkout_cta", "a", "b\u0000c", null, metadata);
+    assertEquals(7, processor.bufferedEvents().size());
 
     processor.trackEvent("purchase", "user-1", "49.00", null, null);
     processor.trackEvent("purchase", "user-1", "49.00", null, null);
-    assertEquals(7, processor.bufferedEvents().size());
+    assertEquals(9, processor.bufferedEvents().size());
 
     flushAndWait(processor);
     processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null, metadata);
