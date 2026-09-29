@@ -1321,6 +1321,7 @@ public class FlagsmithClientTest {
                 .respond("{\"accepted\": 1, \"rejected\": []}", MEDIATYPE_JSON);
         HashMap<String, String> customHeaders = new HashMap<>();
         customHeaders.put("Authorization", "Bearer flags-api-only");
+        customHeaders.put("X-Environment-Key", "flags-api-only-key");
         FlagsmithClient client = FlagsmithClient.newBuilder()
                 .withConfiguration(FlagsmithConfig.newBuilder()
                         .baseUri("http://bad-url")
@@ -1342,7 +1343,8 @@ public class FlagsmithClientTest {
 
         assertEquals(1, requests.size());
         assertNull(requests.get(0).header("Authorization"));
-        assertEquals("api-key", requests.get(0).header("X-Environment-Key"));
+        assertEquals(Collections.singletonList("api-key"),
+                requests.get(0).headers("X-Environment-Key"));
         assertTrue(requests.get(0).header("User-Agent").startsWith("flagsmith-java-sdk/"));
     }
 

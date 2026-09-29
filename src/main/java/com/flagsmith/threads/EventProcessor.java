@@ -409,7 +409,7 @@ public class EventProcessor {
       Request request = new Request.Builder()
           .url(eventsEndpoint)
           .post(body)
-          .header(AUTH_HEADER, api.newPostRequest(eventsEndpoint, body).header(AUTH_HEADER))
+          .header(AUTH_HEADER, api.newPostRequest(eventsEndpoint, body).headers(AUTH_HEADER).get(0))
           .header(USER_AGENT_HEADER, SDK_USER_AGENT_PREFIX + Versions.getVersion())
           .header(SDK_USER_AGENT_HEADER, SDK_USER_AGENT_PREFIX + Versions.getVersion())
           .header(ACCEPT_HEADER, "application/json")
