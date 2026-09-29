@@ -244,7 +244,7 @@ public class FlagsmithClient {
     Flags flags = getIdentityFlags(identifier, traits);
 
     if (flags == null) {
-      // The API wrapper returns null, not throws, on a timed-out or interrupted request.
+      // The API wrapper returns null on a failed request.
       FlagsmithFlagDefaults defaults = getConfig().getFlagsmithFlagDefaults();
       if (defaults == null) {
         throw new FlagsmithApiError("Failed to get feature flags.");
@@ -360,8 +360,6 @@ public class FlagsmithClient {
       Map<String, Object> traits, Map<String, Object> metadata) {
     EventProcessor processor = requireEventProcessor("track exposure events");
 
-    // A missing feature name is a bug in the caller, and the events API rejects the exposure. A
-    // missing identifier is ordinary at runtime (an anonymous visitor), so it is logged instead.
     if (StringUtils.isBlank(featureName)) {
       throw new IllegalArgumentException("An exposure requires a feature name.");
     }
@@ -755,8 +753,6 @@ public class FlagsmithClient {
           configuration.getOfflineHandler().getEnvironment());
       }
 
-      // Claimed after validation, so an invalid build never claims the processor, and before
-      // polling starts, so a failed claim leaves no polling thread behind.
       EventProcessor processor = null;
       if (configuration.getEnableEvents()) {
         processor = configuration.getEventProcessor() != null
@@ -781,8 +777,6 @@ public class FlagsmithClient {
         client.pollingManager.startPolling();
       }
 
-      // Last, once nothing else can throw: starting the processor starts its flush timer, which a
-      // failed build would otherwise leave running with no client to close it.
       if (processor != null) {
         processor.setApi(client.flagsmithSdk);
         processor.setLogger(client.logger);

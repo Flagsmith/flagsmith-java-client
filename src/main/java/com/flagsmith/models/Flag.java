@@ -10,17 +10,10 @@ import lombok.Data;
 public class Flag extends BaseFlag {
   private Integer featureId = 0;
   private Boolean isDefault;
-  /**
-   * Variant key the identity was bucketed into. Set by remote evaluation only; null otherwise.
-   */
+  /** Set by remote evaluation only. */
   private String variant;
-  /**
-   * Evaluation reason, e.g. "DEFAULT", "SPLIT; weight=70.0", "TARGETING_MATCH; segment=...".
-   */
   private String reason;
-  /**
-   * Experiment running on this feature. Set by remote identity evaluation only; null otherwise.
-   */
+  /** Set by remote identity evaluation only. */
   private ExperimentMetadata experiment;
 
   /**

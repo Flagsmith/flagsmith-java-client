@@ -72,11 +72,8 @@ public class FlagsmithRetryTest {
 
   @ParameterizedTest
   @CsvSource({
-      // A force-listed status or a connection failure (no status) retries while attempts remain.
       "1, 503, true", "1, , true",
-      // A 4xx never does.
       "1, 400, false", "1, 404, false",
-      // Without this bound a permanently failing endpoint retries forever.
       "2, 503, false", "2, , false"})
   public void FlagsmithRetry_statusForcelistOnly_retriesListedStatusesWithinBudget(
       int attempts, Integer status, boolean expected) {
@@ -96,7 +93,6 @@ public class FlagsmithRetryTest {
 
     assertFalse(retry.getStatusForcelistOnly());
     retry.retryAttempted();
-    // Historical behaviour: a force-listed status retries regardless of the budget.
     assertTrue(retry.isRetry(503));
     assertFalse(retry.isRetry(401));
   }

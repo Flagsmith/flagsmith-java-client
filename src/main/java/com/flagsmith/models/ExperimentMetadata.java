@@ -10,10 +10,7 @@ import lombok.Data;
 public class ExperimentMetadata {
   private Integer id;
   private String name;
-  /**
-   * Whether this identity is enrolled in the experiment. The variant alone cannot tell: an
-   * identity outside the rollout is still bucketed into a variant.
-   */
+  /** Whether the identity is enrolled; one outside the rollout still gets a variant. */
   @JsonProperty("in_experiment")
   private Boolean inExperiment = Boolean.FALSE;
 }

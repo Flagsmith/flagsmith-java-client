@@ -39,11 +39,8 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 
 /**
- * Buffers experimentation events and ships them to the Flagsmith events API.
- *
- * <p>Events are flushed on a timer, when the buffer fills, and on {@link #close()}. Exposures are
- * deduplicated within a flush window. Exceptions are logged, never thrown to the caller;
- * {@link Error}s are not caught.
+ * Buffers experimentation events and sends them to the Flagsmith events API, on a timer, when the
+ * buffer fills, and on {@link #close()}. Exposures are deduplicated within a flush window.
  */
 public class EventProcessor {
 
@@ -61,31 +58,18 @@ public class EventProcessor {
   private static final String KEY_SEPARATOR = "\u0000";
   private static final MediaType JSON_MEDIA_TYPE =
       MediaType.get("application/json; charset=utf-8");
-  /**
-   * Cap on events awaiting the events API. A flush drops its batch rather than exceed it, so an
-   * outage cannot grow memory with the host's traffic. It counts events, not batches, so a small
-   * buffer is not throttled on a healthy API. A batch is always sent when nothing is in flight,
-   * so a buffer larger than the cap still gets through.
-   */
+  /** Cap on events in flight; a batch beyond it is dropped, unless nothing is in flight. */
   static final int MAX_IN_FLIGHT_EVENTS = 10_000;
-  /**
-   * How long {@link #close()} waits when a client timeout is off, so an attempt is unbounded.
-   * Covers one batch under the SDK's defaults: 2 x (2s connect + 5s write + 5s read) + 200ms.
-   */
+  /** How long {@link #close()} waits when a client timeout is off. */
   static final long CLOSE_TIMEOUT_MILLIS = 25_000L;
-  /** The least time between two error lines reporting dropped events. */
   private static final long DROP_LOG_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(10);
 
-  /** The URL batches are POSTed to. */
   @Getter
   private final HttpUrl eventsEndpoint;
-  /** The number of buffered events that triggers an immediate flush. */
   @Getter
   private final int maxBufferItems;
-  /** The interval between timed flushes; 0 means there is no timer. */
   @Getter
   private final int flushIntervalMillis;
-  // No public getters below: each one would become supported API.
   private final List<Map<String, Object>> buffer = new ArrayList<>();
   private final Set<String> dedupeKeys = new HashSet<>();
   private final Object lock = new Object();
@@ -97,11 +81,9 @@ public class EventProcessor {
   private Long lastDropReportNanos = null;        // guarded by lock
   @Getter(AccessLevel.PACKAGE)
   private final RequestProcessor requestProcessor;
-  /** How long {@link #close()} waits for in-flight batches; shortened by tests. */
   @Getter(AccessLevel.PACKAGE)
   @Setter(AccessLevel.PACKAGE)
   private long closeTimeoutMillis;
-  /** The API wrapper used to build requests; injected by {@code FlagsmithClient.Builder}. */
   @Setter
   private FlagsmithSdk api;
   private FlagsmithLogger logger = new FlagsmithLogger();
@@ -123,13 +105,12 @@ public class EventProcessor {
   public EventProcessor(OkHttpClient client, HttpUrl eventsUri, int maxBufferItems,
       int flushIntervalMillis) {
     this(eventsUri, maxBufferItems, flushIntervalMillis,
-        new RequestProcessor(client, new FlagsmithLogger(), buildRetry()));
+        new RequestProcessor(withCallDeadline(client), new FlagsmithLogger(), buildRetry()));
   }
 
   /** For tests: sends through the given request processor. */
   EventProcessor(HttpUrl eventsUri, int maxBufferItems, int flushIntervalMillis,
       RequestProcessor requestProcessor) {
-    // The buffer limit is the only bound on the buffer between timed flushes, or with no timer.
     if (maxBufferItems < 1) {
       throw new IllegalArgumentException("maxBufferItems must be at least 1.");
     }
@@ -148,10 +129,7 @@ public class EventProcessor {
     });
   }
 
-  /**
-   * The retry policy for an event batch: at most one retry, on a connection failure or any 5xx,
-   * and never on any other status.
-   */
+  /** At most one retry, on a connection failure or a 5xx. */
   private static Retry buildRetry() {
     Retry retry = new Retry(2);
     retry.setStatusForcelist(
@@ -160,17 +138,9 @@ public class EventProcessor {
     return retry;
   }
 
-  /**
-   * Every attempt the policy allows at the client's timeouts (the call timeout if set, else
-   * connect + write + read), plus backoff; {@link #CLOSE_TIMEOUT_MILLIS} if a timeout is off.
-   */
+  /** Every attempt the policy allows, plus backoff. */
   private static long worstCaseBatchMillis(OkHttpClient client, Retry retry) {
-    long attemptMillis = client.callTimeoutMillis();
-    if (attemptMillis == 0 && client.connectTimeoutMillis() > 0 && client.writeTimeoutMillis() > 0
-        && client.readTimeoutMillis() > 0) {
-      attemptMillis = (long) client.connectTimeoutMillis() + client.writeTimeoutMillis()
-          + client.readTimeoutMillis();
-    }
+    long attemptMillis = attemptMillis(client);
     if (attemptMillis == 0) {
       return CLOSE_TIMEOUT_MILLIS;
     }
@@ -180,6 +150,27 @@ public class EventProcessor {
           * 1000);
     }
     return total;
+  }
+
+  /** One attempt's bound under the client's timeouts, or 0 when a timeout is off. */
+  private static long attemptMillis(OkHttpClient client) {
+    if (client.callTimeoutMillis() > 0) {
+      return client.callTimeoutMillis();
+    }
+    if (client.connectTimeoutMillis() > 0 && client.writeTimeoutMillis() > 0
+        && client.readTimeoutMillis() > 0) {
+      return (long) client.connectTimeoutMillis() + client.writeTimeoutMillis()
+          + client.readTimeoutMillis();
+    }
+    return 0;
+  }
+
+  /** Caps each call: the read timeout alone does not bound a response that trickles in. */
+  private static OkHttpClient withCallDeadline(OkHttpClient client) {
+    long attemptMillis = attemptMillis(client);
+    return client.callTimeoutMillis() == 0 && attemptMillis > 0
+        ? client.newBuilder().callTimeout(attemptMillis, TimeUnit.MILLISECONDS).build()
+        : client;
   }
 
   /**
@@ -242,8 +233,6 @@ public class EventProcessor {
     CompletableFuture<Void> tracked = null;
     int droppedToReport = 0;
 
-    // The batch is registered as in-flight under the same lock that empties the buffer, so a
-    // concurrent flush() can never observe both an empty buffer and an unregistered batch.
     synchronized (lock) {
       if (!buffer.isEmpty()) {
         if (inFlightEvents > 0 && buffer.size() > MAX_IN_FLIGHT_EVENTS - inFlightEvents) {
@@ -283,8 +272,6 @@ public class EventProcessor {
     }
 
     if (closed.get()) {
-      // Scheduling on the shut-down scheduler would throw. Reached when an injected processor
-      // was closed before its client was built.
       logger.error("Not starting the event processor: it has been closed.");
       return;
     }
@@ -296,7 +283,7 @@ public class EventProcessor {
   /**
    * Stop the timer, flush what is left and release HTTP resources. Blocks until in-flight
    * batches settle, for at most one batch's worst case under the client's timeouts, or
-   * {@link #CLOSE_TIMEOUT_MILLIS} if a timeout is off.
+   * {@link #CLOSE_TIMEOUT_MILLIS} if a timeout is off, then abandons the batches left.
    */
   public void close() {
     synchronized (this) {
@@ -304,20 +291,25 @@ public class EventProcessor {
       scheduler.shutdownNow();
     }
 
+    boolean settled = false;
     try {
       flush().get(closeTimeoutMillis, TimeUnit.MILLISECONDS);
+      settled = true;
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       logger.error("Interrupted while flushing events on close.", e);
     } catch (TimeoutException e) {
       logger.error("Stopped waiting for events to be delivered after " + closeTimeoutMillis
-          + "ms on close; batches still in flight carry on in the background.");
+          + "ms on close; abandoning the batches still in flight.");
     } catch (Exception e) {
       logger.error("Failed to flush events on close.", e);
     }
 
-    // A graceful shutdown: interrupting a POST mid-flight would lose its batch.
-    requestProcessor.close();
+    if (settled) {
+      requestProcessor.close();
+    } else {
+      requestProcessor.closeNow();
+    }
   }
 
   private void bufferEvent(String event, String featureName, String identifier, Object value,
@@ -339,8 +331,6 @@ public class EventProcessor {
 
       Map<String, Object> eventTraits = eventTraits(traits);
 
-      // Serialised now, not at flush: an unserialisable value drops only this event, not its
-      // batch, and the JSON text is a deep copy that later caller mutation cannot reach.
       Map<String, Object> eventPayload = new LinkedHashMap<>();
       eventPayload.put("event", event);
       eventPayload.put("feature_name", featureName);
@@ -353,8 +343,6 @@ public class EventProcessor {
       boolean isFull;
 
       synchronized (lock) {
-        // Re-checked under the lock: close() sets the flag before its final flush takes the
-        // lock, so an event either makes that flush or is refused here, never stranded.
         if (closed.get()) {
           logClosed(event);
           return;
@@ -375,10 +363,7 @@ public class EventProcessor {
     }
   }
 
-  /**
-   * JSON text written verbatim into the batch. Uses writeValueAsString, not valueToTree: on a
-   * self-containing map valueToTree throws a raw StackOverflowError instead of an exception.
-   */
+  /** Not valueToTree: it overflows the stack on a self-containing map. */
   private static RawValue toJson(Object value) throws JsonProcessingException {
     return new RawValue(MapperFactory.getMapper().writeValueAsString(value));
   }
@@ -387,11 +372,7 @@ public class EventProcessor {
     logger.info("Not buffering event {}: the event processor is closed.", event);
   }
 
-  /**
-   * Unwrap {@link TraitConfig} values and drop transient traits: transient means "do not
-   * persist", and an event store keeps what it is sent. No traits left sends null, as the
-   * other SDKs do for an empty map.
-   */
+  /** Unwrap {@link TraitConfig} values and drop transient traits; null when none are left. */
   private static Map<String, Object> eventTraits(Map<String, Object> traits) {
     if (traits == null) {
       return null;
@@ -423,12 +404,7 @@ public class EventProcessor {
     return value == null ? "" : value;
   }
 
-  /**
-   * Hand a batch to the request processor. {@code tracked} is settled on every path out: left
-   * pending, it would wedge every later {@link #flush()}.
-   */
   private void send(List<Map<String, Object>> batch, CompletableFuture<Void> tracked) {
-    // The callback lives as long as the POST, so it holds the size and lets the list be freed.
     final int batchSize = batch.size();
     boolean submitted = false;
 
@@ -442,8 +418,7 @@ public class EventProcessor {
       String payload = MapperFactory.getMapper()
           .writeValueAsString(Collections.singletonMap("events", batch));
 
-      // Only the SDK's own headers, with the environment key the API wrapper would send: custom
-      // headers are meant for the Flags API and may carry credentials for it.
+      // Custom headers are for the Flags API only.
       RequestBody body = RequestBody.create(payload, JSON_MEDIA_TYPE);
       Request request = new Request.Builder()
           .url(eventsEndpoint)
@@ -473,10 +448,7 @@ public class EventProcessor {
     }
   }
 
-  /**
-   * The events API accepts a batch with a 202 even when it rejects some of its events, listing
-   * those under {@code rejected}. Without this they would vanish without a trace.
-   */
+  /** A 202 can still reject some of the batch's events. */
   private void logRejections(JsonNode response, int batchSize) {
     JsonNode rejected = response == null ? null : response.get("rejected");
     if (rejected != null && rejected.isArray() && rejected.size() > 0) {
@@ -486,7 +458,6 @@ public class EventProcessor {
   }
 
   private void settle(CompletableFuture<Void> tracked, int batchSize) {
-    // Idempotent: only the call that actually removes the batch gives its events back.
     if (inFlight.remove(tracked)) {
       synchronized (lock) {
         inFlightEvents -= batchSize;
@@ -495,12 +466,7 @@ public class EventProcessor {
     tracked.complete(null);
   }
 
-  /**
-   * Count dropped events. The first drop is reported at once, later ones at most once per
-   * {@link #DROP_LOG_INTERVAL_NANOS}, so an outage does not log per flush. Called under the lock.
-   *
-   * @return the number of drops to report now, or 0 to stay quiet
-   */
+  /** Returns the drops to log now, at most once per interval, or 0. Called under the lock. */
   private int recordDrop(int count) {
     droppedSinceLastReport += count;
     long now = System.nanoTime();
@@ -517,7 +483,7 @@ public class EventProcessor {
     return CompletableFuture.allOf(inFlight.toArray(new CompletableFuture[0]));
   }
 
-  /** A snapshot of the buffer for tests, taken under the lock. */
+  /** For tests. */
   List<Map<String, Object>> bufferedEvents() {
     synchronized (lock) {
       return new ArrayList<>(buffer);

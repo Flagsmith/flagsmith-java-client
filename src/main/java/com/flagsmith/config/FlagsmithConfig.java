@@ -50,7 +50,6 @@ public final class FlagsmithConfig {
   private Boolean enableLocalEvaluation;
   private Integer environmentRefreshIntervalSeconds;
   private AnalyticsProcessor analyticsProcessor;
-  /** The processor from withEventProcessor, or null; each client otherwise builds its own. */
   private EventProcessor eventProcessor;
   private FlagsmithFlagDefaults flagsmithFlagDefaults = null;
   private Boolean raiseUpdateEnvironmentErrorsOnStartup = true;
@@ -310,8 +309,7 @@ public final class FlagsmithConfig {
     }
 
     /**
-     * Override the events API base URL. Allowed with events disabled, so a shared configuration
-     * can carry it.
+     * Override the events API base URL.
      *
      * @param eventsUri the new base URI for the events API
      * @return the Builder

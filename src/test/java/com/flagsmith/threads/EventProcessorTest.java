@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -66,7 +67,6 @@ public class EventProcessorTest {
   private static final String EVENTS_URI = "http://events-uri/";
   private static final String EVENTS_ENDPOINT = EVENTS_URI + "v1/events";
   private static final String ACCEPTED_BODY = "{\"accepted\": 1, \"rejected\": []}";
-  /** Every wait in this test is bounded so a broken retry loop fails instead of hanging. */
   private static final long WAIT_SECONDS = 10L;
 
   private MockInterceptor interceptor;
@@ -185,7 +185,6 @@ public class EventProcessorTest {
     processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null, metadata);
     assertEquals(1, processor.bufferedEvents().size());
 
-    // Any differing key part is a new exposure.
     processor.trackExposureEvent("checkout_cta", "user-2", "treatment", null, metadata);
     processor.trackExposureEvent("checkout_cta", "user-1", "control", null, metadata);
     processor.trackExposureEvent("pricing_page", "user-1", "treatment", null, metadata);
@@ -193,12 +192,10 @@ public class EventProcessorTest {
         Collections.singletonMap("experiment_id", 43));
     assertEquals(5, processor.bufferedEvents().size());
 
-    // Custom events are never deduped.
     processor.trackEvent("purchase", "user-1", "49.00", null, null);
     processor.trackEvent("purchase", "user-1", "49.00", null, null);
     assertEquals(7, processor.bufferedEvents().size());
 
-    // A flush opens a new window.
     flushAndWait(processor);
     processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null, metadata);
     assertEquals(1, processor.bufferedEvents().size());
@@ -209,7 +206,6 @@ public class EventProcessorTest {
   @SneakyThrows
   public void flush_postsTheBatchToTheEventsEndpoint() {
     EventProcessor processor = newProcessor(1000, 0);
-    // An empty buffer posts nothing.
     flushAndWait(processor);
     assertEquals(0, recorder.count());
 
@@ -286,11 +282,8 @@ public class EventProcessorTest {
    */
   @ParameterizedTest
   @CsvSource({
-      // Any 5xx is retried once, then the batch is dropped.
       "503, 1, 2", "501, 1, 2", "500, 2, 2",
-      // Never any other status.
       "400, 1, 1",
-      // A connection failure is retried once, then the batch is dropped.
       ", 1, 2", ", 2, 2"})
   @SneakyThrows
   public void flush_retriesOnceOnAServerErrorOrConnectionFailure(
@@ -358,13 +351,11 @@ public class EventProcessorTest {
   @MethodSource("brokenSends")
   public void trackEvent_dropsTheBatchWithoutThrowingWhenItCannotBeSent(
       Consumer<EventProcessorTest> breakSend) {
-    // A one-event buffer, so trackEvent itself sends.
     EventProcessor processor = newProcessor(1, 0);
     interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(ACCEPTED_BODY, MEDIATYPE_JSON);
     breakSend.accept(this);
 
     processor.trackEvent("purchase", "user-1", "1", null, null);
-    // A later flush must not inherit a batch that was never settled.
     flushAndWait(processor);
 
     assertEquals(0, recorder.count());
@@ -413,7 +404,6 @@ public class EventProcessorTest {
     tracker.start();
     assertTrue(serialising.await(WAIT_SECONDS, TimeUnit.SECONDS));
 
-    // close() runs its final flush while the event is still on its way into the buffer.
     processor.close();
     eventProcessor = null;
     proceed.countDown();
@@ -477,7 +467,6 @@ public class EventProcessorTest {
         Collections.singletonMap("opaque", new Object()), null);
     processor.trackEvent("purchase", "user-3", "3", null,
         Collections.singletonMap("opaque", new Object()));
-    // Serialising these recurses without end; it must surface as a dropped event, not an Error.
     Map<String, Object> cyclic = new HashMap<>();
     cyclic.put("self", cyclic);
     List<Object> cyclicList = new ArrayList<>();
@@ -534,7 +523,6 @@ public class EventProcessorTest {
     processor.close();
     eventProcessor = null;
 
-    // Scheduling on the shut-down scheduler would throw RejectedExecutionException.
     processor.start();
 
     assertTrue(processor.getScheduler().isShutdown());
@@ -544,28 +532,55 @@ public class EventProcessorTest {
     FlagsmithConfig longRead = FlagsmithConfig.newBuilder().readTimeout(30_000).build();
     return Stream.of(
         // Two attempts at 2s connect + 5s write + 5s read, and 200ms backoff before the second.
-        Arguments.of(FlagsmithConfig.newBuilder().build().getHttpClient(), 2 * 12_000 + 200),
-        Arguments.of(longRead.getHttpClient(), 2 * 37_000 + 200),
+        Arguments.of(FlagsmithConfig.newBuilder().build().getHttpClient(), 2 * 12_000 + 200,
+            12_000),
+        Arguments.of(longRead.getHttpClient(), 2 * 37_000 + 200, 37_000),
         Arguments.of(new OkHttpClient.Builder().callTimeout(4, TimeUnit.SECONDS).build(),
-            2 * 4_000 + 200),
-        // An unbounded attempt falls back to the fixed timeout.
+            2 * 4_000 + 200, 4_000),
         Arguments.of(new OkHttpClient.Builder().readTimeout(0, TimeUnit.SECONDS).build(),
-            EventProcessor.CLOSE_TIMEOUT_MILLIS));
+            EventProcessor.CLOSE_TIMEOUT_MILLIS, 0));
   }
 
   @ParameterizedTest
   @MethodSource("clientTimeouts")
-  public void close_waitsForOneBatchAtTheClientTimeouts(OkHttpClient client, long expected) {
+  public void close_waitsForOneBatchAtTheClientTimeouts(OkHttpClient client, long expected,
+      long callTimeout) {
     EventProcessor processor = new EventProcessor(client, HttpUrl.get(EVENTS_URI), 1, 0);
 
     assertEquals(expected, processor.getCloseTimeoutMillis());
+    assertEquals(callTimeout, processor.getRequestProcessor().getClient().callTimeoutMillis());
     processor.close();
   }
 
   @Test
   @SneakyThrows
+  public void close_abandonsTheBatchesStillInFlightAtTheTimeout() {
+    AcceptingInterceptor eventsApi = AcceptingInterceptor.blocked();
+    EventProcessor processor = newProcessor(1, 0, eventsApi);
+    eventProcessor = null;
+    processor.setCloseTimeoutMillis(200);
+
+    try {
+      // Three batches hang on the three request threads; the fourth is queued behind them.
+      for (int i = 0; i < 4; i++) {
+        processor.trackEvent("purchase", "user-" + i, "1", null, null);
+      }
+      assertTrue(recorder.awaitCount(3));
+      processor.close();
+
+      ExecutorService executor = processor.getRequestProcessor().getExecutor();
+      assertTrue(executor.awaitTermination(WAIT_SECONDS, TimeUnit.SECONDS),
+          "a request thread outlived close()");
+      assertEquals(3, eventsApi.interrupted.get());
+      assertEquals(3, recorder.count(), "the queued batch was sent after close()");
+    } finally {
+      eventsApi.release();
+    }
+  }
+
+  @Test
+  @SneakyThrows
   public void close_stopsWaitingAtTheTimeout() {
-    // The hung API ignores cancellation, as a stuck interceptor or proxy would.
     AcceptingInterceptor eventsApi = AcceptingInterceptor.blocked();
     EventProcessor processor = newProcessor(1000, 0, eventsApi);
     eventProcessor = null;
@@ -594,8 +609,7 @@ public class EventProcessorTest {
     EventProcessor processor = newProcessor(1000, 0, eventsApi);
     FlagsmithLogger logger = mockLogger(processor);
 
-    // The events API hangs, so every batch stays in flight until it is released. Each full
-    // buffer flushes itself, which puts exactly the limit in flight.
+    // The events API hangs, so every batch stays in flight until it is released.
     for (int i = 0; i < EventProcessor.MAX_IN_FLIGHT_EVENTS; i++) {
       processor.trackEvent("purchase", "user-" + i, "1", null, null);
     }
@@ -606,7 +620,6 @@ public class EventProcessorTest {
     verify(logger).error(contains("Dropped 1 events"));
     assertFalse(all.isDone());
 
-    // A caller saturating the processor does not get an error line per flush.
     for (int i = 0; i < 100; i++) {
       processor.trackEvent("purchase", "also-dropped-" + i, "1", null, null);
       processor.flush();
@@ -622,7 +635,6 @@ public class EventProcessorTest {
       assertFalse(body.contains("also-dropped"));
     }
 
-    // Once the backlog clears, batches flow again.
     processor.trackEvent("purchase", "after", "1", null, null);
     flushAndWait(processor);
     assertEquals(EventProcessor.MAX_IN_FLIGHT_EVENTS + 1, deliveredEvents());
@@ -661,9 +673,7 @@ public class EventProcessorTest {
 
   private static Stream<Arguments> healthyApiLoads() {
     return Stream.of(
-        // A buffer larger than the cap, sent when nothing is in flight.
         Arguments.of(Integer.MAX_VALUE, EventProcessor.MAX_IN_FLIGHT_EVENTS + 1),
-        // A one-event buffer sends a batch per event: the case a cap on batches would throttle.
         Arguments.of(1, 2000));
   }
 
@@ -738,6 +748,7 @@ public class EventProcessorTest {
   private static class AcceptingInterceptor implements Interceptor {
 
     private final CountDownLatch released;
+    private final AtomicInteger interrupted = new AtomicInteger();
 
     private AcceptingInterceptor(boolean blocked) {
       this.released = new CountDownLatch(blocked ? 1 : 0);
@@ -760,6 +771,7 @@ public class EventProcessorTest {
       try {
         released.await(WAIT_SECONDS, TimeUnit.SECONDS);
       } catch (InterruptedException e) {
+        interrupted.incrementAndGet();
         Thread.currentThread().interrupt();
         throw new IOException(e);
       }
@@ -801,6 +813,14 @@ public class EventProcessorTest {
 
     boolean awaitFirstRequest(long seconds) throws InterruptedException {
       return firstRequest.await(seconds, TimeUnit.SECONDS);
+    }
+
+    boolean awaitCount(int expected) throws InterruptedException {
+      long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(WAIT_SECONDS);
+      while (count() < expected && System.nanoTime() < deadline) {
+        Thread.sleep(10);
+      }
+      return count() >= expected;
     }
   }
 

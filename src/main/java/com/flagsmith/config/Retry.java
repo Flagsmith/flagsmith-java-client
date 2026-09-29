@@ -25,11 +25,7 @@ public class Retry {
       add(429);
       add(503);
     }};
-  /**
-   * When true, only force-listed statuses and connection failures (null status) are retried, and
-   * never past {@link #total} attempts. False keeps the historical policy: any status retries
-   * within the budget, and a force-listed one regardless of it.
-   */
+  /** Retry only force-listed statuses and connection failures, within {@link #total}. */
   private Boolean statusForcelistOnly = Boolean.FALSE;
 
   public Retry(Integer total) {

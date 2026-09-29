@@ -1006,10 +1006,7 @@ public class FlagsmithClientTest {
         assertTrue(identityFlags.isFeatureEnabled("some_feature"));
     }
 
-    /**
-     * A client on a mock event processor, serving the experiment identity flags, or none at all as
-     * FlagsmithApiWrapper does when the identities request times out or is interrupted.
-     */
+    /** A client on a mock event processor, serving the experiment identity flags or none. */
     private static FlagsmithClient experimentClient(
             EventProcessor processor, boolean withDefaultHandler, boolean flagsUnavailable) {
         MockInterceptor interceptor = new MockInterceptor();
@@ -1044,7 +1041,6 @@ public class FlagsmithClientTest {
 
     private static Stream<Arguments> invalidEventsConfigs() {
         return Stream.of(
-                // Events settings without events enabled.
                 Arguments.of(FlagsmithConfig.newBuilder().withEventsMaxBufferItems(10)),
                 Arguments.of(FlagsmithConfig.newBuilder().withEventsFlushIntervalMillis(10)),
                 Arguments.of(FlagsmithConfig.newBuilder()
@@ -1061,7 +1057,6 @@ public class FlagsmithClientTest {
 
     @Test
     public void testEventsStayDisabledUnlessEnabled() {
-        // An events URI alone is harmless, so a shared configuration can carry it.
         FlagsmithConfig config = FlagsmithConfig.newBuilder().eventsUri("http://events-uri").build();
 
         assertFalse(config.getEnableEvents());
@@ -1181,7 +1176,6 @@ public class FlagsmithClientTest {
         Map<String, Object> metadata = Collections.singletonMap("experiment_id", 42);
         verify(processor).trackExposureEvent(
                 "checkout_cta", "user-1", "treatment", traits, metadata);
-        // The two-argument overload passes an empty map rather than null.
         verify(processor).trackExposureEvent(
                 "checkout_cta", "user-2", "treatment", new HashMap<>(), metadata);
     }

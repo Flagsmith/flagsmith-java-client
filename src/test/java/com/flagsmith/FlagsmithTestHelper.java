@@ -431,11 +431,7 @@ public class FlagsmithTestHelper {
     return featureJson;
   }
 
-  /**
-   * An identity flags payload exercising every branch of the experiment gate: an enrolled flag,
-   * a bucketed but unenrolled flag, a flag with no metadata at all, and a disabled flag whose
-   * experiment is running.
-   */
+  /** Identity flags covering every branch of the experiment gate. */
   public static String getIdentitiesFlagsWithExperiment() {
     return "{\"traits\": [], \"flags\": [\n"
         + "  {\"id\": 1, \"feature\": {\"id\": 1, \"name\": \"checkout_cta\", \"type\": \"MULTIVARIATE\"},\n"
