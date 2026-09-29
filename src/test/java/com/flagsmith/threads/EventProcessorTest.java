@@ -682,6 +682,9 @@ public class EventProcessorTest {
     eventsApi.release();
 
     assertTrue(awaitDelivered(inFlight + EventProcessor.MAX_BUFFERED_EVENTS));
+    for (String body : recorder.bodies()) {
+      assertTrue(MapperFactory.getMapper().readTree(body).get("events").size() <= 1000);
+    }
     String bodies = String.join("", recorder.bodies());
     assertFalse(bodies.contains("overflow-499-"));
     assertTrue(bodies.contains("overflow-500-"));

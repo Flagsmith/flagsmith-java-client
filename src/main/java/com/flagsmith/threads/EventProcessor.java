@@ -59,7 +59,7 @@ public class EventProcessor {
   private static final MediaType JSON_MEDIA_TYPE =
       MediaType.get("application/json; charset=utf-8");
   static final int MAX_IN_FLIGHT_BATCHES = 2;
-  static final int MAX_BUFFERED_EVENTS = 10_000;
+  static final int MAX_BUFFERED_EVENTS = 1_000;
   static final long CLOSE_TIMEOUT_MILLIS = 25_000L;
   private static final long DROP_LOG_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(10);
 
