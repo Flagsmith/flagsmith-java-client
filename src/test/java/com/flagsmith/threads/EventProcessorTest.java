@@ -317,6 +317,21 @@ public class EventProcessorTest {
 
   @Test
   @SneakyThrows
+  public void flush_retriesAnyServerError() {
+    EventProcessor processor = newProcessor(1000, 0);
+    interceptor.addRule().post(EVENTS_ENDPOINT).times(1).respond(501);
+    interceptor.addRule().post(EVENTS_ENDPOINT).times(1).respond(ACCEPTED_BODY, MEDIATYPE_JSON);
+
+    processor.trackEvent("purchase", "user-1", "1", null, null);
+    flushAndWait(processor);
+
+    assertEquals(2, recorder.count());
+    assertEquals(recorder.bodies().get(0), recorder.bodies().get(1));
+    assertTrue(processor.bufferedEvents().isEmpty());
+  }
+
+  @Test
+  @SneakyThrows
   public void flush_dropsTheBatchAfterTwoServerErrors() {
     EventProcessor processor = newProcessor(1000, 0);
     interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(500);
@@ -739,6 +754,55 @@ public class EventProcessorTest {
     processor.trackEvent("purchase", "after", "1", null, null);
     flushAndWait(processor);
     assertEquals(EventProcessor.MAX_IN_FLIGHT_EVENTS + 1, deliveredEvents());
+  }
+
+  @Test
+  @SneakyThrows
+  public void flush_dropsABatchThatWouldExceedTheInFlightLimitAndAdmitsOneThatFits() {
+    AcceptingInterceptor eventsApi = AcceptingInterceptor.blocked();
+    EventProcessor processor = newProcessor(Integer.MAX_VALUE, 0, eventsApi);
+    FlagsmithLogger logger = mock(FlagsmithLogger.class);
+    processor.setLogger(logger);
+    int inFlight = EventProcessor.MAX_IN_FLIGHT_EVENTS - 500;
+
+    for (int i = 0; i < inFlight; i++) {
+      processor.trackEvent("purchase", "user-" + i, "1", null, null);
+    }
+    processor.flush();
+    for (int i = 0; i < 1000; i++) {
+      processor.trackEvent("purchase", "too-many-" + i, "1", null, null);
+    }
+    processor.flush();
+    verify(logger).error(contains("Dropped 1000 events"));
+    for (int i = 0; i < 500; i++) {
+      processor.trackEvent("purchase", "fits-" + i, "1", null, null);
+    }
+    CompletableFuture<Void> all = processor.flush();
+
+    eventsApi.release();
+    all.get(WAIT_SECONDS, TimeUnit.SECONDS);
+
+    assertEquals(EventProcessor.MAX_IN_FLIGHT_EVENTS, deliveredEvents());
+    for (String body : recorder.bodies()) {
+      assertFalse(body.contains("too-many"));
+    }
+  }
+
+  @Test
+  @SneakyThrows
+  public void flush_sendsABufferLargerThanTheInFlightLimitWhenNothingIsInFlight() {
+    EventProcessor processor = newProcessor(Integer.MAX_VALUE, 0, AcceptingInterceptor.open());
+    FlagsmithLogger logger = mock(FlagsmithLogger.class);
+    processor.setLogger(logger);
+    int events = EventProcessor.MAX_IN_FLIGHT_EVENTS + 1;
+
+    for (int i = 0; i < events; i++) {
+      processor.trackEvent("purchase", "user-" + i, "1", null, null);
+    }
+    flushAndWait(processor);
+
+    assertEquals(events, deliveredEvents());
+    assertEquals(Collections.emptyList(), errorCalls(logger));
   }
 
   @Test

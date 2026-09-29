@@ -12,7 +12,6 @@ import com.flagsmith.exceptions.FlagsmithRuntimeError;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.models.TraitConfig;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,6 +27,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -58,9 +59,10 @@ public class EventProcessor {
   private static final MediaType JSON_MEDIA_TYPE =
       MediaType.get("application/json; charset=utf-8");
   /**
-   * Cap on events awaiting the events API. Past it a flush drops its batch rather than queue it,
-   * so an outage cannot grow memory with the host's traffic. It counts events, not batches, so a
-   * small buffer is not throttled on a healthy API. The true bound is this plus one buffer.
+   * Cap on events awaiting the events API. A flush drops its batch rather than exceed it, so an
+   * outage cannot grow memory with the host's traffic. It counts events, not batches, so a small
+   * buffer is not throttled on a healthy API. A batch is always sent when nothing is in flight,
+   * so a buffer larger than the cap still gets through.
    */
   static final int MAX_IN_FLIGHT_EVENTS = 10_000;
   /** The close timeout when the HTTP client's timeouts do not bound a request. */
@@ -143,12 +145,13 @@ public class EventProcessor {
   }
 
   /**
-   * The retry policy for an event batch: at most one retry, on a connection failure or a 500,
-   * 502, 503 or 504, and never on any other status.
+   * The retry policy for an event batch: at most one retry, on a connection failure or any 5xx,
+   * and never on any other status.
    */
   private static Retry buildRetry() {
     Retry retry = new Retry(2);
-    retry.setStatusForcelist(new HashSet<>(Arrays.asList(500, 502, 503, 504)));
+    retry.setStatusForcelist(
+        IntStream.rangeClosed(500, 599).boxed().collect(Collectors.toSet()));
     retry.setStatusForcelistOnly(Boolean.TRUE);
     return retry;
   }
@@ -246,7 +249,7 @@ public class EventProcessor {
     // concurrent flush() can never observe both an empty buffer and an unregistered batch.
     synchronized (lock) {
       if (!buffer.isEmpty()) {
-        if (inFlightEvents >= MAX_IN_FLIGHT_EVENTS) {
+        if (inFlightEvents > 0 && buffer.size() > MAX_IN_FLIGHT_EVENTS - inFlightEvents) {
           droppedToReport = recordDrop(buffer.size());
         } else {
           batch = new ArrayList<>(buffer);
@@ -260,9 +263,10 @@ public class EventProcessor {
     }
 
     if (droppedToReport > 0) {
-      logger.error("Dropped " + droppedToReport + " events: at least " + MAX_IN_FLIGHT_EVENTS
-          + " earlier events are still waiting on the events API. Further drops are reported at"
-          + " most every " + TimeUnit.NANOSECONDS.toSeconds(DROP_LOG_INTERVAL_NANOS) + "s.");
+      logger.error("Dropped " + droppedToReport + " events: sending them would put more than "
+          + MAX_IN_FLIGHT_EVENTS + " events in flight to the events API. Further drops are"
+          + " reported at most every " + TimeUnit.NANOSECONDS.toSeconds(DROP_LOG_INTERVAL_NANOS)
+          + "s.");
     }
 
     if (batch != null) {
