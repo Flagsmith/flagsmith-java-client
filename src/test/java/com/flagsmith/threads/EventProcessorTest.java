@@ -566,8 +566,10 @@ public class EventProcessorTest {
         processor.trackEvent("purchase", "user-" + i, "1", null, null);
       }
       assertTrue(recorder.awaitCount(3));
+      CompletableFuture<Void> pending = processor.flush();
       processor.close();
 
+      assertTrue(pending.isDone());
       ExecutorService executor = processor.getRequestProcessor().getExecutor();
       assertTrue(executor.awaitTermination(WAIT_SECONDS, TimeUnit.SECONDS),
           "a request thread outlived close()");

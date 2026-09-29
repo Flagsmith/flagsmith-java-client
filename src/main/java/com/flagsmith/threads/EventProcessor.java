@@ -304,6 +304,7 @@ public class EventProcessor {
       requestProcessor.close();
     } else {
       requestProcessor.closeNow();
+      inFlight.forEach((tracked) -> tracked.complete(null));
     }
   }
 
