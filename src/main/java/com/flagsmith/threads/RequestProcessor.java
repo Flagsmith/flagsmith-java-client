@@ -147,7 +147,6 @@ public class RequestProcessor {
     this.executor.shutdown();
   }
 
-  /** Drop queued requests and interrupt running ones. */
   public void closeNow() {
     this.executor.shutdownNow();
   }

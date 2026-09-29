@@ -244,7 +244,6 @@ public class FlagsmithClient {
     Flags flags = getIdentityFlags(identifier, traits);
 
     if (flags == null) {
-      // The API wrapper returns null on a failed request.
       FlagsmithFlagDefaults defaults = getConfig().getFlagsmithFlagDefaults();
       if (defaults == null) {
         throw new FlagsmithApiError("Failed to get feature flags.");

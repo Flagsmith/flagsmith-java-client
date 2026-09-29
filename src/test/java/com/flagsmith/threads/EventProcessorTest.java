@@ -604,7 +604,7 @@ public class EventProcessorTest {
 
   @Test
   @SneakyThrows
-  public void flush_dropsEventsBeyondTheInFlightLimitInsteadOfQueueingThem() {
+  public void flush_carriesEventsBeyondTheInFlightLimitToALaterFlush() {
     AcceptingInterceptor eventsApi = AcceptingInterceptor.blocked();
     EventProcessor processor = newProcessor(1000, 0, eventsApi);
     FlagsmithLogger logger = mockLogger(processor);
@@ -613,39 +613,27 @@ public class EventProcessorTest {
     for (int i = 0; i < EventProcessor.MAX_IN_FLIGHT_EVENTS; i++) {
       processor.trackEvent("purchase", "user-" + i, "1", null, null);
     }
-    processor.trackEvent("purchase", "one-too-many", "1", null, null);
-    CompletableFuture<Void> all = processor.flush();
-
-    assertTrue(processor.bufferedEvents().isEmpty(), "the dropped batch stayed in the buffer");
-    verify(logger).error(contains("Dropped 1 events"));
-    assertFalse(all.isDone());
-
     for (int i = 0; i < 100; i++) {
-      processor.trackEvent("purchase", "also-dropped-" + i, "1", null, null);
+      processor.trackEvent("purchase", "carried-" + i, "1", null, null);
       processor.flush();
     }
-    verify(logger, times(1)).error(startsWith("Dropped"));
+    CompletableFuture<Void> all = processor.flush();
+
+    assertEquals(100, processor.bufferedEvents().size());
+    assertFalse(all.isDone());
 
     eventsApi.release();
     all.get(WAIT_SECONDS, TimeUnit.SECONDS);
 
-    assertEquals(EventProcessor.MAX_IN_FLIGHT_EVENTS, deliveredEvents());
-    for (String body : recorder.bodies()) {
-      assertFalse(body.contains("one-too-many"));
-      assertFalse(body.contains("also-dropped"));
-    }
-
-    processor.trackEvent("purchase", "after", "1", null, null);
-    flushAndWait(processor);
-    assertEquals(EventProcessor.MAX_IN_FLIGHT_EVENTS + 1, deliveredEvents());
+    assertEquals(EventProcessor.MAX_IN_FLIGHT_EVENTS + 100, deliveredEvents());
+    assertEquals(Collections.emptyList(), errorCalls(logger));
   }
 
   @Test
   @SneakyThrows
-  public void flush_dropsABatchThatWouldExceedTheInFlightLimitAndAdmitsOneThatFits() {
+  public void flush_sendsWhatFitsUnderTheInFlightLimit() {
     AcceptingInterceptor eventsApi = AcceptingInterceptor.blocked();
     EventProcessor processor = newProcessor(Integer.MAX_VALUE, 0, eventsApi);
-    FlagsmithLogger logger = mockLogger(processor);
     int inFlight = EventProcessor.MAX_IN_FLIGHT_EVENTS - 500;
 
     for (int i = 0; i < inFlight; i++) {
@@ -653,22 +641,45 @@ public class EventProcessorTest {
     }
     processor.flush();
     for (int i = 0; i < 1000; i++) {
-      processor.trackEvent("purchase", "too-many-" + i, "1", null, null);
-    }
-    processor.flush();
-    verify(logger).error(contains("Dropped 1000 events"));
-    for (int i = 0; i < 500; i++) {
-      processor.trackEvent("purchase", "fits-" + i, "1", null, null);
+      processor.trackEvent("purchase", "next-" + i, "1", null, null);
     }
     CompletableFuture<Void> all = processor.flush();
+
+    assertTrue(recorder.awaitCount(2));
+    assertEquals(500, processor.bufferedEvents().size());
 
     eventsApi.release();
     all.get(WAIT_SECONDS, TimeUnit.SECONDS);
 
-    assertEquals(EventProcessor.MAX_IN_FLIGHT_EVENTS, deliveredEvents());
-    for (String body : recorder.bodies()) {
-      assertFalse(body.contains("too-many"));
+    assertEquals(inFlight + 1000, deliveredEvents());
+  }
+
+  @Test
+  @SneakyThrows
+  public void flush_dropsTheOldestEventsOnceTheBufferIsFullBehindTheLimit() {
+    AcceptingInterceptor eventsApi = AcceptingInterceptor.blocked();
+    EventProcessor processor = newProcessor(1000, 0, eventsApi);
+    FlagsmithLogger logger = mockLogger(processor);
+
+    for (int i = 0; i < EventProcessor.MAX_IN_FLIGHT_EVENTS; i++) {
+      processor.trackEvent("purchase", "user-" + i, "1", null, null);
     }
+    for (int i = 0; i < 1500; i++) {
+      processor.trackEvent("purchase", "overflow-" + i + "-", "1", null, null);
+    }
+
+    assertEquals(1000, processor.bufferedEvents().size());
+    verify(logger).error(contains("Dropped the 1 oldest events"));
+    verify(logger, times(1)).error(startsWith("Dropped"));
+
+    CompletableFuture<Void> all = processor.flush();
+    eventsApi.release();
+    all.get(WAIT_SECONDS, TimeUnit.SECONDS);
+
+    assertEquals(EventProcessor.MAX_IN_FLIGHT_EVENTS + 1000, deliveredEvents());
+    String bodies = String.join("", recorder.bodies());
+    assertFalse(bodies.contains("overflow-499-"));
+    assertTrue(bodies.contains("overflow-500-"));
   }
 
   private static Stream<Arguments> healthyApiLoads() {

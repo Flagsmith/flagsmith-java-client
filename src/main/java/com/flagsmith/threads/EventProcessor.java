@@ -58,9 +58,7 @@ public class EventProcessor {
   private static final String KEY_SEPARATOR = "\u0000";
   private static final MediaType JSON_MEDIA_TYPE =
       MediaType.get("application/json; charset=utf-8");
-  /** Cap on events in flight; a batch beyond it is dropped, unless nothing is in flight. */
   static final int MAX_IN_FLIGHT_EVENTS = 10_000;
-  /** How long {@link #close()} waits when a client timeout is off. */
   static final long CLOSE_TIMEOUT_MILLIS = 25_000L;
   private static final long DROP_LOG_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(10);
 
@@ -108,7 +106,6 @@ public class EventProcessor {
         new RequestProcessor(withCallDeadline(client), new FlagsmithLogger(), buildRetry()));
   }
 
-  /** For tests: sends through the given request processor. */
   EventProcessor(HttpUrl eventsUri, int maxBufferItems, int flushIntervalMillis,
       RequestProcessor requestProcessor) {
     if (maxBufferItems < 1) {
@@ -129,7 +126,6 @@ public class EventProcessor {
     });
   }
 
-  /** At most one retry, on a connection failure or a 5xx. */
   private static Retry buildRetry() {
     Retry retry = new Retry(2);
     retry.setStatusForcelist(
@@ -138,7 +134,6 @@ public class EventProcessor {
     return retry;
   }
 
-  /** Every attempt the policy allows, plus backoff. */
   private static long worstCaseBatchMillis(OkHttpClient client, Retry retry) {
     long attemptMillis = attemptMillis(client);
     if (attemptMillis == 0) {
@@ -152,7 +147,6 @@ public class EventProcessor {
     return total;
   }
 
-  /** One attempt's bound under the client's timeouts, or 0 when a timeout is off. */
   private static long attemptMillis(OkHttpClient client) {
     if (client.callTimeoutMillis() > 0) {
       return client.callTimeoutMillis();
@@ -165,7 +159,6 @@ public class EventProcessor {
     return 0;
   }
 
-  /** Caps each call: the read timeout alone does not bound a response that trickles in. */
   private static OkHttpClient withCallDeadline(OkHttpClient client) {
     long attemptMillis = attemptMillis(client);
     return client.callTimeoutMillis() == 0 && attemptMillis > 0
@@ -226,40 +219,40 @@ public class EventProcessor {
   /**
    * Send everything buffered so far.
    *
-   * @return a future completing once every in-flight batch has been delivered or dropped
+   * @return a future completing once every event buffered so far has been delivered or dropped
    */
   public CompletableFuture<Void> flush() {
     List<Map<String, Object>> batch = null;
     CompletableFuture<Void> tracked = null;
     int droppedToReport = 0;
+    boolean carried;
 
     synchronized (lock) {
-      if (!buffer.isEmpty()) {
-        if (inFlightEvents > 0 && buffer.size() > MAX_IN_FLIGHT_EVENTS - inFlightEvents) {
-          droppedToReport = recordDrop(buffer.size());
-        } else {
-          batch = new ArrayList<>(buffer);
-          tracked = new CompletableFuture<>();
-          inFlight.add(tracked);
-          inFlightEvents += batch.size();
-        }
-        buffer.clear();
+      int admitted = Math.min(buffer.size(), MAX_IN_FLIGHT_EVENTS - inFlightEvents);
+      if (admitted > 0) {
+        List<Map<String, Object>> head = buffer.subList(0, admitted);
+        batch = new ArrayList<>(head);
+        head.clear();
+        tracked = new CompletableFuture<>();
+        inFlight.add(tracked);
+        inFlightEvents += admitted;
       }
+      int excess = buffer.size() - maxBufferItems;
+      if (excess > 0) {
+        buffer.subList(0, excess).clear();
+        droppedToReport = recordDrop(excess);
+      }
+      carried = !buffer.isEmpty();
       dedupeKeys.clear();
     }
 
-    if (droppedToReport > 0) {
-      logger.error("Dropped " + droppedToReport + " events: sending them would put more than "
-          + MAX_IN_FLIGHT_EVENTS + " events in flight to the events API. Further drops are"
-          + " reported at most every " + TimeUnit.NANOSECONDS.toSeconds(DROP_LOG_INTERVAL_NANOS)
-          + "s.");
-    }
-
+    logDrops(droppedToReport);
     if (batch != null) {
       send(batch, tracked);
     }
 
-    return awaitInFlight();
+    CompletableFuture<Void> sent = awaitInFlight();
+    return carried ? sent.thenCompose((ignored) -> flush()) : sent;
   }
 
   /**
@@ -340,7 +333,8 @@ public class EventProcessor {
       eventPayload.put("metadata", toJson(eventMetadata));
       eventPayload.put("timestamp", System.currentTimeMillis());
 
-      boolean isFull;
+      boolean isFull = false;
+      int droppedToReport = 0;
 
       synchronized (lock) {
         if (closed.get()) {
@@ -352,9 +346,15 @@ public class EventProcessor {
           return;
         }
         buffer.add(eventPayload);
-        isFull = buffer.size() >= maxBufferItems;
+        if (inFlightEvents < MAX_IN_FLIGHT_EVENTS) {
+          isFull = buffer.size() >= maxBufferItems;
+        } else if (buffer.size() > maxBufferItems) {
+          buffer.remove(0);
+          droppedToReport = recordDrop(1);
+        }
       }
 
+      logDrops(droppedToReport);
       if (isFull) {
         flush();
       }
@@ -363,7 +363,6 @@ public class EventProcessor {
     }
   }
 
-  /** Not valueToTree: it overflows the stack on a self-containing map. */
   private static RawValue toJson(Object value) throws JsonProcessingException {
     return new RawValue(MapperFactory.getMapper().writeValueAsString(value));
   }
@@ -372,7 +371,6 @@ public class EventProcessor {
     logger.info("Not buffering event {}: the event processor is closed.", event);
   }
 
-  /** Unwrap {@link TraitConfig} values and drop transient traits; null when none are left. */
   private static Map<String, Object> eventTraits(Map<String, Object> traits) {
     if (traits == null) {
       return null;
@@ -418,7 +416,6 @@ public class EventProcessor {
       String payload = MapperFactory.getMapper()
           .writeValueAsString(Collections.singletonMap("events", batch));
 
-      // Custom headers are for the Flags API only.
       RequestBody body = RequestBody.create(payload, JSON_MEDIA_TYPE);
       Request request = new Request.Builder()
           .url(eventsEndpoint)
@@ -448,7 +445,6 @@ public class EventProcessor {
     }
   }
 
-  /** A 202 can still reject some of the batch's events. */
   private void logRejections(JsonNode response, int batchSize) {
     JsonNode rejected = response == null ? null : response.get("rejected");
     if (rejected != null && rejected.isArray() && rejected.size() > 0) {
@@ -466,7 +462,6 @@ public class EventProcessor {
     tracked.complete(null);
   }
 
-  /** Returns the drops to log now, at most once per interval, or 0. Called under the lock. */
   private int recordDrop(int count) {
     droppedSinceLastReport += count;
     long now = System.nanoTime();
@@ -479,11 +474,19 @@ public class EventProcessor {
     return toReport;
   }
 
+  private void logDrops(int dropped) {
+    if (dropped > 0) {
+      logger.error("Dropped the " + dropped + " oldest events: " + MAX_IN_FLIGHT_EVENTS
+          + " events are in flight to the events API and the buffer is full. Further drops are"
+          + " reported at most every " + TimeUnit.NANOSECONDS.toSeconds(DROP_LOG_INTERVAL_NANOS)
+          + "s.");
+    }
+  }
+
   private CompletableFuture<Void> awaitInFlight() {
     return CompletableFuture.allOf(inFlight.toArray(new CompletableFuture[0]));
   }
 
-  /** For tests. */
   List<Map<String, Object>> bufferedEvents() {
     synchronized (lock) {
       return new ArrayList<>(buffer);

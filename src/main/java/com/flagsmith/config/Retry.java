@@ -25,7 +25,6 @@ public class Retry {
       add(429);
       add(503);
     }};
-  /** Retry only force-listed statuses and connection failures, within {@link #total}. */
   private Boolean statusForcelistOnly = Boolean.FALSE;
 
   public Retry(Integer total) {

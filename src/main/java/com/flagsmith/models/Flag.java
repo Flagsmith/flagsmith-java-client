@@ -10,10 +10,8 @@ import lombok.Data;
 public class Flag extends BaseFlag {
   private Integer featureId = 0;
   private Boolean isDefault;
-  /** Set by remote evaluation only. */
   private String variant;
   private String reason;
-  /** Set by remote identity evaluation only. */
   private ExperimentMetadata experiment;
 
   /**
