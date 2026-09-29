@@ -65,8 +65,11 @@ public class EventProcessor {
    * so a buffer larger than the cap still gets through.
    */
   static final int MAX_IN_FLIGHT_EVENTS = 10_000;
-  /** The close timeout when the HTTP client's timeouts do not bound a request. */
-  static final long UNBOUNDED = -1L;
+  /**
+   * How long {@link #close()} waits for in-flight batches. Covers one batch under the SDK's
+   * default timeouts: two attempts of 2s connect + 5s write + 5s read, plus 200ms backoff.
+   */
+  static final long CLOSE_TIMEOUT_MILLIS = 25_000L;
   /** The least time between two error lines reporting dropped events. */
   private static final long DROP_LOG_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(10);
 
@@ -91,12 +94,9 @@ public class EventProcessor {
   private Long lastDropReportNanos = null;        // guarded by lock
   @Getter(AccessLevel.PACKAGE)
   private final RequestProcessor requestProcessor;
-  /**
-   * How long {@link #close()} waits for in-flight batches: the worst case of one batch under the
-   * HTTP client's timeouts and the retry policy, or {@link #UNBOUNDED} when a timeout is off.
-   */
-  @Getter(AccessLevel.PACKAGE)
-  private final long closeTimeoutMillis;
+  /** Shortened by tests. */
+  @Setter(AccessLevel.PACKAGE)
+  private long closeTimeoutMillis = CLOSE_TIMEOUT_MILLIS;
   /** The API wrapper used to build requests; injected by {@code FlagsmithClient.Builder}. */
   @Setter
   private FlagsmithSdk api;
@@ -108,7 +108,7 @@ public class EventProcessor {
   /**
    * Create a processor that sends batches through {@code client}.
    *
-   * @param client               HTTP client; its timeouts also bound {@link #close()}
+   * @param client               HTTP client
    * @param eventsUri            base URI of the events API, e.g. https://events.api.flagsmith.com/
    * @param maxBufferItems       number of buffered events that triggers an immediate flush; at
    *                             least 1
@@ -136,7 +136,6 @@ public class EventProcessor {
     this.maxBufferItems = maxBufferItems;
     this.flushIntervalMillis = flushIntervalMillis;
     this.requestProcessor = requestProcessor;
-    this.closeTimeoutMillis = worstCaseBatchMillis(requestProcessor.getClient(), buildRetry());
     this.scheduler = Executors.newSingleThreadScheduledExecutor((runnable) -> {
       Thread thread = new Thread(runnable, "flagsmith-events");
       thread.setDaemon(true);
@@ -154,35 +153,6 @@ public class EventProcessor {
         IntStream.rangeClosed(500, 599).boxed().collect(Collectors.toSet()));
     retry.setStatusForcelistOnly(Boolean.TRUE);
     return retry;
-  }
-
-  /**
-   * The longest one batch can take: every attempt the retry policy allows, each at the client's
-   * timeouts, plus backoff. An attempt is bounded by the call timeout if set, else by connect,
-   * write and read in turn.
-   *
-   * @return the worst case in milliseconds, or {@link #UNBOUNDED}
-   */
-  static long worstCaseBatchMillis(OkHttpClient client, Retry retry) {
-    long attemptMillis;
-    if (client.callTimeoutMillis() > 0) {
-      attemptMillis = client.callTimeoutMillis();
-    } else if (client.connectTimeoutMillis() > 0 && client.writeTimeoutMillis() > 0
-        && client.readTimeoutMillis() > 0) {
-      attemptMillis = (long) client.connectTimeoutMillis() + client.writeTimeoutMillis()
-          + client.readTimeoutMillis();
-    } else {
-      return UNBOUNDED;
-    }
-
-    // Walk a copy of the policy the way RequestProcessor does: back off, then attempt.
-    Retry walk = retry.toBuilder().build();
-    long total = 0;
-    for (int attempt = 0; attempt < walk.getTotal(); attempt++) {
-      total += walk.calculateSleepTime() + attemptMillis;
-      walk.retryAttempted();
-    }
-    return total;
   }
 
   /**
@@ -298,7 +268,7 @@ public class EventProcessor {
 
   /**
    * Stop the timer, flush what is left and release HTTP resources. Blocks until in-flight
-   * batches settle, for at most the worst case of one batch; unbounded if a client timeout is off.
+   * batches settle, for at most {@link #CLOSE_TIMEOUT_MILLIS}.
    */
   public void close() {
     synchronized (this) {
@@ -307,12 +277,7 @@ public class EventProcessor {
     }
 
     try {
-      CompletableFuture<Void> remaining = flush();
-      if (closeTimeoutMillis == UNBOUNDED) {
-        remaining.get();
-      } else {
-        remaining.get(closeTimeoutMillis, TimeUnit.MILLISECONDS);
-      }
+      flush().get(closeTimeoutMillis, TimeUnit.MILLISECONDS);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       logger.error("Interrupted while flushing events on close.", e);

@@ -22,8 +22,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.util.RawValue;
 import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.MapperFactory;
-import com.flagsmith.config.FlagsmithConfig;
-import com.flagsmith.config.Retry;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.models.TraitConfig;
 import java.io.IOException;
@@ -539,53 +537,14 @@ public class EventProcessorTest {
   }
 
   @Test
-  public void worstCaseBatchMillis_coversEveryAttemptAtTheClientTimeoutsPlusBackoff() {
-    OkHttpClient client = new OkHttpClient.Builder()
-        .connectTimeout(1000, TimeUnit.MILLISECONDS)
-        .writeTimeout(2000, TimeUnit.MILLISECONDS)
-        .readTimeout(3000, TimeUnit.MILLISECONDS)
-        .build();
-    Retry retry = new Retry(2);
-
-    // Two attempts of connect + write + read, and the 200ms backoff before the second.
-    assertEquals(2 * 6000 + 200, EventProcessor.worstCaseBatchMillis(client, retry));
-  }
-
-  @Test
-  public void worstCaseBatchMillis_prefersTheCallTimeout() {
-    OkHttpClient client = new OkHttpClient.Builder()
-        .callTimeout(4000, TimeUnit.MILLISECONDS)
-        .build();
-
-    assertEquals(2 * 4000 + 200,
-        EventProcessor.worstCaseBatchMillis(client, new Retry(2)));
-  }
-
-  @Test
-  public void worstCaseBatchMillis_isUnboundedWhenATimeoutIsOff() {
-    OkHttpClient client = new OkHttpClient.Builder()
-        .readTimeout(0, TimeUnit.MILLISECONDS)
-        .build();
-
-    assertEquals(EventProcessor.UNBOUNDED,
-        EventProcessor.worstCaseBatchMillis(client, new Retry(2)));
-  }
-
-  @Test
   @SneakyThrows
-  public void close_stopsWaitingAtTheWorstCaseBound() {
-    // A call timeout of 100ms bounds a batch at 2 x 100ms + 200ms backoff. The hung API below
-    // ignores the cancellation, as a stuck interceptor or proxy would.
+  public void close_stopsWaitingAtTheTimeout() {
+    // The hung API ignores cancellation, as a stuck interceptor or proxy would.
     AcceptingInterceptor eventsApi = AcceptingInterceptor.blocked();
-    OkHttpClient client = new OkHttpClient.Builder()
-        .callTimeout(100, TimeUnit.MILLISECONDS)
-        .addInterceptor(eventsApi)
-        .build();
-    EventProcessor processor = new EventProcessor(
-        HttpUrl.get(EVENTS_URI), 1000, 0, new RequestProcessor(client, new FlagsmithLogger()));
-    processor.setApi(api);
+    EventProcessor processor = newProcessor(1000, 0, eventsApi);
+    eventProcessor = null;
+    processor.setCloseTimeoutMillis(400);
     FlagsmithLogger logger = mockLogger(processor);
-    assertEquals(400, processor.getCloseTimeoutMillis());
 
     try {
       processor.trackEvent("purchase", "user-1", "1", null, null);
@@ -594,26 +553,12 @@ public class EventProcessorTest {
       long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
 
       verify(logger).error(contains("Stopped waiting"));
+      assertTrue(elapsedMillis >= 400, "close() returned after " + elapsedMillis + "ms");
       assertTrue(elapsedMillis < TimeUnit.SECONDS.toMillis(WAIT_SECONDS) / 2,
           "close() waited " + elapsedMillis + "ms");
     } finally {
       eventsApi.release();
     }
-  }
-
-  @Test
-  public void closeTimeout_followsTheConfiguredTimeouts() {
-    FlagsmithConfig config = FlagsmithConfig.newBuilder()
-        .connectTimeout(1000)
-        .writeTimeout(2000)
-        .readTimeout(30000)
-        .build();
-    EventProcessor processor =
-        new EventProcessor(config.getHttpClient(), config.getEventsUri(), 1, 0);
-
-    // The read timeout the caller configured, not the SDK default.
-    assertEquals(2 * (1000 + 2000 + 30000) + 200, processor.getCloseTimeoutMillis());
-    processor.close();
   }
 
   @Test
