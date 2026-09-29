@@ -2,6 +2,8 @@ package com.flagsmith;
 
 import com.flagsmith.config.Retry;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -68,47 +70,24 @@ public class FlagsmithRetryTest {
     assertTrue(attempts.equals(3));
   }
 
-  private static Retry oneRetryOnServerErrors() {
+  @ParameterizedTest
+  @CsvSource({
+      // A force-listed status or a connection failure (no status) retries while attempts remain.
+      "1, 503, true", "1, , true",
+      // A 4xx never does.
+      "1, 400, false", "1, 404, false",
+      // Without this bound a permanently failing endpoint retries forever.
+      "2, 503, false", "2, , false"})
+  public void FlagsmithRetry_statusForcelistOnly_retriesListedStatusesWithinBudget(
+      int attempts, Integer status, boolean expected) {
     Retry retry = new Retry(2);
     retry.setStatusForcelist(new HashSet<>(Arrays.asList(500, 502, 503, 504)));
     retry.setStatusForcelistOnly(Boolean.TRUE);
-    return retry;
-  }
+    for (int i = 0; i < attempts; i++) {
+      retry.retryAttempted();
+    }
 
-  @Test
-  public void FlagsmithRetry_statusForcelistOnly_retriesForcedStatusWithinBudget() {
-    Retry retry = oneRetryOnServerErrors();
-
-    retry.retryAttempted();
-    assertTrue(retry.isRetry(503), "a force-listed status should retry while attempts remain");
-  }
-
-  @Test
-  public void FlagsmithRetry_statusForcelistOnly_stopsAtTheAttemptsBudget() {
-    Retry retry = oneRetryOnServerErrors();
-
-    retry.retryAttempted();
-    retry.retryAttempted();
-    // Without this bound a permanently failing endpoint retries forever.
-    assertFalse(retry.isRetry(503), "a force-listed status must not retry past the budget");
-    assertFalse(retry.isRetry(null), "a connection failure must not retry past the budget");
-  }
-
-  @Test
-  public void FlagsmithRetry_statusForcelistOnly_doesNotRetryUnlistedStatus() {
-    Retry retry = oneRetryOnServerErrors();
-
-    retry.retryAttempted();
-    assertFalse(retry.isRetry(400), "a 4xx must not be retried");
-    assertFalse(retry.isRetry(404), "a 4xx must not be retried");
-  }
-
-  @Test
-  public void FlagsmithRetry_statusForcelistOnly_retriesConnectionFailuresWithinBudget() {
-    Retry retry = oneRetryOnServerErrors();
-
-    retry.retryAttempted();
-    assertTrue(retry.isRetry(null), "a connection failure should retry while attempts remain");
+    assertEquals(expected, retry.isRetry(status));
   }
 
   @Test

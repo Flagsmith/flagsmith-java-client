@@ -437,82 +437,22 @@ public class FlagsmithTestHelper {
    * experiment is running.
    */
   public static String getIdentitiesFlagsWithExperiment() {
-    return "{\n" +
-        "    \"traits\": [],\n" +
-        "    \"flags\": [\n" +
-        "        {\n" +
-        "            \"id\": 1,\n" +
-        "            \"feature\": {\n" +
-        "                \"id\": 1,\n" +
-        "                \"name\": \"checkout_cta\",\n" +
-        "                \"type\": \"MULTIVARIATE\",\n" +
-        "                \"project\": 1\n" +
-        "            },\n" +
-        "            \"feature_state_value\": \"buy-now\",\n" +
-        "            \"enabled\": true,\n" +
-        "            \"variant\": \"treatment\",\n" +
-        "            \"reason\": \"SPLIT; weight=70.0\",\n" +
-        "            \"metadata\": {\n" +
-        "                \"experiment\": {\n" +
-        "                    \"id\": 42,\n" +
-        "                    \"name\": \"checkout_experiment\",\n" +
-        "                    \"in_experiment\": true\n" +
-        "                }\n" +
-        "            }\n" +
-        "        },\n" +
-        "        {\n" +
-        "            \"id\": 2,\n" +
-        "            \"feature\": {\n" +
-        "                \"id\": 2,\n" +
-        "                \"name\": \"pricing_page\",\n" +
-        "                \"type\": \"MULTIVARIATE\",\n" +
-        "                \"project\": 1\n" +
-        "            },\n" +
-        "            \"feature_state_value\": \"old-pricing\",\n" +
-        "            \"enabled\": true,\n" +
-        "            \"variant\": \"control\",\n" +
-        "            \"reason\": \"SPLIT; weight=30.0\",\n" +
-        "            \"metadata\": {\n" +
-        "                \"experiment\": {\n" +
-        "                    \"id\": 43,\n" +
-        "                    \"name\": \"pricing_experiment\",\n" +
-        "                    \"in_experiment\": false\n" +
-        "                }\n" +
-        "            }\n" +
-        "        },\n" +
-        "        {\n" +
-        "            \"id\": 3,\n" +
-        "            \"feature\": {\n" +
-        "                \"id\": 3,\n" +
-        "                \"name\": \"some_feature\",\n" +
-        "                \"type\": \"STANDARD\",\n" +
-        "                \"project\": 1\n" +
-        "            },\n" +
-        "            \"feature_state_value\": \"some-value\",\n" +
-        "            \"enabled\": true\n" +
-        "        },\n" +
-        "        {\n" +
-        "            \"id\": 4,\n" +
-        "            \"feature\": {\n" +
-        "                \"id\": 4,\n" +
-        "                \"name\": \"disabled_feature\",\n" +
-        "                \"type\": \"MULTIVARIATE\",\n" +
-        "                \"project\": 1\n" +
-        "            },\n" +
-        "            \"feature_state_value\": \"off\",\n" +
-        "            \"enabled\": false,\n" +
-        "            \"variant\": \"treatment\",\n" +
-        "            \"reason\": \"SPLIT; weight=50.0\",\n" +
-        "            \"metadata\": {\n" +
-        "                \"experiment\": {\n" +
-        "                    \"id\": 44,\n" +
-        "                    \"name\": \"disabled_experiment\",\n" +
-        "                    \"in_experiment\": true\n" +
-        "                }\n" +
-        "            }\n" +
-        "        }\n" +
-        "    ]\n" +
-        "}";
+    return "{\"traits\": [], \"flags\": [\n"
+        + "  {\"id\": 1, \"feature\": {\"id\": 1, \"name\": \"checkout_cta\", \"type\": \"MULTIVARIATE\"},\n"
+        + "   \"feature_state_value\": \"buy-now\", \"enabled\": true, \"variant\": \"treatment\",\n"
+        + "   \"reason\": \"SPLIT; weight=70.0\", \"metadata\": {\"experiment\":\n"
+        + "   {\"id\": 42, \"name\": \"checkout_experiment\", \"in_experiment\": true}}},\n"
+        + "  {\"id\": 2, \"feature\": {\"id\": 2, \"name\": \"pricing_page\", \"type\": \"MULTIVARIATE\"},\n"
+        + "   \"feature_state_value\": \"old-pricing\", \"enabled\": true, \"variant\": \"control\",\n"
+        + "   \"reason\": \"SPLIT; weight=30.0\", \"metadata\": {\"experiment\":\n"
+        + "   {\"id\": 43, \"name\": \"pricing_experiment\", \"in_experiment\": false}}},\n"
+        + "  {\"id\": 3, \"feature\": {\"id\": 3, \"name\": \"some_feature\", \"type\": \"STANDARD\"},\n"
+        + "   \"feature_state_value\": \"some-value\", \"enabled\": true},\n"
+        + "  {\"id\": 4, \"feature\": {\"id\": 4, \"name\": \"disabled_feature\", \"type\": \"MULTIVARIATE\"},\n"
+        + "   \"feature_state_value\": \"off\", \"enabled\": false, \"variant\": \"treatment\",\n"
+        + "   \"reason\": \"SPLIT; weight=50.0\", \"metadata\": {\"experiment\":\n"
+        + "   {\"id\": 44, \"name\": \"disabled_experiment\", \"in_experiment\": true}}}\n"
+        + "]}";
   }
 
   public static <T> Future<T> futurableReturn(T response) {
