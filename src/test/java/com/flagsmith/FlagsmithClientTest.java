@@ -1312,6 +1312,23 @@ public class FlagsmithClientTest {
     }
 
     @Test
+    public void testRebuildingClosesThePreviousEventProcessor() {
+        List<String> batches = Collections.synchronizedList(new ArrayList<>());
+        FlagsmithClient.Builder builder = FlagsmithClient.newBuilder()
+                .withConfiguration(recordingEventsConfig(batches).build())
+                .setApiKey("api-key");
+        FlagsmithClient client = builder.build();
+        client.trackEvent("purchase", "user-1");
+
+        builder.build();
+        assertEquals(1, batches.size());
+
+        client.trackEvent("purchase", "user-2");
+        client.close();
+        assertEquals(2, batches.size());
+    }
+
+    @Test
     public void testEventsRequestLeavesOutCustomHeaders() {
         List<Request> requests = Collections.synchronizedList(new ArrayList<>());
         MockInterceptor interceptor = new MockInterceptor();

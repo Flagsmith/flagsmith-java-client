@@ -777,6 +777,9 @@ public class FlagsmithClient {
       }
 
       if (processor != null) {
+        if (client.eventProcessor != null) {
+          client.eventProcessor.close();
+        }
         processor.setApi(client.flagsmithSdk);
         processor.setLogger(client.logger);
         processor.start();
