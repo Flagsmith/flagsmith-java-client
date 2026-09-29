@@ -386,7 +386,8 @@ public class EventProcessor {
 
   /**
    * Unwrap {@link TraitConfig} values and drop transient traits: transient means "do not
-   * persist", and an event store keeps what it is sent.
+   * persist", and an event store keeps what it is sent. No traits left sends null, as the
+   * other SDKs do for an empty map.
    */
   private static Map<String, Object> eventTraits(Map<String, Object> traits) {
     if (traits == null) {
@@ -402,7 +403,7 @@ public class EventProcessor {
       }
     }
 
-    return flattened;
+    return flattened.isEmpty() ? null : flattened;
   }
 
   private static String dedupeKey(String event, String featureName, String identifier,

@@ -170,6 +170,9 @@ public class EventProcessorTest {
     processor.trackEvent("purchase", "user-123", null, null, null);
     assertNull(processor.bufferedEvents().get(1).get("value"));
     assertNull(processor.bufferedEvents().get(1).get("traits"));
+
+    processor.trackEvent("purchase", "user-123", null, new HashMap<>(), null);
+    assertNull(processor.bufferedEvents().get(2).get("traits"));
   }
 
   @Test
