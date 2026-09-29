@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.util.RawValue;
 import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.MapperFactory;
+import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.models.TraitConfig;
 import java.io.IOException;
@@ -534,6 +535,28 @@ public class EventProcessorTest {
     processor.start();
 
     assertTrue(processor.getScheduler().isShutdown());
+  }
+
+  private static Stream<Arguments> clientTimeouts() {
+    FlagsmithConfig longRead = FlagsmithConfig.newBuilder().readTimeout(30_000).build();
+    return Stream.of(
+        // Two attempts at 2s connect + 5s write + 5s read, and 200ms backoff before the second.
+        Arguments.of(FlagsmithConfig.newBuilder().build().getHttpClient(), 2 * 12_000 + 200),
+        Arguments.of(longRead.getHttpClient(), 2 * 37_000 + 200),
+        Arguments.of(new OkHttpClient.Builder().callTimeout(4, TimeUnit.SECONDS).build(),
+            2 * 4_000 + 200),
+        // An unbounded attempt falls back to the fixed timeout.
+        Arguments.of(new OkHttpClient.Builder().readTimeout(0, TimeUnit.SECONDS).build(),
+            EventProcessor.CLOSE_TIMEOUT_MILLIS));
+  }
+
+  @ParameterizedTest
+  @MethodSource("clientTimeouts")
+  public void close_waitsForOneBatchAtTheClientTimeouts(OkHttpClient client, long expected) {
+    EventProcessor processor = new EventProcessor(client, HttpUrl.get(EVENTS_URI), 1, 0);
+
+    assertEquals(expected, processor.getCloseTimeoutMillis());
+    processor.close();
   }
 
   @Test

@@ -66,8 +66,8 @@ public class EventProcessor {
    */
   static final int MAX_IN_FLIGHT_EVENTS = 10_000;
   /**
-   * How long {@link #close()} waits for in-flight batches. Covers one batch under the SDK's
-   * default timeouts: two attempts of 2s connect + 5s write + 5s read, plus 200ms backoff.
+   * How long {@link #close()} waits when a client timeout is off, so an attempt is unbounded.
+   * Covers one batch under the SDK's defaults: 2 x (2s connect + 5s write + 5s read) + 200ms.
    */
   static final long CLOSE_TIMEOUT_MILLIS = 25_000L;
   /** The least time between two error lines reporting dropped events. */
@@ -94,9 +94,10 @@ public class EventProcessor {
   private Long lastDropReportNanos = null;        // guarded by lock
   @Getter(AccessLevel.PACKAGE)
   private final RequestProcessor requestProcessor;
-  /** Shortened by tests. */
+  /** How long {@link #close()} waits for in-flight batches; shortened by tests. */
+  @Getter(AccessLevel.PACKAGE)
   @Setter(AccessLevel.PACKAGE)
-  private long closeTimeoutMillis = CLOSE_TIMEOUT_MILLIS;
+  private long closeTimeoutMillis;
   /** The API wrapper used to build requests; injected by {@code FlagsmithClient.Builder}. */
   @Setter
   private FlagsmithSdk api;
@@ -108,7 +109,7 @@ public class EventProcessor {
   /**
    * Create a processor that sends batches through {@code client}.
    *
-   * @param client               HTTP client
+   * @param client               HTTP client; its timeouts also bound {@link #close()}
    * @param eventsUri            base URI of the events API, e.g. https://events.api.flagsmith.com/
    * @param maxBufferItems       number of buffered events that triggers an immediate flush; at
    *                             least 1
@@ -136,6 +137,7 @@ public class EventProcessor {
     this.maxBufferItems = maxBufferItems;
     this.flushIntervalMillis = flushIntervalMillis;
     this.requestProcessor = requestProcessor;
+    this.closeTimeoutMillis = worstCaseBatchMillis(requestProcessor.getClient(), buildRetry());
     this.scheduler = Executors.newSingleThreadScheduledExecutor((runnable) -> {
       Thread thread = new Thread(runnable, "flagsmith-events");
       thread.setDaemon(true);
@@ -153,6 +155,28 @@ public class EventProcessor {
         IntStream.rangeClosed(500, 599).boxed().collect(Collectors.toSet()));
     retry.setStatusForcelistOnly(Boolean.TRUE);
     return retry;
+  }
+
+  /**
+   * Every attempt the policy allows at the client's timeouts (the call timeout if set, else
+   * connect + write + read), plus backoff; {@link #CLOSE_TIMEOUT_MILLIS} if a timeout is off.
+   */
+  private static long worstCaseBatchMillis(OkHttpClient client, Retry retry) {
+    long attemptMillis = client.callTimeoutMillis();
+    if (attemptMillis == 0 && client.connectTimeoutMillis() > 0 && client.writeTimeoutMillis() > 0
+        && client.readTimeoutMillis() > 0) {
+      attemptMillis = (long) client.connectTimeoutMillis() + client.writeTimeoutMillis()
+          + client.readTimeoutMillis();
+    }
+    if (attemptMillis == 0) {
+      return CLOSE_TIMEOUT_MILLIS;
+    }
+    long total = retry.getTotal() * attemptMillis;
+    for (int retried = 1; retried < retry.getTotal(); retried++) {
+      total += (long) (Math.min(retry.getBackoffFactor() * 2 * retried, retry.getBackoffMax())
+          * 1000);
+    }
+    return total;
   }
 
   /**
@@ -268,7 +292,8 @@ public class EventProcessor {
 
   /**
    * Stop the timer, flush what is left and release HTTP resources. Blocks until in-flight
-   * batches settle, for at most {@link #CLOSE_TIMEOUT_MILLIS}.
+   * batches settle, for at most one batch's worst case under the client's timeouts, or
+   * {@link #CLOSE_TIMEOUT_MILLIS} if a timeout is off.
    */
   public void close() {
     synchronized (this) {
