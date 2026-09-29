@@ -538,7 +538,7 @@ public class EventProcessorTest {
         Arguments.of(new OkHttpClient.Builder().callTimeout(4, TimeUnit.SECONDS).build(),
             2 * 4_000 + 200, 4_000),
         Arguments.of(new OkHttpClient.Builder().readTimeout(0, TimeUnit.SECONDS).build(),
-            EventProcessor.CLOSE_TIMEOUT_MILLIS, 0));
+            2 * EventProcessor.CLOSE_TIMEOUT_MILLIS + 200, EventProcessor.CLOSE_TIMEOUT_MILLIS));
   }
 
   @ParameterizedTest

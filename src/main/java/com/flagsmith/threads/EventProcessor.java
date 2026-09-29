@@ -160,10 +160,12 @@ public class EventProcessor {
   }
 
   private static OkHttpClient withCallDeadline(OkHttpClient client) {
+    if (client.callTimeoutMillis() > 0) {
+      return client;
+    }
     long attemptMillis = attemptMillis(client);
-    return client.callTimeoutMillis() == 0 && attemptMillis > 0
-        ? client.newBuilder().callTimeout(attemptMillis, TimeUnit.MILLISECONDS).build()
-        : client;
+    long callTimeout = attemptMillis > 0 ? attemptMillis : CLOSE_TIMEOUT_MILLIS;
+    return client.newBuilder().callTimeout(callTimeout, TimeUnit.MILLISECONDS).build();
   }
 
   /**
@@ -454,8 +456,8 @@ public class EventProcessor {
   }
 
   private void settle(CompletableFuture<Void> tracked, int batchSize) {
-    if (inFlight.remove(tracked)) {
-      synchronized (lock) {
+    synchronized (lock) {
+      if (inFlight.remove(tracked)) {
         inFlightEvents -= batchSize;
       }
     }
