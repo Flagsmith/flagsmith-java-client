@@ -51,9 +51,6 @@ public class EventProcessor {
   public static final String FLAG_EXPOSURE_EVENT = "$flag_exposure";
 
   private static final String EVENTS_PATH = "v1/events";
-  private static final String AUTH_HEADER = "X-Environment-Key";
-  private static final String USER_AGENT_HEADER = "User-Agent";
-  private static final String ACCEPT_HEADER = "Accept";
   private static final String SDK_USER_AGENT_HEADER = "Flagsmith-SDK-User-Agent";
   private static final String SDK_USER_AGENT_PREFIX = "flagsmith-java-sdk/";
   private static final String SDK_VERSION_KEY = "sdk_version";
@@ -442,16 +439,10 @@ public class EventProcessor {
       String payload = MapperFactory.getMapper()
           .writeValueAsString(Collections.singletonMap("events", batch));
 
-      // Only the SDK's own headers, with the environment key the API wrapper would send: custom
-      // headers are meant for the Flags API and may carry credentials for it.
-      RequestBody body = RequestBody.create(payload, JSON_MEDIA_TYPE);
-      Request request = new Request.Builder()
-          .url(eventsEndpoint)
-          .post(body)
-          .header(AUTH_HEADER, api.newPostRequest(eventsEndpoint, body).header(AUTH_HEADER))
-          .header(USER_AGENT_HEADER, SDK_USER_AGENT_PREFIX + Versions.getVersion())
+      Request request = api
+          .newPostRequest(eventsEndpoint, RequestBody.create(payload, JSON_MEDIA_TYPE))
+          .newBuilder()
           .header(SDK_USER_AGENT_HEADER, SDK_USER_AGENT_PREFIX + Versions.getVersion())
-          .header(ACCEPT_HEADER, "application/json")
           .build();
 
       requestProcessor

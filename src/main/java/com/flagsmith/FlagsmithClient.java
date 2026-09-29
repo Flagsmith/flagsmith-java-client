@@ -651,7 +651,7 @@ public class FlagsmithClient {
     }
 
     /**
-     * Add custom HTTP headers to the Flags API calls. They are not sent to the events API.
+     * Add custom HTTP headers to the calls.
      *
      * @param customHeaders headers.
      * @return the Builder
