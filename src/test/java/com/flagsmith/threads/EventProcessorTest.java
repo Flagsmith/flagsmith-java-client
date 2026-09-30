@@ -114,6 +114,7 @@ public class EventProcessorTest {
         flushIntervalMillis,
         new RequestProcessor(client, new FlagsmithLogger()));
     eventProcessor.setApi(api);
+    eventProcessor.setBackoffBaseMillis(1);
     return eventProcessor;
   }
 
@@ -283,12 +284,12 @@ public class EventProcessorTest {
    */
   @ParameterizedTest
   @CsvSource({
-      "503, 1, 2", "501, 1, 2", "500, 2, 2",
-      "400, 1, 1",
-      ", 1, 2", ", 2, 2"})
+      "408, 1, 2, 0", "429, 1, 2, 0", "502, 1, 2, 0", "503, 2, 3, 0", "504, 1, 2, 0",
+      ", 1, 2, 0", ", 2, 3, 0",
+      "400, 1, 1, 1", "413, 1, 1, 1", "422, 1, 1, 1", "500, 1, 1, 1", "501, 1, 1, 1"})
   @SneakyThrows
-  public void flush_retriesOnceOnAServerErrorOrConnectionFailure(
-      Integer status, int failures, int expectedAttempts) {
+  public void flush_retriesOnlyARetryableFailureAndDropsTheRest(
+      Integer status, int failures, int expectedAttempts, long expectedDropped) {
     EventProcessor processor = status == null
         ? newProcessor(1000, 0, new FailingInterceptor(failures))
         : newProcessor(1000, 0);
@@ -303,6 +304,233 @@ public class EventProcessorTest {
     assertEquals(expectedAttempts, recorder.count());
     assertEquals(recorder.bodies().get(0), recorder.bodies().get(expectedAttempts - 1));
     assertTrue(processor.bufferedEvents().isEmpty());
+    assertEquals(expectedDropped, processor.getDroppedEventCount());
+  }
+
+  @ParameterizedTest
+  @CsvSource(value = {"503", "none"}, nullValues = "none")
+  @SneakyThrows
+  public void flush_keepsABatchThatFailsThreeTimesForTheNextFlush(Integer status) {
+    EventProcessor processor = status == null
+        ? newProcessor(2, 0, new FailingInterceptor(EventProcessor.MAX_ATTEMPTS))
+        : newProcessor(2, 0);
+    FlagsmithLogger logger = mockLogger(processor);
+    if (status != null) {
+      interceptor.addRule().post(EVENTS_ENDPOINT).times(EventProcessor.MAX_ATTEMPTS)
+          .respond(status);
+    }
+    interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(ACCEPTED_BODY, MEDIATYPE_JSON);
+
+    processor.trackEvent("purchase", "kept", "1", null, null);
+    flushAndWait(processor);
+
+    assertEquals(EventProcessor.MAX_ATTEMPTS, recorder.count());
+    assertEquals(1, processor.bufferedEvents().size());
+    verify(logger).error(startsWith("Kept 1 events for the next flush"));
+
+    processor.trackEvent("purchase", "newer", "1", null, null);
+    assertEquals(2, processor.bufferedEvents().size());
+    assertEquals(EventProcessor.MAX_ATTEMPTS, recorder.count());
+
+    flushAndWait(processor);
+
+    assertEquals(EventProcessor.MAX_ATTEMPTS + 1, recorder.count());
+    JsonNode events = MapperFactory.getMapper()
+        .readTree(recorder.bodies().get(EventProcessor.MAX_ATTEMPTS)).get("events");
+    assertEquals("kept", events.get(0).get("identifier").asText());
+    assertEquals("newer", events.get(1).get("identifier").asText());
+    assertEquals(0, processor.getDroppedEventCount());
+  }
+
+  @Test
+  @SneakyThrows
+  public void flush_dropsTheOldestEventsWhenAKeptBatchOverflowsTheBuffer() {
+    CountDownLatch release = new CountDownLatch(1);
+    EventProcessor processor = newProcessor(3, 0, (chain) -> {
+      try {
+        release.await(WAIT_SECONDS, TimeUnit.SECONDS);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+      throw new IOException("connection refused");
+    });
+    mockLogger(processor);
+
+    for (int i = 1; i <= 3; i++) {
+      processor.trackEvent("purchase", "old-" + i, "1", null, null);
+    }
+    processor.trackEvent("purchase", "new-1", "1", null, null);
+    processor.trackEvent("purchase", "new-2", "1", null, null);
+    release.countDown();
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(WAIT_SECONDS);
+    while (processor.getDroppedEventCount() < 2 && System.nanoTime() < deadline) {
+      Thread.sleep(10);
+    }
+
+    List<Map<String, Object>> buffered = processor.bufferedEvents();
+    assertEquals(3, buffered.size());
+    assertEquals("old-3", buffered.get(0).get("identifier"));
+    assertEquals(2, processor.getDroppedEventCount());
+  }
+
+  @Test
+  @SneakyThrows
+  public void flush_keepsAnExposureDedupedUntilItsBatchIsDelivered() {
+    EventProcessor processor = newProcessor(1000, 0);
+    mockLogger(processor);
+    interceptor.addRule().post(EVENTS_ENDPOINT).times(EventProcessor.MAX_ATTEMPTS).respond(503);
+    interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(ACCEPTED_BODY, MEDIATYPE_JSON);
+
+    processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null, null);
+    flushAndWait(processor);
+    processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null, null);
+    assertEquals(1, processor.bufferedEvents().size());
+
+    flushAndWait(processor);
+    processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null, null);
+    assertEquals(1, processor.bufferedEvents().size());
+  }
+
+  @Test
+  @SneakyThrows
+  public void flush_dropsAnExposureAndForgetsItsKeyOnANonRetryableStatus() {
+    EventProcessor processor = newProcessor(1000, 0);
+    mockLogger(processor);
+    interceptor.addRule().post(EVENTS_ENDPOINT).times(1).respond(400);
+    interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(ACCEPTED_BODY, MEDIATYPE_JSON);
+
+    processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null, null);
+    flushAndWait(processor);
+    processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null, null);
+
+    assertEquals(1, processor.bufferedEvents().size());
+    assertEquals(1, processor.getDroppedEventCount());
+  }
+
+  @ParameterizedTest
+  @CsvSource({"401", "403"})
+  @SneakyThrows
+  public void flush_stopsTheProcessorWhenTheKeyIsRefused(int status) {
+    EventProcessor processor = newProcessor(1000, 60_000);
+    FlagsmithLogger logger = mockLogger(processor);
+    interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(status);
+
+    processor.start();
+    processor.trackEvent("purchase", "user-1", "1", null, null);
+    flushAndWait(processor);
+
+    assertEquals(1, recorder.count());
+    assertEquals(1, processor.getDroppedEventCount());
+    verify(logger, times(1)).error(startsWith("The events API refused the environment key"));
+    assertTrue(processor.getScheduler().isShutdown());
+
+    processor.trackEvent("purchase", "user-2", "1", null, null);
+    processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null, null);
+    flushAndWait(processor);
+
+    assertTrue(processor.bufferedEvents().isEmpty());
+    assertEquals(1, recorder.count());
+    assertEquals(3, processor.getDroppedEventCount());
+    verify(logger, times(1)).error(startsWith("The events API refused the environment key"));
+  }
+
+  @Test
+  @SneakyThrows
+  public void flush_dropsTheBufferAndLogsOnceWhenTheKeyIsRefusedWithBatchesInFlight() {
+    CountDownLatch release = new CountDownLatch(1);
+    EventProcessor processor = newProcessor(1000, 0, (chain) -> {
+      try {
+        release.await(WAIT_SECONDS, TimeUnit.SECONDS);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IOException(e);
+      }
+      return new Response.Builder()
+          .request(chain.request())
+          .protocol(Protocol.HTTP_1_1)
+          .code(401)
+          .message("Unauthorized")
+          .body(ResponseBody.create("", MediaType.get("application/json")))
+          .build();
+    });
+    FlagsmithLogger logger = mockLogger(processor);
+
+    for (int i = 0; i < EventProcessor.MAX_IN_FLIGHT_BATCHES; i++) {
+      processor.trackEvent("purchase", "user-" + i, "1", null, null);
+      processor.flush();
+    }
+    processor.trackEvent("purchase", "waiting", "1", null, null);
+    CompletableFuture<Void> flushed = processor.flush();
+    assertTrue(recorder.awaitCount(EventProcessor.MAX_IN_FLIGHT_BATCHES));
+
+    release.countDown();
+    flushed.get(WAIT_SECONDS, TimeUnit.SECONDS);
+
+    assertEquals(EventProcessor.MAX_IN_FLIGHT_BATCHES, recorder.count());
+    assertEquals(EventProcessor.MAX_IN_FLIGHT_BATCHES + 1, processor.getDroppedEventCount());
+    verify(logger, times(1)).error(startsWith("The events API refused the environment key"));
+  }
+
+  @Test
+  @SneakyThrows
+  public void flush_completesWhenTheEventsItWaitsForAreKept() {
+    CountDownLatch release = new CountDownLatch(1);
+    EventProcessor processor = newProcessor(1000, 0, (chain) -> {
+      try {
+        release.await(WAIT_SECONDS, TimeUnit.SECONDS);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IOException(e);
+      }
+      throw new IOException("connection refused");
+    });
+    mockLogger(processor);
+
+    for (int i = 0; i < EventProcessor.MAX_IN_FLIGHT_BATCHES; i++) {
+      processor.trackEvent("purchase", "user-" + i, "1", null, null);
+      processor.flush();
+    }
+    processor.trackEvent("purchase", "waiting", "1", null, null);
+    CompletableFuture<Void> flushed = processor.flush();
+
+    release.countDown();
+    flushed.get(WAIT_SECONDS, TimeUnit.SECONDS);
+
+    assertEquals(EventProcessor.MAX_IN_FLIGHT_BATCHES + 1, processor.bufferedEvents().size());
+    assertEquals(0, processor.getDroppedEventCount());
+  }
+
+  @Test
+  public void backoffMillis_isAFullJitterUpToTheCappedExponentialCeiling() {
+    long[] ceilings = {1_000, 2_000, 4_000, 8_000, 10_000, 10_000};
+    for (int retry = 1; retry <= ceilings.length; retry++) {
+      assertEquals(ceilings[retry - 1],
+          EventProcessor.backoffCeilingMillis(EventProcessor.BACKOFF_BASE_MILLIS, retry));
+      for (int i = 0; i < 100; i++) {
+        long backoff = EventProcessor.backoffMillis(EventProcessor.BACKOFF_BASE_MILLIS, retry);
+        assertTrue(backoff >= 0 && backoff <= ceilings[retry - 1],
+            "retry " + retry + " backed off " + backoff + "ms");
+      }
+    }
+    assertEquals(EventProcessor.BACKOFF_CAP_MILLIS,
+        EventProcessor.backoffCeilingMillis(EventProcessor.BACKOFF_BASE_MILLIS, 1_000));
+  }
+
+  @Test
+  @SneakyThrows
+  public void close_dropsAndCountsABatchThatStillFails() {
+    EventProcessor processor = newProcessor(1000, 0);
+    eventProcessor = null;
+    FlagsmithLogger logger = mockLogger(processor);
+    interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(503);
+
+    processor.trackEvent("purchase", "user-1", "1", null, null);
+    processor.close();
+
+    assertEquals(EventProcessor.MAX_ATTEMPTS, recorder.count());
+    assertTrue(processor.bufferedEvents().isEmpty());
+    assertEquals(1, processor.getDroppedEventCount());
+    verify(logger).error(startsWith("Dropped 1 events"));
   }
 
   @Test
@@ -361,6 +589,7 @@ public class EventProcessorTest {
 
     assertEquals(0, recorder.count());
     assertTrue(processor.bufferedEvents().isEmpty());
+    assertEquals(1, processor.getDroppedEventCount());
   }
 
   @Test
@@ -532,14 +761,14 @@ public class EventProcessorTest {
   private static Stream<Arguments> clientTimeouts() {
     FlagsmithConfig longRead = FlagsmithConfig.newBuilder().readTimeout(30_000).build();
     return Stream.of(
-        // Two attempts at 2s connect + 5s write + 5s read, and 200ms backoff before the second.
-        Arguments.of(FlagsmithConfig.newBuilder().build().getHttpClient(), 2 * 12_000 + 200,
+        // Three attempts at 2s connect + 5s write + 5s read, and backoffs of up to 1s and 2s.
+        Arguments.of(FlagsmithConfig.newBuilder().build().getHttpClient(), 3 * 12_000 + 3_000,
             12_000),
-        Arguments.of(longRead.getHttpClient(), 2 * 37_000 + 200, 37_000),
+        Arguments.of(longRead.getHttpClient(), 3 * 37_000 + 3_000, 37_000),
         Arguments.of(new OkHttpClient.Builder().callTimeout(4, TimeUnit.SECONDS).build(),
-            2 * 4_000 + 200, 4_000),
+            3 * 4_000 + 3_000, 4_000),
         Arguments.of(new OkHttpClient.Builder().readTimeout(0, TimeUnit.SECONDS).build(),
-            2 * EventProcessor.CLOSE_TIMEOUT_MILLIS + 200, EventProcessor.CLOSE_TIMEOUT_MILLIS));
+            3 * EventProcessor.CLOSE_TIMEOUT_MILLIS + 3_000, EventProcessor.CLOSE_TIMEOUT_MILLIS));
   }
 
   @ParameterizedTest
@@ -671,17 +900,18 @@ public class EventProcessorTest {
     for (int i = 0; i < inFlight; i++) {
       processor.trackEvent("purchase", "user-" + i, "1", null, null);
     }
-    for (int i = 0; i < EventProcessor.MAX_BUFFERED_EVENTS + 500; i++) {
+    for (int i = 0; i < 1000 + 500; i++) {
       processor.trackEvent("purchase", "overflow-" + i + "-", "1", null, null);
     }
 
-    assertEquals(EventProcessor.MAX_BUFFERED_EVENTS, processor.bufferedEvents().size());
-    verify(logger).error(contains("Dropped the 1 oldest events"));
+    assertEquals(1000, processor.bufferedEvents().size());
+    assertEquals(500, processor.getDroppedEventCount());
+    verify(logger).error(startsWith("Dropped 1 events, latest because the buffer is full"));
     verify(logger, times(1)).error(startsWith("Dropped"));
 
     eventsApi.release();
 
-    assertTrue(awaitDelivered(inFlight + EventProcessor.MAX_BUFFERED_EVENTS));
+    assertTrue(awaitDelivered(inFlight + 1000));
     for (String body : recorder.bodies()) {
       assertTrue(MapperFactory.getMapper().readTree(body).get("events").size() <= 1000);
     }
@@ -701,37 +931,52 @@ public class EventProcessorTest {
       processor.trackEvent("purchase", "user-" + i, "1", null, null);
     }
     processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null, null);
-    for (int i = 0; i < EventProcessor.MAX_BUFFERED_EVENTS; i++) {
+    for (int i = 0; i < 1000; i++) {
       processor.trackEvent("purchase", "overflow-" + i, "1", null, null);
     }
     processor.trackExposureEvent("checkout_cta", "user-1", "treatment", null, null);
 
     List<Map<String, Object>> buffered = processor.bufferedEvents();
-    assertEquals(EventProcessor.MAX_BUFFERED_EVENTS, buffered.size());
+    assertEquals(1000, buffered.size());
     assertEquals("$flag_exposure", buffered.get(buffered.size() - 1).get("event"));
     eventsApi.release();
   }
 
-  private static Stream<Arguments> healthyApiLoads() {
-    return Stream.of(
-        Arguments.of(Integer.MAX_VALUE, EventProcessor.MAX_BUFFERED_EVENTS + 1),
-        Arguments.of(1, 2000));
-  }
-
-  @ParameterizedTest
-  @MethodSource("healthyApiLoads")
+  @Test
   @SneakyThrows
-  public void flush_neverDropsEventsOnAHealthyApi(int maxBufferItems, int events) {
-    EventProcessor processor = newProcessor(maxBufferItems, 0, AcceptingInterceptor.open());
+  public void flush_neverDropsEventsOnAHealthyApiWithinTheBuffer() {
+    EventProcessor processor = newProcessor(Integer.MAX_VALUE, 0, AcceptingInterceptor.open());
     FlagsmithLogger logger = mockLogger(processor);
 
-    for (int i = 0; i < events; i++) {
+    for (int i = 0; i < 1001; i++) {
       processor.trackEvent("purchase", "user-" + i, "1", null, null);
     }
     processor.flush();
 
-    assertTrue(awaitDelivered(events));
+    assertTrue(awaitDelivered(1001));
     assertEquals(Collections.emptyList(), errorCalls(logger));
+  }
+
+  @Test
+  @SneakyThrows
+  public void flush_deliversOrCountsEveryEventWhenABurstOutrunsASmallBuffer() {
+    EventProcessor processor = newProcessor(1, 0, AcceptingInterceptor.open());
+    mockLogger(processor);
+
+    for (int i = 0; i < 2000; i++) {
+      processor.trackEvent("purchase", "user-" + i, "1", null, null);
+    }
+    flushAndWait(processor);
+
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(WAIT_SECONDS);
+    while (deliveredEvents() + processor.getDroppedEventCount() < 2000
+        && System.nanoTime() < deadline) {
+      Thread.sleep(10);
+    }
+    assertEquals(2000, deliveredEvents() + processor.getDroppedEventCount());
+    for (String body : recorder.bodies()) {
+      assertEquals(1, MapperFactory.getMapper().readTree(body).get("events").size());
+    }
   }
 
   /**
@@ -789,6 +1034,7 @@ public class EventProcessorTest {
 
     verify(logger).error(contains("rejected 1 of 2 events"));
     verify(logger).error(contains("event too long"));
+    assertEquals(1, processor.getDroppedEventCount());
   }
 
   /**

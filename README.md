@@ -10,6 +10,37 @@ This SDK enables Android and Java applications to integrate with [Flagsmith](htt
 
 For full documentation visit [https://docs.flagsmith.com/clients/server-side](https://docs.flagsmith.com/clients/server-side).
 
+## Experimentation events
+
+Enable events on the configuration, then record exposures and custom events:
+
+```java
+FlagsmithClient flagsmith = FlagsmithClient.newBuilder()
+    .setApiKey(System.getenv("FLAGSMITH_ENVIRONMENT_KEY"))
+    .withConfiguration(FlagsmithConfig.newBuilder()
+        .withEnableEvents(true)
+        .build())
+    .build();
+
+// Records one $flag_exposure event when the identity is enrolled in a running experiment.
+BaseFlag flag = flagsmith.getExperimentFlag("checkout_cta", "user-123");
+
+flagsmith.trackEvent("purchase", "user-123");
+```
+
+Events are buffered and sent in batches, on a timer and when the buffer fills. A batch that fails
+on a retryable error (408, 429, 502, 503, 504 or a network error) is tried up to 3 times in
+total, with backoff, and then kept for the next timed flush. Any other error drops it, and a 401
+or 403 stops sending until the client is re-created.
+
+`flushEvents()` sends what is buffered now. A short-lived process, such as a serverless function
+or a CLI command, must call `close()` before it exits: it sends the remaining events and waits
+for them, within a bound derived from the HTTP client's timeouts. Otherwise buffered events are
+lost.
+
+`getDroppedEventCount()` returns how many events were dropped: when the buffer overflowed, on a
+non-retryable error, when the events API rejected them, after a 401 or 403, or on close.
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](https://gist.github.com/kyle-ssg/c36a03aebe492e45cbd3eefb21cb0486) for details on our code of conduct, and the process for submitting pull requests

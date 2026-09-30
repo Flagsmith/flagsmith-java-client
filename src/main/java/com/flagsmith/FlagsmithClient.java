@@ -372,10 +372,11 @@ public class FlagsmithClient {
   }
 
   /**
-   * Send buffered events now.
+   * Send buffered events now. A batch that still fails on a retryable error goes back in the
+   * buffer for the next flush, so a short-lived process should call {@link #close()} instead.
    *
-   * @return a future completing once every event buffered so far has been sent or dropped, already
-   *     completed when events are not enabled
+   * @return a future completing once every event buffered so far has been sent, dropped or put
+   *     back in the buffer; already completed when events are not enabled
    */
   public CompletableFuture<Void> flushEvents() {
     if (eventProcessor == null) {
@@ -386,8 +387,21 @@ public class FlagsmithClient {
   }
 
   /**
+   * The number of events dropped since the client was built. It never decreases.
+   *
+   * @return the dropped event count, 0 when events are not enabled
+   */
+  public long getDroppedEventCount() {
+    return eventProcessor == null ? 0 : eventProcessor.getDroppedEventCount();
+  }
+
+  /**
    * Should be called when terminating the client to clean up any resources that
    * need cleaning up.
+   *
+   * <p>With events enabled this sends the buffered events and waits for them, within a bound
+   * derived from the HTTP client's timeouts; a batch failing here is dropped. Call it before a
+   * short-lived process, such as a serverless function or a CLI command, exits.
    **/
   public void close() {
     if (pollingManager != null) {

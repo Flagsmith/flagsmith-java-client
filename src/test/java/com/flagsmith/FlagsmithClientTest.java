@@ -1329,6 +1329,28 @@ public class FlagsmithClientTest {
     }
 
     @Test
+    public void testGetDroppedEventCount() {
+        FlagsmithClient disabled = FlagsmithClient.newBuilder().setApiKey("api-key").build();
+        assertEquals(0, disabled.getDroppedEventCount());
+
+        MockInterceptor interceptor = new MockInterceptor();
+        interceptor.addRule().post("http://events-uri/v1/events").anyTimes().respond(400);
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withConfiguration(FlagsmithConfig.newBuilder()
+                        .addHttpInterceptor(interceptor)
+                        .eventsUri("http://events-uri")
+                        .withEnableEvents(Boolean.TRUE)
+                        .build())
+                .setApiKey("api-key")
+                .build();
+        client.trackEvent("purchase", "user-1");
+        client.trackEvent("purchase", "user-2");
+        client.close();
+
+        assertEquals(2, client.getDroppedEventCount());
+    }
+
+    @Test
     public void testEventsRequestLeavesOutCustomHeaders() {
         List<Request> requests = Collections.synchronizedList(new ArrayList<>());
         MockInterceptor interceptor = new MockInterceptor();
