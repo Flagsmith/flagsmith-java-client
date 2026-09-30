@@ -14,6 +14,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import lombok.Getter;
+import lombok.Setter;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -25,6 +26,7 @@ public class RequestProcessor {
   @Getter
   private OkHttpClient client;
   @Getter
+  @Setter
   private FlagsmithLogger logger;
   private Retry retries = new Retry(3);
 
@@ -77,6 +79,22 @@ public class RequestProcessor {
    * @param <T> Type inference for the response
    */
   public <T> Future<T> executeAsync(
+      Request request, TypeReference<T> clazz, Boolean doThrow, Retry retries) {
+    return submit(request, clazz, doThrow, retries);
+  }
+
+  /**
+   * Execute the request in async mode, returning a future callers can compose on.
+   *
+   * @param request request to send
+   * @param clazz type to unmarshal the response body into
+   * @param doThrow whether a failed call completes the future exceptionally
+   * @param retries retry policy, copied for this call
+   * @param <T> response type
+   * @return a future completed with the unmarshalled response, or null when the call failed and
+   *     doThrow is false
+   */
+  public <T> CompletableFuture<T> submit(
       Request request, TypeReference<T> clazz, Boolean doThrow, Retry retries) {
     CompletableFuture<T> completableFuture = new CompletableFuture<>();
     Retry localRetry = retries.toBuilder().build();

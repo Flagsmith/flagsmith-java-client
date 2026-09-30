@@ -2,10 +2,14 @@ package com.flagsmith;
 
 import com.flagsmith.config.Retry;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 
 public class FlagsmithRetryTest {
@@ -64,6 +68,33 @@ public class FlagsmithRetryTest {
       attempts++;
     } while(retryObject.isRetry(401));
     assertTrue(attempts.equals(3));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "1, 503, true", "1, , true",
+      "1, 400, false", "1, 404, false",
+      "2, 503, false", "2, , false"})
+  public void FlagsmithRetry_statusForcelistOnly_retriesListedStatusesWithinBudget(
+      int attempts, Integer status, boolean expected) {
+    Retry retry = new Retry(2);
+    retry.setStatusForcelist(new HashSet<>(Arrays.asList(500, 502, 503, 504)));
+    retry.setStatusForcelistOnly(Boolean.TRUE);
+    for (int i = 0; i < attempts; i++) {
+      retry.retryAttempted();
+    }
+
+    assertEquals(expected, retry.isRetry(status));
+  }
+
+  @Test
+  public void FlagsmithRetry_defaultPolicyIsUnchanged() {
+    Retry retry = new Retry(1);
+
+    assertFalse(retry.getStatusForcelistOnly());
+    retry.retryAttempted();
+    assertTrue(retry.isRetry(503));
+    assertFalse(retry.isRetry(401));
   }
 
   @Test

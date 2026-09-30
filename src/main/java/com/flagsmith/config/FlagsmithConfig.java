@@ -3,6 +3,7 @@ package com.flagsmith.config;
 import com.flagsmith.FlagsmithFlagDefaults;
 import com.flagsmith.interfaces.IOfflineHandler;
 import com.flagsmith.threads.AnalyticsProcessor;
+import com.flagsmith.threads.EventProcessor;
 import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,17 +31,26 @@ public final class FlagsmithConfig {
   private static final int DEFAULT_ENVIRONMENT_REFRESH_SECONDS = 60;
   private static final HttpUrl DEFAULT_BASE_URI = HttpUrl
       .get("https://edge.api.flagsmith.com/api/v1/");
+  private static final HttpUrl DEFAULT_EVENTS_URI = HttpUrl
+      .get("https://events.api.flagsmith.com/");
+  private static final int DEFAULT_EVENTS_MAX_BUFFER_ITEMS = 1000;
+  private static final int DEFAULT_EVENTS_FLUSH_INTERVAL_MILLIS = 10000;
   private final HttpUrl flagsUri;
   private final HttpUrl identitiesUri;
   private final HttpUrl traitsUri;
   private final HttpUrl environmentUri;
   private final OkHttpClient httpClient;
   private final HttpUrl baseUri;
+  private final HttpUrl eventsUri;
+  private final Boolean enableEvents;
+  private final int eventsMaxBufferItems;
+  private final int eventsFlushIntervalMillis;
 
   private final Retry retries;
   private Boolean enableLocalEvaluation;
   private Integer environmentRefreshIntervalSeconds;
   private AnalyticsProcessor analyticsProcessor;
+  private EventProcessor eventProcessor;
   private FlagsmithFlagDefaults flagsmithFlagDefaults = null;
   private Boolean raiseUpdateEnvironmentErrorsOnStartup = true;
   private Boolean offlineMode = false;
@@ -88,6 +98,24 @@ public final class FlagsmithConfig {
       }
     }
 
+    this.eventsUri = builder.eventsUri;
+    this.enableEvents = Boolean.TRUE.equals(builder.enableEvents);
+    this.eventsMaxBufferItems = builder.eventsMaxBufferItems;
+    this.eventsFlushIntervalMillis = builder.eventsFlushIntervalMillis;
+
+    if (enableEvents) {
+      if (eventsMaxBufferItems < 1) {
+        throw new IllegalArgumentException("maxBufferItems must be at least 1.");
+      }
+      if (eventsFlushIntervalMillis < 0) {
+        throw new IllegalArgumentException("flushIntervalMillis must not be negative.");
+      }
+      eventProcessor = builder.eventProcessor;
+    } else if (builder.eventsConfigured) {
+      throw new IllegalArgumentException(
+          "Events must be enabled with withEnableEvents(true) to configure the event processor.");
+    }
+
     this.offlineMode = builder.offlineMode;
     this.offlineHandler = builder.offlineHandler;
   }
@@ -119,6 +147,13 @@ public final class FlagsmithConfig {
     private Boolean enableLocalEvaluation = Boolean.FALSE;
     private Integer environmentRefreshIntervalSeconds = DEFAULT_ENVIRONMENT_REFRESH_SECONDS;
     private Boolean enableAnalytics = Boolean.FALSE;
+
+    private HttpUrl eventsUri = DEFAULT_EVENTS_URI;
+    private EventProcessor eventProcessor;
+    private Boolean enableEvents = Boolean.FALSE;
+    private Boolean eventsConfigured = Boolean.FALSE;
+    private int eventsMaxBufferItems = DEFAULT_EVENTS_MAX_BUFFER_ITEMS;
+    private int eventsFlushIntervalMillis = DEFAULT_EVENTS_FLUSH_INTERVAL_MILLIS;
 
     private Boolean offlineMode = Boolean.FALSE;
     private IOfflineHandler offlineHandler;
@@ -187,7 +222,8 @@ public final class FlagsmithConfig {
     }
 
     /**
-     * Add a custom HTTP interceptor.
+     * Add a custom HTTP interceptor. It runs on every request, including those to the events
+     * API, so an interceptor that adds credentials should check the request's host.
      *
      * @param interceptor the HTTP interceptor
      * @return the Builder
@@ -269,6 +305,70 @@ public final class FlagsmithConfig {
      */
     public Builder withEnableAnalytics(Boolean enable) {
       this.enableAnalytics = enable;
+      return this;
+    }
+
+    /**
+     * Override the events API base URL.
+     *
+     * @param eventsUri the new base URI for the events API
+     * @return the Builder
+     */
+    public Builder eventsUri(String eventsUri) {
+      if (eventsUri != null) {
+        this.eventsUri = HttpUrl.get(eventsUri.endsWith("/") ? eventsUri : eventsUri + "/");
+      }
+      return this;
+    }
+
+    /**
+     * Enable the event processor, which records experiment exposures and custom events.
+     *
+     * @param enable boolean to enable
+     * @return the Builder
+     */
+    public Builder withEnableEvents(Boolean enable) {
+      this.enableEvents = enable;
+      return this;
+    }
+
+    /**
+     * Use a custom event processor. Also enables events. The processor can back only one client:
+     * building a second client from this configuration throws.
+     *
+     * @param processor the processor that buffers and sends events
+     * @return the Builder
+     */
+    public Builder withEventProcessor(EventProcessor processor) {
+      this.eventProcessor = processor;
+      this.enableEvents = Boolean.TRUE;
+      return this;
+    }
+
+    /**
+     * Set the number of buffered events that triggers an immediate flush. Requires events to be
+     * enabled; {@link #build()} throws IllegalArgumentException when it is below 1.
+     *
+     * @param items the maximum number of buffered events
+     * @return the Builder
+     */
+    public Builder withEventsMaxBufferItems(int items) {
+      this.eventsMaxBufferItems = items;
+      this.eventsConfigured = Boolean.TRUE;
+      return this;
+    }
+
+    /**
+     * Set the interval between timed event flushes, in milliseconds. Zero disables the timer.
+     * Requires events to be enabled; {@link #build()} throws IllegalArgumentException when it is
+     * negative.
+     *
+     * @param millis the flush interval in milliseconds
+     * @return the Builder
+     */
+    public Builder withEventsFlushIntervalMillis(int millis) {
+      this.eventsFlushIntervalMillis = millis;
+      this.eventsConfigured = Boolean.TRUE;
       return this;
     }
 

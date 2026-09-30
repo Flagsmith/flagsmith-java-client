@@ -431,6 +431,26 @@ public class FlagsmithTestHelper {
     return featureJson;
   }
 
+  /** Identity flags covering every branch of the experiment gate. */
+  public static String getIdentitiesFlagsWithExperiment() {
+    return "{\"traits\": [], \"flags\": [\n"
+        + "  {\"id\": 1, \"feature\": {\"id\": 1, \"name\": \"checkout_cta\", \"type\": \"MULTIVARIATE\"},\n"
+        + "   \"feature_state_value\": \"buy-now\", \"enabled\": true, \"variant\": \"treatment\",\n"
+        + "   \"reason\": \"SPLIT; weight=70.0\", \"metadata\": {\"experiment\":\n"
+        + "   {\"id\": 42, \"name\": \"checkout_experiment\", \"in_experiment\": true}}},\n"
+        + "  {\"id\": 2, \"feature\": {\"id\": 2, \"name\": \"pricing_page\", \"type\": \"MULTIVARIATE\"},\n"
+        + "   \"feature_state_value\": \"old-pricing\", \"enabled\": true, \"variant\": \"control\",\n"
+        + "   \"reason\": \"SPLIT; weight=30.0\", \"metadata\": {\"experiment\":\n"
+        + "   {\"id\": 43, \"name\": \"pricing_experiment\", \"in_experiment\": false}}},\n"
+        + "  {\"id\": 3, \"feature\": {\"id\": 3, \"name\": \"some_feature\", \"type\": \"STANDARD\"},\n"
+        + "   \"feature_state_value\": \"some-value\", \"enabled\": true},\n"
+        + "  {\"id\": 4, \"feature\": {\"id\": 4, \"name\": \"disabled_feature\", \"type\": \"MULTIVARIATE\"},\n"
+        + "   \"feature_state_value\": \"off\", \"enabled\": false, \"variant\": \"treatment\",\n"
+        + "   \"reason\": \"SPLIT; weight=50.0\", \"metadata\": {\"experiment\":\n"
+        + "   {\"id\": 44, \"name\": \"disabled_experiment\", \"in_experiment\": true}}}\n"
+        + "]}";
+  }
+
   public static <T> Future<T> futurableReturn(T response) {
     CompletableFuture<T> promise = new CompletableFuture<>();
     promise.complete(response);
