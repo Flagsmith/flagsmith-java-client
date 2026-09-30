@@ -141,6 +141,10 @@ public class RequestProcessor {
     return completableFuture;
   }
 
+  void execute(Runnable task) {
+    executor.execute(task);
+  }
+
   public void close() {
     this.executor.shutdown();
   }

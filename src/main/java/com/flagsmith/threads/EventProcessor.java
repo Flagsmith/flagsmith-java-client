@@ -1,16 +1,15 @@
 package com.flagsmith.threads;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.util.RawValue;
 import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.Versions;
-import com.flagsmith.config.Retry;
 import com.flagsmith.exceptions.FlagsmithRuntimeError;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.models.TraitConfig;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,11 +25,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import java.util.concurrent.atomic.AtomicLong;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -39,10 +38,15 @@ import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 /**
  * Buffers experimentation events and sends them to the Flagsmith events API, on a timer, when the
- * buffer fills, and on {@link #close()}. Exposures are deduplicated within a flush window.
+ * buffer fills, and on {@link #close()}. A batch is retried on a 408, 429, 502, 503, 504 or a
+ * network error, and put back in the buffer for the next timed flush if it still fails; any other
+ * error drops it, and a 401 or 403 stops the processor. Exposures are deduplicated until they are
+ * delivered or dropped.
  */
 public class EventProcessor {
 
@@ -60,7 +64,10 @@ public class EventProcessor {
   private static final MediaType JSON_MEDIA_TYPE =
       MediaType.get("application/json; charset=utf-8");
   static final int MAX_IN_FLIGHT_BATCHES = 2;
-  static final int MAX_BUFFERED_EVENTS = 1_000;
+  static final int MAX_ATTEMPTS = 3;
+  static final Set<Integer> RETRYABLE_STATUSES = Set.of(408, 429, 502, 503, 504);
+  static final long BACKOFF_BASE_MILLIS = 1_000L;
+  static final long BACKOFF_CAP_MILLIS = 10_000L;
   static final long CLOSE_TIMEOUT_MILLIS = 25_000L;
   private static final long DROP_LOG_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(10);
 
@@ -78,18 +85,23 @@ public class EventProcessor {
   private final ScheduledExecutorService scheduler;
   private final Set<CompletableFuture<Void>> inFlight = ConcurrentHashMap.newKeySet();
   private CompletableFuture<Void> nextBatch = new CompletableFuture<>();
+  private boolean held = false;                   // guarded by lock
   private int droppedSinceLastReport = 0;         // guarded by lock
   private Long lastDropReportNanos = null;        // guarded by lock
+  private final AtomicLong droppedEvents = new AtomicLong();
   @Getter(AccessLevel.PACKAGE)
   private final RequestProcessor requestProcessor;
   @Getter(AccessLevel.PACKAGE)
   @Setter(AccessLevel.PACKAGE)
   private long closeTimeoutMillis;
+  @Setter(AccessLevel.PACKAGE)
+  private long backoffBaseMillis = BACKOFF_BASE_MILLIS;
   @Setter
   private FlagsmithSdk api;
   private FlagsmithLogger logger = new FlagsmithLogger();
   private final AtomicBoolean closed = new AtomicBoolean(false);
   private final AtomicBoolean claimed = new AtomicBoolean(false);
+  private final AtomicBoolean stopped = new AtomicBoolean(false);
   private ScheduledFuture<?> scheduledFlush;
 
   /**
@@ -97,8 +109,8 @@ public class EventProcessor {
    *
    * @param client               HTTP client; its timeouts also bound {@link #close()}
    * @param eventsUri            base URI of the events API, e.g. https://events.api.flagsmith.com/
-   * @param maxBufferItems       number of buffered events that triggers an immediate flush; at
-   *                             least 1
+   * @param maxBufferItems       number of buffered events that triggers an immediate flush, and
+   *                             the most the buffer holds; at least 1
    * @param flushIntervalMillis  interval between timed flushes; 0 disables the timer
    * @throws IllegalArgumentException when maxBufferItems is below 1 or flushIntervalMillis is
    *                                  negative
@@ -106,7 +118,7 @@ public class EventProcessor {
   public EventProcessor(OkHttpClient client, HttpUrl eventsUri, int maxBufferItems,
       int flushIntervalMillis) {
     this(eventsUri, maxBufferItems, flushIntervalMillis,
-        new RequestProcessor(withCallDeadline(client), new FlagsmithLogger(), buildRetry()));
+        new RequestProcessor(withCallDeadline(client), new FlagsmithLogger()));
   }
 
   EventProcessor(HttpUrl eventsUri, int maxBufferItems, int flushIntervalMillis,
@@ -121,7 +133,7 @@ public class EventProcessor {
     this.maxBufferItems = maxBufferItems;
     this.flushIntervalMillis = flushIntervalMillis;
     this.requestProcessor = requestProcessor;
-    this.closeTimeoutMillis = worstCaseBatchMillis(requestProcessor.getClient(), buildRetry());
+    this.closeTimeoutMillis = worstCaseBatchMillis(requestProcessor.getClient());
     this.scheduler = Executors.newSingleThreadScheduledExecutor((runnable) -> {
       Thread thread = new Thread(runnable, "flagsmith-events");
       thread.setDaemon(true);
@@ -129,23 +141,14 @@ public class EventProcessor {
     });
   }
 
-  private static Retry buildRetry() {
-    Retry retry = new Retry(2);
-    retry.setStatusForcelist(
-        IntStream.rangeClosed(500, 599).boxed().collect(Collectors.toSet()));
-    retry.setStatusForcelistOnly(Boolean.TRUE);
-    return retry;
-  }
-
-  private static long worstCaseBatchMillis(OkHttpClient client, Retry retry) {
+  private static long worstCaseBatchMillis(OkHttpClient client) {
     long attemptMillis = attemptMillis(client);
     if (attemptMillis == 0) {
       return CLOSE_TIMEOUT_MILLIS;
     }
-    long total = retry.getTotal() * attemptMillis;
-    for (int retried = 1; retried < retry.getTotal(); retried++) {
-      total += (long) (Math.min(retry.getBackoffFactor() * 2 * retried, retry.getBackoffMax())
-          * 1000);
+    long total = MAX_ATTEMPTS * attemptMillis;
+    for (int retry = 1; retry < MAX_ATTEMPTS; retry++) {
+      total += backoffCeilingMillis(BACKOFF_BASE_MILLIS, retry);
     }
     return total;
   }
@@ -171,6 +174,14 @@ public class EventProcessor {
     return client.newBuilder().callTimeout(callTimeout, TimeUnit.MILLISECONDS).build();
   }
 
+  static long backoffCeilingMillis(long baseMillis, int retry) {
+    return Math.min(BACKOFF_CAP_MILLIS, baseMillis << Math.min(retry - 1, 20));
+  }
+
+  static long backoffMillis(long baseMillis, int retry) {
+    return ThreadLocalRandom.current().nextLong(backoffCeilingMillis(baseMillis, retry) + 1);
+  }
+
   /**
    * Reserve this processor for one client; called by {@code FlagsmithClient.Builder}.
    *
@@ -193,6 +204,17 @@ public class EventProcessor {
   }
 
   /**
+   * The number of events dropped so far: when the buffer overflowed, on a non-retryable error,
+   * when the events API rejected them, after a 401 or 403, and when a batch failed on close. It
+   * never decreases.
+   *
+   * @return the dropped event count
+   */
+  public long getDroppedEventCount() {
+    return droppedEvents.get();
+  }
+
+  /**
    * Buffer a custom event.
    *
    * @param event      event name
@@ -208,7 +230,7 @@ public class EventProcessor {
 
   /**
    * Buffer a flag exposure event. Exposures equal in feature, identifier, value and experiment
-   * are only sent once per flush window.
+   * are only sent once until the events API accepts or drops them.
    *
    * @param featureName feature the identity was exposed to
    * @param identifier  identity the exposure belongs to
@@ -222,43 +244,59 @@ public class EventProcessor {
   }
 
   /**
-   * Send everything buffered so far.
+   * Send everything buffered so far, including events kept after a failure.
    *
-   * @return a future completing once every event buffered so far has been sent or dropped
+   * @return a future completing once every event buffered so far has been sent, dropped or put
+   *     back in the buffer; it never completes exceptionally
    */
   public CompletableFuture<Void> flush() {
-    List<Map<String, Object>> batch = null;
-    CompletableFuture<Void> tracked = null;
+    synchronized (lock) {
+      held = false;
+    }
+    return dispatch();
+  }
+
+  private CompletableFuture<Void> dispatch() {
+    Batch batch = null;
     CompletableFuture<Void> waiting = null;
 
     synchronized (lock) {
-      if (!buffer.isEmpty() && (inFlight.size() < MAX_IN_FLIGHT_BATCHES || closed.get())) {
-        batch = new ArrayList<>(buffer);
-        buffer.clear();
-        dedupeKeys.clear();
-        dedupeKeyByEvent.clear();
-        tracked = nextBatch;
-        nextBatch = new CompletableFuture<>();
-        inFlight.add(tracked);
-      } else if (!buffer.isEmpty()) {
+      if (!buffer.isEmpty() && (closed.get() || canSend())) {
+        batch = takeBatch();
+      } else if (!buffer.isEmpty() && !held) {
         waiting = nextBatch;
       }
     }
 
+    CompletableFuture<Void> sent;
     if (batch != null) {
-      send(batch, tracked);
+      send(batch);
+      sent = CompletableFuture.allOf(awaitInFlight(), batch.tracked);
+    } else {
+      sent = awaitInFlight();
     }
 
-    CompletableFuture<Void> sent = awaitInFlight();
     return waiting == null ? sent : CompletableFuture.allOf(sent, waiting);
+  }
+
+  private boolean canSend() {
+    return !held && inFlight.size() < MAX_IN_FLIGHT_BATCHES;
+  }
+
+  private Batch takeBatch() {
+    Batch batch = new Batch(new ArrayList<>(buffer), nextBatch);
+    buffer.clear();
+    nextBatch = new CompletableFuture<>();
+    inFlight.add(batch.tracked);
+    return batch;
   }
 
   /**
    * Start the flush timer. Does nothing when the flush interval is not positive, when the timer
-   * is already running, or once the processor is closed.
+   * is already running, or once the processor is closed or stopped.
    */
   public synchronized void start() {
-    if (flushIntervalMillis <= 0 || scheduledFlush != null) {
+    if (flushIntervalMillis <= 0 || scheduledFlush != null || stopped.get()) {
       return;
     }
 
@@ -273,8 +311,9 @@ public class EventProcessor {
 
   /**
    * Stop the timer, flush what is left and release HTTP resources. Blocks until in-flight
-   * batches settle, for at most one batch's worst case under the client's timeouts, or
-   * {@link #CLOSE_TIMEOUT_MILLIS} if a timeout is off.
+   * batches settle, for at most one batch's worst case under the client's timeouts and the
+   * retries, or {@link #CLOSE_TIMEOUT_MILLIS} if a timeout is off. A batch that fails from here on
+   * is dropped, not kept.
    */
   public void close() {
     synchronized (this) {
@@ -303,6 +342,10 @@ public class EventProcessor {
       logClosed(event);
       return;
     }
+    if (stopped.get()) {
+      droppedEvents.incrementAndGet();
+      return;
+    }
 
     try {
       final String stringValue = value == null ? null : String.valueOf(value);
@@ -325,12 +368,16 @@ public class EventProcessor {
       eventPayload.put("metadata", toJson(eventMetadata));
       eventPayload.put("timestamp", System.currentTimeMillis());
 
-      boolean isFull = false;
+      Batch full = null;
       int droppedToReport = 0;
 
       synchronized (lock) {
         if (closed.get()) {
           logClosed(event);
+          return;
+        }
+        if (stopped.get()) {
+          droppedEvents.incrementAndGet();
           return;
         }
         if (dedupe) {
@@ -340,20 +387,25 @@ public class EventProcessor {
           }
           dedupeKeyByEvent.put(eventPayload, key);
         }
+        if (buffer.size() >= maxBufferItems) {
+          if (canSend()) {
+            full = takeBatch();
+          } else {
+            droppedToReport = drop(Collections.singletonList(buffer.remove(0)));
+          }
+        }
         buffer.add(eventPayload);
-        if (inFlight.size() < MAX_IN_FLIGHT_BATCHES) {
-          isFull = buffer.size() >= maxBufferItems;
-        } else if (buffer.size() > Math.max(maxBufferItems, MAX_BUFFERED_EVENTS)) {
-          dedupeKeys.remove(dedupeKeyByEvent.remove(buffer.remove(0)));
-          droppedToReport = recordDrop(1);
+        if (full == null && canSend() && buffer.size() >= maxBufferItems) {
+          full = takeBatch();
         }
       }
 
-      logDrops(droppedToReport);
-      if (isFull) {
-        flush();
+      reportDrops(droppedToReport, "the buffer is full");
+      if (full != null) {
+        send(full);
       }
     } catch (JsonProcessingException | RuntimeException e) {
+      droppedEvents.incrementAndGet();
       logger.error("Failed to buffer event " + event + ".", e);
     }
   }
@@ -389,14 +441,15 @@ public class EventProcessor {
         experimentId == null ? null : String.valueOf(experimentId));
   }
 
-  private void send(List<Map<String, Object>> batch, CompletableFuture<Void> tracked) {
-    final int batchSize = batch.size();
+  private void send(Batch full) {
+    List<Map<String, Object>> batch = full.events;
+    CompletableFuture<Void> tracked = full.tracked;
     boolean submitted = false;
+    String reason = "sending them failed";
 
     try {
       if (api == null) {
-        logger.error("Dropping " + batchSize
-            + " events: the event processor has no API wrapper.");
+        reason = "the event processor has no API wrapper";
         return;
       }
 
@@ -413,43 +466,176 @@ public class EventProcessor {
           .header(ACCEPT_HEADER, "application/json")
           .build();
 
-      requestProcessor
-          .submit(request, new TypeReference<JsonNode>() {}, Boolean.FALSE, buildRetry())
-          .whenComplete((response, error) -> {
-            try {
-              logRejections(response, batchSize);
-            } finally {
-              settle(tracked);
-            }
-          });
+      requestProcessor.execute(() -> deliver(request, batch, tracked));
       submitted = true;
     } catch (Exception e) {
-      logger.error("Dropping " + batchSize + " events: failed to send them.", e);
+      logger.error("Failed to send " + batch.size() + " events.", e);
     } finally {
       if (!submitted) {
-        settle(tracked);
+        settle(tracked, batch, Outcome.DROPPED, reason);
       }
     }
   }
 
-  private void logRejections(JsonNode response, int batchSize) {
-    JsonNode rejected = response == null ? null : response.get("rejected");
-    if (rejected != null && rejected.isArray() && rejected.size() > 0) {
-      logger.error("The events API rejected " + rejected.size() + " of " + batchSize
-          + " events. First rejection: " + rejected.get(0));
+  private void deliver(Request request, List<Map<String, Object>> batch,
+      CompletableFuture<Void> tracked) {
+    Outcome outcome = Outcome.DROPPED;
+    String reason = "sending them failed";
+
+    try {
+      for (int attempt = 1; ; attempt++) {
+        Integer status = null;
+        String body = null;
+        try (Response response = requestProcessor.getClient().newCall(request).execute()) {
+          status = response.code();
+          ResponseBody responseBody = response.body();
+          if (response.isSuccessful() && responseBody != null) {
+            body = responseBody.string();
+          }
+        } catch (IOException e) {
+          reason = "sending them failed: " + e;
+        }
+
+        if (status != null && status >= 200 && status < 300) {
+          countRejections(body, batch.size());
+          outcome = Outcome.DELIVERED;
+          break;
+        }
+        if (status != null) {
+          reason = "the events API answered " + status;
+        }
+        if (status != null && (status == 401 || status == 403)) {
+          outcome = Outcome.UNAUTHORISED;
+          break;
+        }
+        if (status != null && !RETRYABLE_STATUSES.contains(status)) {
+          break;
+        }
+        if (attempt == MAX_ATTEMPTS || stopped.get()) {
+          outcome = Outcome.RETRY_LATER;
+          break;
+        }
+        Thread.sleep(backoffMillis(backoffBaseMillis, attempt));
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      outcome = Outcome.RETRY_LATER;
+    } catch (RuntimeException e) {
+      logger.error("Failed to send " + batch.size() + " events.", e);
+    } finally {
+      settle(tracked, batch, outcome, reason);
     }
   }
 
-  private void settle(CompletableFuture<Void> tracked) {
+  private void countRejections(String body, int batchSize) {
+    JsonNode rejected;
+    try {
+      JsonNode response = body == null ? null : MapperFactory.getMapper().readTree(body);
+      rejected = response == null ? null : response.get("rejected");
+    } catch (JsonProcessingException e) {
+      return;
+    }
+    if (rejected != null && rejected.isArray() && rejected.size() > 0) {
+      droppedEvents.addAndGet(rejected.size());
+      logger.error("The events API rejected " + rejected.size() + " of " + batchSize
+          + " events, which are not resent. First rejection: " + rejected.get(0));
+    }
+  }
+
+  private void settle(CompletableFuture<Void> tracked, List<Map<String, Object>> batch,
+      Outcome outcome, String reason) {
+    int droppedToReport = 0;
+    boolean kept = false;
+    boolean stopping = false;
     boolean waiting;
-    synchronized (lock) {
-      inFlight.remove(tracked);
-      waiting = !buffer.isEmpty();
+    CompletableFuture<Void> released = null;
+
+    try {
+      synchronized (lock) {
+        inFlight.remove(tracked);
+        switch (outcome) {
+          case DELIVERED:
+            release(batch);
+            break;
+          case RETRY_LATER:
+            if (closed.get() || stopped.get()) {
+              droppedToReport = drop(batch);
+            } else {
+              droppedToReport = requeue(batch);
+              kept = true;
+              held = true;
+              released = nextBatch;
+              nextBatch = new CompletableFuture<>();
+            }
+            break;
+          case UNAUTHORISED:
+            stopping = stopped.compareAndSet(false, true);
+            droppedEvents.addAndGet(batch.size());
+            if (stopping) {
+              droppedEvents.addAndGet(buffer.size());
+              buffer.clear();
+              dedupeKeys.clear();
+              dedupeKeyByEvent.clear();
+              released = nextBatch;
+              nextBatch = new CompletableFuture<>();
+            }
+            break;
+          default:
+            droppedToReport = drop(batch);
+        }
+        waiting = !held && !buffer.isEmpty();
+      }
+
+      if (stopping) {
+        stopTimer();
+        logger.error("The events API refused the environment key (" + reason
+            + "); events are dropped until the client is re-created with a valid key.");
+      }
+      if (kept) {
+        logger.error("Kept " + batch.size() + " events for the next flush: " + reason + ".");
+      }
+      reportDrops(droppedToReport, kept ? "the buffer is full" : reason);
+    } finally {
+      tracked.complete(null);
+      if (released != null) {
+        released.complete(null);
+      }
     }
-    tracked.complete(null);
+
     if (waiting) {
-      flush();
+      dispatch();
     }
+  }
+
+  private int requeue(List<Map<String, Object>> batch) {
+    buffer.addAll(0, batch);
+    int overflow = buffer.size() - maxBufferItems;
+    if (overflow <= 0) {
+      return 0;
+    }
+    List<Map<String, Object>> oldest = buffer.subList(0, overflow);
+    int toReport = drop(new ArrayList<>(oldest));
+    oldest.clear();
+    return toReport;
+  }
+
+  private void release(List<Map<String, Object>> events) {
+    for (Map<String, Object> event : events) {
+      List<String> key = dedupeKeyByEvent.remove(event);
+      if (key != null) {
+        dedupeKeys.remove(key);
+      }
+    }
+  }
+
+  private int drop(List<Map<String, Object>> events) {
+    release(events);
+    droppedEvents.addAndGet(events.size());
+    return recordDrop(events.size());
+  }
+
+  private synchronized void stopTimer() {
+    scheduler.shutdownNow();
   }
 
   private int recordDrop(int count) {
@@ -464,11 +650,10 @@ public class EventProcessor {
     return toReport;
   }
 
-  private void logDrops(int dropped) {
-    if (dropped > 0) {
-      logger.error("Dropped the " + dropped + " oldest events: " + MAX_IN_FLIGHT_BATCHES
-          + " batches are in flight to the events API and the buffer is full. Further drops are"
-          + " reported at most every " + TimeUnit.NANOSECONDS.toSeconds(DROP_LOG_INTERVAL_NANOS)
+  private void reportDrops(int dropped, String reason) {
+    if (dropped > 0 && !stopped.get()) {
+      logger.error("Dropped " + dropped + " events, latest because " + reason + ". Further drops"
+          + " are reported at most every " + TimeUnit.NANOSECONDS.toSeconds(DROP_LOG_INTERVAL_NANOS)
           + "s.");
     }
   }
@@ -480,6 +665,19 @@ public class EventProcessor {
   List<Map<String, Object>> bufferedEvents() {
     synchronized (lock) {
       return new ArrayList<>(buffer);
+    }
+  }
+
+  private enum Outcome { DELIVERED, RETRY_LATER, DROPPED, UNAUTHORISED }
+
+  private static final class Batch {
+
+    private final List<Map<String, Object>> events;
+    private final CompletableFuture<Void> tracked;
+
+    private Batch(List<Map<String, Object>> events, CompletableFuture<Void> tracked) {
+      this.events = events;
+      this.tracked = tracked;
     }
   }
 }

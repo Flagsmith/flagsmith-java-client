@@ -346,8 +346,9 @@ public final class FlagsmithConfig {
     }
 
     /**
-     * Set the number of buffered events that triggers an immediate flush. Requires events to be
-     * enabled; {@link #build()} throws IllegalArgumentException when it is below 1.
+     * Set the number of buffered events that triggers an immediate flush, and the most the buffer
+     * holds while batches are in flight: past it the oldest events are dropped. Requires events
+     * to be enabled; {@link #build()} throws IllegalArgumentException when it is below 1.
      *
      * @param items the maximum number of buffered events
      * @return the Builder
