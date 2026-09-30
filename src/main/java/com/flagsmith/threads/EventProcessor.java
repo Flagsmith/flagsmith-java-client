@@ -268,11 +268,14 @@ public class EventProcessor {
       }
     }
 
+    CompletableFuture<Void> sent;
     if (batch != null) {
       send(batch);
+      sent = CompletableFuture.allOf(awaitInFlight(), batch.tracked);
+    } else {
+      sent = awaitInFlight();
     }
 
-    CompletableFuture<Void> sent = awaitInFlight();
     return waiting == null ? sent : CompletableFuture.allOf(sent, waiting);
   }
 
