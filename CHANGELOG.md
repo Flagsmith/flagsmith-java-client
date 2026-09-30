@@ -1,5 +1,17 @@
 # Changelog
 
+## [8.2.0](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.1.2...v8.2.0) (2026-09-30)
+
+
+### Features
+
+* experimentation support ([#226](https://github.com/Flagsmith/flagsmith-java-client/issues/226)) ([c9dadea](https://github.com/Flagsmith/flagsmith-java-client/commit/c9dadea63bd7a86396178514816cd54af79a1ab6))
+
+
+### Bug Fixes
+
+* name generated engine classes from schema titles ([#227](https://github.com/Flagsmith/flagsmith-java-client/issues/227)) ([a0c4f54](https://github.com/Flagsmith/flagsmith-java-client/commit/a0c4f541af4d125a652f3098374d5e0f38e63b75))
+
 ## [8.1.2](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.1.1...v8.1.2) (2026-08-26)
 
 
