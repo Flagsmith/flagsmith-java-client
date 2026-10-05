@@ -1,5 +1,23 @@
 # Changelog
 
+## [8.2.0](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.1.2...v8.2.0) (2026-10-05)
+
+
+### Features
+
+* experimentation support ([#226](https://github.com/Flagsmith/flagsmith-java-client/issues/226)) ([c9dadea](https://github.com/Flagsmith/flagsmith-java-client/commit/c9dadea63bd7a86396178514816cd54af79a1ab6))
+
+
+### Bug Fixes
+
+* keep the healthy-api event test under the drop threshold ([#234](https://github.com/Flagsmith/flagsmith-java-client/issues/234)) ([02e396c](https://github.com/Flagsmith/flagsmith-java-client/commit/02e396cd918ee1edee323912cf6df79dac75be47))
+* name generated engine classes from schema titles ([#227](https://github.com/Flagsmith/flagsmith-java-client/issues/227)) ([a0c4f54](https://github.com/Flagsmith/flagsmith-java-client/commit/a0c4f541af4d125a652f3098374d5e0f38e63b75))
+
+
+### CI
+
+* build release artifacts on pull requests ([#231](https://github.com/Flagsmith/flagsmith-java-client/issues/231)) ([ae9d471](https://github.com/Flagsmith/flagsmith-java-client/commit/ae9d4712c465b1294dd175c692f26e1f51108650))
+
 ## [8.1.2](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.1.1...v8.1.2) (2026-08-26)
 
 
