@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.2.1](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.2.0...v8.2.1) (2026-10-05)
+
+
+### Other
+
+* **deps:** bump com.fasterxml.jackson.core:jackson-databind from 2.18.9 to 2.18.11 ([#232](https://github.com/Flagsmith/flagsmith-java-client/issues/232)) ([6df032a](https://github.com/Flagsmith/flagsmith-java-client/commit/6df032ae1610ad5022f2fc72bf9273d92a814e5f))
+
 ## [8.2.0](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.1.2...v8.2.0) (2026-10-05)
 
 
