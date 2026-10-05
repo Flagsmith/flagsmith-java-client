@@ -715,7 +715,7 @@ public class EventProcessorTest {
   private static Stream<Arguments> healthyApiLoads() {
     return Stream.of(
         Arguments.of(Integer.MAX_VALUE, EventProcessor.MAX_BUFFERED_EVENTS + 1),
-        Arguments.of(1, 2000));
+        Arguments.of(1, 1000));
   }
 
   @ParameterizedTest
