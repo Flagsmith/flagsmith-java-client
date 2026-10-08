@@ -188,6 +188,92 @@ public class FlagsmithClientTest {
     }
 
     @Test
+    public void testClient_updateEnvironmentPaginatesIdentityOverrides()
+            throws FlagsmithClientError {
+        String baseUrl = "http://bad-url";
+        String page2Id = "identity_override:1:00000000-0000-0000-0000-000000000001";
+        String page3Id = "identity_override:1:00000000-0000-0000-0000-000000000002";
+        MockInterceptor interceptor = new MockInterceptor();
+
+        interceptor.addRule()
+                .get(baseUrl + "/environment-document/")
+                .headerMatches("X-Environment-Key", Pattern.compile("ser.abcdefg"))
+                .respond(
+                        FlagsmithTestHelper.environmentString(),
+                        MEDIATYPE_JSON)
+                .header("Link", "</environment-document/?page_id=identity_override%3A1%3A"
+                        + "00000000-0000-0000-0000-000000000001>; rel=\"next\"");
+
+        interceptor.addRule()
+                .get()
+                .urlStarts(baseUrl + "/environment-document/")
+                .paramMatches("page_id", Pattern.compile(Pattern.quote(page2Id)))
+                .respond(environmentPageString("overridden-identity-page-2"), MEDIATYPE_JSON)
+                .header("Link", "</environment-document/?page_id=identity_override%3A1%3A"
+                        + "00000000-0000-0000-0000-000000000002>; rel=\"next\"");
+
+        interceptor.addRule()
+                .get()
+                .urlStarts(baseUrl + "/environment-document/")
+                .paramMatches("page_id", Pattern.compile(Pattern.quote(page3Id)))
+                .respond(environmentPageString("overridden-identity-page-3"), MEDIATYPE_JSON);
+
+        FlagsmithClient client = FlagsmithClient.newBuilder()
+                .withPollingManager(mock(PollingManager.class))
+                .withConfiguration(
+                        FlagsmithConfig.newBuilder()
+                                .baseUri(baseUrl)
+                                .addHttpInterceptor(interceptor)
+                                .withLocalEvaluation(true)
+                                .build())
+                .setApiKey("ser.abcdefg")
+                .build();
+
+        client.updateEnvironment();
+
+        assertEquals("overridden-value",
+                client.getIdentityFlags("overridden-identity").getFeatureValue("some_feature"));
+        assertEquals("overridden-value",
+                client.getIdentityFlags("overridden-identity-page-2")
+                        .getFeatureValue("some_feature"));
+        assertEquals("overridden-value",
+                client.getIdentityFlags("overridden-identity-page-3")
+                        .getFeatureValue("some_feature"));
+
+        assertEquals("some-value", client.getEnvironmentFlags().getFeatureValue("some_feature"));
+    }
+
+    private static String environmentPageString(String identifier) {
+        return "{\n"
+                + "  \"api_key\": \"B62qaMZNwfiqT76p38ggrQ\",\n"
+                + "  \"feature_states\": [\n"
+                + "    {\n"
+                + "      \"feature_state_value\": \"page-value\",\n"
+                + "      \"feature\": {\"name\": \"some_feature\", \"type\": \"STANDARD\", \"id\": 1},\n"
+                + "      \"enabled\": true\n"
+                + "    },\n"
+                + "    {\n"
+                + "      \"feature_state_value\": \"page-value\",\n"
+                + "      \"feature\": {\"name\": \"page_only_feature\", \"type\": \"STANDARD\", \"id\": 2},\n"
+                + "      \"enabled\": true\n"
+                + "    }\n"
+                + "  ],\n"
+                + "  \"identity_overrides\": [\n"
+                + "    {\n"
+                + "      \"identifier\": \"" + identifier + "\",\n"
+                + "      \"identity_features\": [\n"
+                + "        {\n"
+                + "          \"feature_state_value\": \"overridden-value\",\n"
+                + "          \"feature\": {\"name\": \"some_feature\", \"type\": \"STANDARD\", \"id\": 1},\n"
+                + "          \"enabled\": true\n"
+                + "        }\n"
+                + "      ]\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}";
+    }
+
+    @Test
     public void testClient_flagsApiException()
             throws FlagsmithApiError {
         String baseUrl = "http://bad-url";
