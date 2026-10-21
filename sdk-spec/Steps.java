@@ -30,7 +30,7 @@ public class Steps {
     return flags.getAllFlags().stream().map(SpecFlag::new).collect(Collectors.toList());
   }
 
-  // Given an SDK client for the environment
+  // Create the SDK client
   static FlagsmithClient createClient(String environmentKey, String apiUrl) {
     return FlagsmithClient.newBuilder().setApiKey(environmentKey).withApiUrl(apiUrl).build();
   }
