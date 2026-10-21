@@ -79,6 +79,18 @@ public class FlagsmithLogger {
   }
 
   /**
+   * Prints warning into the log.
+   *
+   * @param var1 a param to print
+   * @param var2 a param to print
+   */
+  public void warn(String var1, Object... var2) {
+    if (isLoggingEnabled(FlagsmithLoggerLevel.ERROR)) {
+      logger.warn("Flagsmith: " + var1, var2);
+    }
+  }
+
+  /**
    * Prints info into the log.
    *
    * @param var1 a param to print

@@ -10,7 +10,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -18,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.config.Retry;
+import com.flagsmith.flagengine.EvaluationContext;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.features.FeatureStateModel;
 import com.flagsmith.models.features.FeatureModel;
@@ -40,6 +43,7 @@ import okhttp3.ResponseBody;
 import okhttp3.mock.MockInterceptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 
 public class FlagsmithApiWrapperTest {
@@ -166,6 +170,58 @@ public class FlagsmithApiWrapperTest {
     verify(flagsmithLogger, times(1)).info(anyString(), any(), any());
     verify(flagsmithLogger, times(1)).httpError(any(), any(Response.class), eq(false));
     verify(flagsmithLogger, times(0)).httpError(any(), any(IOException.class), anyBoolean());
+  }
+
+  @Test
+  public void getEvaluationContext_singlePage_sendsOneRequest() throws JsonProcessingException {
+    // Arrange
+    interceptor.addRule()
+        .get(BASE_URL + "/environment-document/")
+        .respond(FlagsmithTestHelper.environmentString(), MEDIATYPE_JSON);
+
+    // Act
+    EvaluationContext context = sut.getEvaluationContext();
+
+    // Assert
+    assertNotNull(context);
+    verify(flagsmithLogger, times(0)).httpError(any(), any(Response.class), anyBoolean());
+  }
+
+  @Test
+  public void getEvaluationContext_warnsWhenFetchTakesLongerThanRefreshInterval()
+      throws JsonProcessingException {
+    // Arrange
+    defaultConfig = FlagsmithConfig.newBuilder()
+        .addHttpInterceptor(interceptor)
+        .retries(new Retry(1))
+        .baseUri(BASE_URL)
+        .withEnvironmentRefreshIntervalSeconds(0)
+        .build();
+    sut = new FlagsmithApiWrapper(defaultConfig, null, flagsmithLogger, API_KEY);
+
+    interceptor.addRule()
+        .get(BASE_URL + "/environment-document/")
+        .respond(FlagsmithTestHelper.environmentString(), MEDIATYPE_JSON);
+
+    // Act
+    sut.getEvaluationContext();
+
+    // Assert
+    ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
+    verify(flagsmithLogger).warn(message.capture(), anyString(), eq(0));
+    assertTrue(message.getValue().contains("Fetching the environment document took"));
+    assertTrue(message.getValue().contains("environment refresh interval of"));
+  }
+
+  @Test
+  public void extractNextPageId_decodesPageIdFromNextLink() {
+    assertNull(sut.extractNextPageId(null));
+    assertNull(sut.extractNextPageId("</environment-document/>; rel=\"next\""));
+    assertNull(sut.extractNextPageId("</environment-document/?page_id=x>; rel=\"prev\""));
+    assertEquals(
+        "identity_override:1:00000000-0000-0000-0000-000000000001",
+        sut.extractNextPageId("</environment-document/?page_id=identity_override%3A1%3A"
+            + "00000000-0000-0000-0000-000000000001>; rel=\"next\""));
   }
 
   @Test
