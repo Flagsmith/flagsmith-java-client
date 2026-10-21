@@ -246,8 +246,13 @@ public class SegmentEvaluator {
       }
     }
     if (property.startsWith("$.")) {
-      Map<String, Object> contextMap = mapper.convertValue(context, contextMapTypeRef);
-      contextMap.put("flags", flags); // Replaces any client-supplied flags.
+      Map<String, Object> contextMap;
+      if (property.startsWith("$.flags.") || property.startsWith("$.flags[")) {
+        contextMap = Map.of("flags", flags); // Spares serialising a context the path can't reach.
+      } else {
+        contextMap = mapper.convertValue(context, contextMapTypeRef);
+        contextMap.put("flags", flags); // Replaces any client-supplied flags.
+      }
       result = JsonPath
           .using(jsonPathConfiguration)
           .parse(contextMap)
