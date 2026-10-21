@@ -31,6 +31,9 @@ public class SegmentEvaluator {
       .setOptions(Option.SUPPRESS_EXCEPTIONS);
   private static TypeReference<List<String>> stringListTypeRef = new TypeReference<List<String>>() {
   };
+  private static TypeReference<Map<String, Object>> contextMapTypeRef =
+      new TypeReference<Map<String, Object>>() {
+      };
 
   /**
    * Check if context is in segment.
@@ -40,15 +43,28 @@ public class SegmentEvaluator {
    * @return true if context is in segment.
    */
   public static Boolean isContextInSegment(EvaluationContext context, SegmentContext segment) {
+    return isContextInSegment(context, segment, Map.of());
+  }
+
+  /**
+   * Check if context is in segment, with conditions reading `$.flags` from the given mapping.
+   *
+   * @param context Evaluation context.
+   * @param segment Segment context.
+   * @param flags   Flag results by feature name, as serialised maps.
+   * @return true if context is in segment.
+   */
+  public static Boolean isContextInSegment(EvaluationContext context, SegmentContext segment,
+      Map<String, Object> flags) {
     List<SegmentRule> rules = segment.getRules();
     return !rules.isEmpty() && rules.stream()
-        .allMatch((rule) -> contextMatchesRule(context, rule, segment.getKey()));
+        .allMatch((rule) -> contextMatchesRule(context, rule, segment.getKey(), flags));
   }
 
   private static Boolean contextMatchesRule(EvaluationContext context, SegmentRule rule,
-      String segmentKey) {
+      String segmentKey, Map<String, Object> flags) {
     Predicate<SegmentCondition> conditionPredicate = (condition) -> contextMatchesCondition(
-        context, condition, segmentKey);
+        context, condition, segmentKey, flags);
 
     Boolean isMatch;
     List<SegmentCondition> conditions = rule.getConditions();
@@ -81,7 +97,7 @@ public class SegmentEvaluator {
     }
 
     Predicate<SegmentRule> subRulePredicate = (subRule) -> contextMatchesRule(
-        context, subRule, segmentKey);
+        context, subRule, segmentKey, flags);
     switch (rule.getType()) {
       case ALL:
         return subRules.stream().allMatch(subRulePredicate);
@@ -97,7 +113,8 @@ public class SegmentEvaluator {
   private static Boolean contextMatchesCondition(
       EvaluationContext context,
       SegmentCondition condition,
-      String segmentKey) {
+      String segmentKey,
+      Map<String, Object> flags) {
     Object contextValue = null;
     Object conditionValue = condition.getValue();
     String conditionProperty = condition.getProperty();
@@ -114,7 +131,7 @@ public class SegmentEvaluator {
         contextValue = identity.getKey();
       }
     } else {
-      contextValue = getContextValue(context, conditionProperty);
+      contextValue = getContextValue(context, conditionProperty, flags);
     }
 
     switch (operator) {
@@ -216,9 +233,11 @@ public class SegmentEvaluator {
    *
    * @param context  Evaluation context.
    * @param property Property name.
+   * @param flags    Flag results by feature name, as serialised maps.
    * @return Property value.
    */
-  private static Object getContextValue(EvaluationContext context, String property) {
+  private static Object getContextValue(EvaluationContext context, String property,
+      Map<String, Object> flags) {
     Object result;
     if (context.getIdentity() != null && context.getIdentity().getTraits() != null) {
       result = context.getIdentity().getTraits().getAdditionalProperties().get(property);
@@ -227,9 +246,16 @@ public class SegmentEvaluator {
       }
     }
     if (property.startsWith("$.")) {
+      Map<String, Object> contextMap;
+      if (property.startsWith("$.flags.") || property.startsWith("$.flags[")) {
+        contextMap = Map.of("flags", flags); // Spares serialising a context the path can't reach.
+      } else {
+        contextMap = mapper.convertValue(context, contextMapTypeRef);
+        contextMap.put("flags", flags); // Replaces any client-supplied flags.
+      }
       result = JsonPath
           .using(jsonPathConfiguration)
-          .parse(mapper.convertValue(context, Map.class))
+          .parse(contextMap)
           .read(property);
       if (result instanceof List || result instanceof Map) {
         return null;
