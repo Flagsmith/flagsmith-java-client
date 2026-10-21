@@ -1,5 +1,18 @@
 # Changelog
 
+## [8.2.1](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.2.0...v8.2.1) (2026-10-21)
+
+
+### CI
+
+* Label Renovate's SDK spec bump PRs ([#238](https://github.com/Flagsmith/flagsmith-java-client/issues/238)) ([773fb3e](https://github.com/Flagsmith/flagsmith-java-client/commit/773fb3ec88fb6143efb1fd79baca58c9714a035f))
+* Run the Flagsmith SDK behavioural spec ([#237](https://github.com/Flagsmith/flagsmith-java-client/issues/237)) ([18281fc](https://github.com/Flagsmith/flagsmith-java-client/commit/18281fcb81f433a1a95a31de0b29022a91d1d84f))
+
+
+### Other
+
+* **deps:** bump com.fasterxml.jackson.core:jackson-databind from 2.18.9 to 2.18.11 ([#232](https://github.com/Flagsmith/flagsmith-java-client/issues/232)) ([6df032a](https://github.com/Flagsmith/flagsmith-java-client/commit/6df032ae1610ad5022f2fc72bf9273d92a814e5f))
+
 ## [8.2.0](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.1.2...v8.2.0) (2026-10-05)
 
 
