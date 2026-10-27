@@ -79,15 +79,6 @@ public class SdkBenchmark {
   }
 
   /**
-   * Fetch, parse and map the environment document, replacing the client's cached copy.
-   */
-  @Benchmark
-  public EvaluationContext updateEnvironment() {
-    client.updateEnvironment();
-    return client.getEvaluationContext();
-  }
-
-  /**
    * Get a feature value from the environment flags.
    */
   @Benchmark
