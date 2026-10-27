@@ -5,3 +5,7 @@
 [submodule "third-party/codspeed-jvm"]
 	path = third-party/codspeed-jvm
 	url = https://github.com/CodSpeedHQ/codspeed-jvm.git
+[submodule "third-party/sdk-benchmarks"]
+	path = third-party/sdk-benchmarks
+	url = https://github.com/Flagsmith/sdk-benchmarks.git
+	branch = 0.0.1

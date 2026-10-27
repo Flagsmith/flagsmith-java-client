@@ -433,7 +433,10 @@
                 <configuration>
                   <resources>
                     <resource>
-                      <directory>${project.basedir}/src/jmh/resources</directory>
+                      <directory>${project.basedir}/third-party/sdk-benchmarks</directory>
+                      <includes>
+                        <include>environments/*.json</include>
+                      </includes>
                     </resource>
                   </resources>
                 </configuration>
