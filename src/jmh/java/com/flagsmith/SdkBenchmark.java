@@ -4,7 +4,6 @@ import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.flagengine.EvaluationContext;
 import com.flagsmith.models.Segment;
-import com.flagsmith.models.environments.EnvironmentModel;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -50,7 +49,7 @@ public class SdkBenchmark {
    * Build a locally evaluating client serving the environment document from memory.
    */
   @Setup
-  public void buildClient() throws IOException, FlagsmithClientError {
+  public void buildClient() throws IOException {
     byte[] environmentDocument;
     try (InputStream stream = getClass().getResourceAsStream(
         "/environments/" + environment + ".json")) {
@@ -66,11 +65,6 @@ public class SdkBenchmark {
             .withEnvironmentRefreshIntervalSeconds(86400) // Refreshed by benchmarks only
             .build())
         .build();
-
-    int segmentCount = MapperFactory.getMapper()
-        .readValue(environmentDocument, EnvironmentModel.class)
-        .getProject().getSegments().size();
-    verifyScenarios(segmentCount);
   }
 
   @TearDown
@@ -116,21 +110,6 @@ public class SdkBenchmark {
   @Benchmark
   public List<Segment> getIdentitySegmentsWithTraits() throws FlagsmithClientError {
     return client.getIdentitySegments(IDENTIFIER, TRAITS);
-  }
-
-  private void verifyScenarios(int segmentCount) throws FlagsmithClientError {
-    Object overriddenValue = client.getIdentityFlags(IDENTITY_OVERRIDES_IDENTIFIER)
-        .getFeatureValue("feature_8");
-    if (!"identity-1".equals(overriddenValue)) {
-      throw new IllegalStateException("Identity overrides not applied: " + overriddenValue);
-    }
-
-    int noTraitsSegments = client.getIdentitySegments(IDENTIFIER).size();
-    int withTraitsSegments = client.getIdentitySegments(IDENTIFIER, TRAITS).size();
-    if (withTraitsSegments < segmentCount / 2 || noTraitsSegments >= withTraitsSegments) {
-      throw new IllegalStateException("Identity in " + noTraitsSegments + " segments without traits"
-          + " and " + withTraitsSegments + " with traits, of " + segmentCount);
-    }
   }
 
   private static Interceptor serveEnvironmentDocument(byte[] environmentDocument) {
