@@ -35,15 +35,8 @@ jobs:
         with:
           maven-version: 3.10.0
 
-      - name: Publish CodSpeed JMH fork to local Maven repository
-        working-directory: third-party/codspeed-jvm
-        run: ./gradlew -p jmh-fork publishToMavenLocal
-
-      - name: Build benchmarks
-        run: mvn --batch-mode --no-transfer-progress -P benchmarks -DskipTests package
-
       - name: Run benchmarks
         uses: CodSpeedHQ/action@78102a468f96d8e0ccb92d0ec49425753fc42062  # v5.6.0
         with:
           mode: walltime
-          run: java -jar target/benchmarks.jar
+          run: make benchmark
