@@ -29,6 +29,11 @@ jobs:
           java-version: 21
           cache: maven
 
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@12eb41b233df95d49b0c11fc1b5bc8312e5d4ce0  # v5.1
+        with:
+          maven-version: 3.10.0
+
       - name: Publish CodSpeed JMH fork to local Maven repository
         working-directory: third-party/codspeed-jvm
         run: ./gradlew -p jmh-fork publishToMavenLocal
