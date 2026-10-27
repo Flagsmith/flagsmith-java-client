@@ -1,0 +1,1640 @@
+{
+  "api_key": "benchmark-environment-key",
+  "name": "Production",
+  "project": {
+    "id": 1,
+    "name": "Benchmark",
+    "segments": [
+      {
+        "id": 1,
+        "name": "segment_1",
+        "rules": [
+          {
+            "type": "ALL",
+            "conditions": [
+              {
+                "operator": "GREATER_THAN_INCLUSIVE",
+                "property_": "version",
+                "value": "2.0.0:semver"
+              },
+              {
+                "operator": "LESS_THAN",
+                "property_": "version",
+                "value": "3.0.0:semver"
+              }
+            ],
+            "rules": []
+          }
+        ],
+        "feature_states": [
+          {
+            "feature": {
+              "id": 4,
+              "name": "feature_4",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 11,
+            "featurestate_uuid": "e3b84984-e218-5057-bf9f-497e5cbcc21b",
+            "feature_state_value": "segment-1",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 1
+            }
+          },
+          {
+            "feature": {
+              "id": 5,
+              "name": "feature_5",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 12,
+            "featurestate_uuid": "c90cdbeb-70f0-5c44-a109-80ff80de2407",
+            "feature_state_value": "segment-1",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 1
+            }
+          },
+          {
+            "feature": {
+              "id": 6,
+              "name": "feature_6",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 13,
+            "featurestate_uuid": "fddef9d9-c426-51d3-8e59-7545a804d17f",
+            "feature_state_value": "segment-1",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 1
+            }
+          },
+          {
+            "feature": {
+              "id": 7,
+              "name": "feature_7",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 14,
+            "featurestate_uuid": "bedef3b4-3839-5cc7-b62d-4eeb39af964f",
+            "feature_state_value": "segment-1",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 1
+            }
+          },
+          {
+            "feature": {
+              "id": 8,
+              "name": "feature_8",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 15,
+            "featurestate_uuid": "e9ea91b6-bc7c-51ed-abe7-e8dcef9dcbbb",
+            "feature_state_value": "segment-1",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 1
+            }
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "name": "segment_2",
+        "rules": [
+          {
+            "type": "ALL",
+            "conditions": [
+              {
+                "operator": "REGEX",
+                "property_": "email",
+                "value": ".*@example\\.com$"
+              },
+              {
+                "operator": "NOT_CONTAINS",
+                "property_": "email",
+                "value": "test"
+              }
+            ],
+            "rules": []
+          }
+        ],
+        "feature_states": [
+          {
+            "feature": {
+              "id": 7,
+              "name": "feature_7",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 16,
+            "featurestate_uuid": "61c52121-b65a-5ad8-9ac2-26c928550f76",
+            "feature_state_value": "segment-2",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 2
+            }
+          },
+          {
+            "feature": {
+              "id": 8,
+              "name": "feature_8",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 17,
+            "featurestate_uuid": "28fabf9a-3d09-5bed-9992-3f7ce332876e",
+            "feature_state_value": "segment-2",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 2
+            }
+          },
+          {
+            "feature": {
+              "id": 9,
+              "name": "feature_9",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 18,
+            "featurestate_uuid": "bd5ae7d4-8930-5426-a9e3-8f94c4402a58",
+            "feature_state_value": "segment-2",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 2
+            }
+          },
+          {
+            "feature": {
+              "id": 10,
+              "name": "feature_10",
+              "type": "MULTIVARIATE"
+            },
+            "enabled": true,
+            "django_id": 19,
+            "featurestate_uuid": "3b32c7a0-d4ab-50b6-9e7f-482f0338db2c",
+            "feature_state_value": "segment-2",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 2
+            }
+          },
+          {
+            "feature": {
+              "id": 1,
+              "name": "feature_1",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 20,
+            "featurestate_uuid": "bc6f8bf3-a154-5990-b197-6da297f3e70d",
+            "feature_state_value": "segment-2",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 2
+            }
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "name": "segment_3",
+        "rules": [
+          {
+            "type": "ALL",
+            "conditions": [
+              {
+                "operator": "PERCENTAGE_SPLIT",
+                "property_": null,
+                "value": "8"
+              }
+            ],
+            "rules": []
+          }
+        ],
+        "feature_states": [
+          {
+            "feature": {
+              "id": 10,
+              "name": "feature_10",
+              "type": "MULTIVARIATE"
+            },
+            "enabled": true,
+            "django_id": 21,
+            "featurestate_uuid": "68151c33-5bfa-5bff-a1f6-500fbf6afc06",
+            "feature_state_value": "segment-3",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 3
+            }
+          },
+          {
+            "feature": {
+              "id": 1,
+              "name": "feature_1",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 22,
+            "featurestate_uuid": "b8fd963d-53b2-5747-914e-86f2c06cccf0",
+            "feature_state_value": "segment-3",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 3
+            }
+          },
+          {
+            "feature": {
+              "id": 2,
+              "name": "feature_2",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 23,
+            "featurestate_uuid": "5e4a41dd-cd62-52ac-b6cb-d2575ad9a6f8",
+            "feature_state_value": "segment-3",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 3
+            }
+          },
+          {
+            "feature": {
+              "id": 3,
+              "name": "feature_3",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 24,
+            "featurestate_uuid": "2ab6a3b4-5ed7-58c5-8081-80c5dc1a70a9",
+            "feature_state_value": "segment-3",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 3
+            }
+          },
+          {
+            "feature": {
+              "id": 4,
+              "name": "feature_4",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 25,
+            "featurestate_uuid": "09699616-b8c5-5e11-9364-aaa0ebfa39bb",
+            "feature_state_value": "segment-3",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 3
+            }
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "name": "segment_4",
+        "rules": [
+          {
+            "type": "ALL",
+            "conditions": [
+              {
+                "operator": "MODULO",
+                "property_": "user_id",
+                "value": "6|0"
+              }
+            ],
+            "rules": []
+          }
+        ],
+        "feature_states": [
+          {
+            "feature": {
+              "id": 3,
+              "name": "feature_3",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 26,
+            "featurestate_uuid": "881514d9-ce1a-5dcf-843c-92e424ef3618",
+            "feature_state_value": "segment-4",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 4
+            }
+          },
+          {
+            "feature": {
+              "id": 4,
+              "name": "feature_4",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 27,
+            "featurestate_uuid": "8e5ae585-0840-5c94-9d6e-11b3182403a5",
+            "feature_state_value": "segment-4",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 4
+            }
+          },
+          {
+            "feature": {
+              "id": 5,
+              "name": "feature_5",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 28,
+            "featurestate_uuid": "99c3c04c-2d50-5e75-a08c-0170865a7bbc",
+            "feature_state_value": "segment-4",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 4
+            }
+          },
+          {
+            "feature": {
+              "id": 6,
+              "name": "feature_6",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 29,
+            "featurestate_uuid": "966aaafa-0356-5095-bf65-94880d71677a",
+            "feature_state_value": "segment-4",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 4
+            }
+          },
+          {
+            "feature": {
+              "id": 7,
+              "name": "feature_7",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 30,
+            "featurestate_uuid": "6ca12b38-99ef-5407-ab86-14db416dff31",
+            "feature_state_value": "segment-4",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 4
+            }
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "name": "segment_5",
+        "rules": [
+          {
+            "type": "ALL",
+            "conditions": [
+              {
+                "operator": "IS_SET",
+                "property_": "beta",
+                "value": null
+              }
+            ],
+            "rules": []
+          },
+          {
+            "type": "NONE",
+            "conditions": [
+              {
+                "operator": "IS_NOT_SET",
+                "property_": "tier",
+                "value": null
+              }
+            ],
+            "rules": []
+          }
+        ],
+        "feature_states": [
+          {
+            "feature": {
+              "id": 6,
+              "name": "feature_6",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 31,
+            "featurestate_uuid": "36896296-6694-5cab-88ac-f932ef54da61",
+            "feature_state_value": "segment-5",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 5
+            }
+          },
+          {
+            "feature": {
+              "id": 7,
+              "name": "feature_7",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 32,
+            "featurestate_uuid": "eda1a25b-63b2-5ded-a16d-aa242acce517",
+            "feature_state_value": "segment-5",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 5
+            }
+          },
+          {
+            "feature": {
+              "id": 8,
+              "name": "feature_8",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 33,
+            "featurestate_uuid": "ec5ca5fa-2f0f-5d54-be44-1a82435c1542",
+            "feature_state_value": "segment-5",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 5
+            }
+          },
+          {
+            "feature": {
+              "id": 9,
+              "name": "feature_9",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 34,
+            "featurestate_uuid": "0ddf3fbe-f4cb-54ef-9765-6c1a59cb01e3",
+            "feature_state_value": "segment-5",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 5
+            }
+          },
+          {
+            "feature": {
+              "id": 10,
+              "name": "feature_10",
+              "type": "MULTIVARIATE"
+            },
+            "enabled": true,
+            "django_id": 35,
+            "featurestate_uuid": "23020cf7-4002-5884-9c26-d1a4241cae65",
+            "feature_state_value": "segment-5",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 5
+            }
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "name": "segment_6",
+        "rules": [
+          {
+            "type": "ALL",
+            "conditions": [
+              {
+                "operator": "EQUAL",
+                "property_": "$.environment.name",
+                "value": "Production"
+              }
+            ],
+            "rules": []
+          }
+        ],
+        "feature_states": [
+          {
+            "feature": {
+              "id": 9,
+              "name": "feature_9",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 36,
+            "featurestate_uuid": "7327b324-627e-5edb-9e85-7134130f8115",
+            "feature_state_value": "segment-6",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 6
+            }
+          },
+          {
+            "feature": {
+              "id": 10,
+              "name": "feature_10",
+              "type": "MULTIVARIATE"
+            },
+            "enabled": true,
+            "django_id": 37,
+            "featurestate_uuid": "f9bd5336-e071-5dda-bdda-0460e5c12f0d",
+            "feature_state_value": "segment-6",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 6
+            }
+          },
+          {
+            "feature": {
+              "id": 1,
+              "name": "feature_1",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 38,
+            "featurestate_uuid": "20303298-6f23-57ba-8716-91839bf370f5",
+            "feature_state_value": "segment-6",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 6
+            }
+          },
+          {
+            "feature": {
+              "id": 2,
+              "name": "feature_2",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 39,
+            "featurestate_uuid": "7dda8f8c-4c06-5d2f-904c-be0939adc233",
+            "feature_state_value": "segment-6",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 6
+            }
+          },
+          {
+            "feature": {
+              "id": 3,
+              "name": "feature_3",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 40,
+            "featurestate_uuid": "27d5c302-d2ef-5008-83fb-4cd8036c9297",
+            "feature_state_value": "segment-6",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 6
+            }
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "name": "segment_7",
+        "rules": [
+          {
+            "type": "ALL",
+            "conditions": [],
+            "rules": [
+              {
+                "type": "ANY",
+                "conditions": [
+                  {
+                    "operator": "LESS_THAN_INCLUSIVE",
+                    "property_": "score",
+                    "value": "10"
+                  },
+                  {
+                    "operator": "GREATER_THAN",
+                    "property_": "score",
+                    "value": "90.5"
+                  },
+                  {
+                    "operator": "NOT_EQUAL",
+                    "property_": "tier",
+                    "value": "free"
+                  }
+                ],
+                "rules": []
+              }
+            ]
+          }
+        ],
+        "feature_states": [
+          {
+            "feature": {
+              "id": 2,
+              "name": "feature_2",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 41,
+            "featurestate_uuid": "3ec3782a-e2ee-5acc-95ad-f875c957f072",
+            "feature_state_value": "segment-7",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 7
+            }
+          },
+          {
+            "feature": {
+              "id": 3,
+              "name": "feature_3",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 42,
+            "featurestate_uuid": "b828f7f3-b931-53d0-9d36-fe166538b709",
+            "feature_state_value": "segment-7",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 7
+            }
+          },
+          {
+            "feature": {
+              "id": 4,
+              "name": "feature_4",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 43,
+            "featurestate_uuid": "26bec6f6-463a-522b-b118-88b1ff50c452",
+            "feature_state_value": "segment-7",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 7
+            }
+          },
+          {
+            "feature": {
+              "id": 5,
+              "name": "feature_5",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 44,
+            "featurestate_uuid": "e56cf30a-18e1-5be8-bab4-e0c89ef57d2f",
+            "feature_state_value": "segment-7",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 7
+            }
+          },
+          {
+            "feature": {
+              "id": 6,
+              "name": "feature_6",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 45,
+            "featurestate_uuid": "bc69901d-4e86-56ac-bf99-8a1f77e13944",
+            "feature_state_value": "segment-7",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 7
+            }
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "name": "segment_8",
+        "rules": [
+          {
+            "type": "ALL",
+            "conditions": [
+              {
+                "operator": "IN",
+                "property_": "$.identity.identifier",
+                "value": "user-1,user-2,user-3,user-4,user-5,user-6,user-7,user-8,user-9,user-10,user-11,user-12,user-13,user-14,user-15,user-16,user-17,user-18,user-19,user-20"
+              },
+              {
+                "operator": "CONTAINS",
+                "property_": "device",
+                "value": "iPhone"
+              }
+            ],
+            "rules": []
+          }
+        ],
+        "feature_states": [
+          {
+            "feature": {
+              "id": 5,
+              "name": "feature_5",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 46,
+            "featurestate_uuid": "4696d5b7-bd2a-5e87-b9fb-5bec3cdb81b3",
+            "feature_state_value": "segment-8",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 8
+            }
+          },
+          {
+            "feature": {
+              "id": 6,
+              "name": "feature_6",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 47,
+            "featurestate_uuid": "e4794201-7b42-5f4e-a345-e12fff1e2da5",
+            "feature_state_value": "segment-8",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 8
+            }
+          },
+          {
+            "feature": {
+              "id": 7,
+              "name": "feature_7",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 48,
+            "featurestate_uuid": "813a0c10-2385-51f7-8010-4574451abf50",
+            "feature_state_value": "segment-8",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 8
+            }
+          },
+          {
+            "feature": {
+              "id": 8,
+              "name": "feature_8",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 49,
+            "featurestate_uuid": "5f92a19e-cfe6-5522-ba91-886bd51c79db",
+            "feature_state_value": "segment-8",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 8
+            }
+          },
+          {
+            "feature": {
+              "id": 9,
+              "name": "feature_9",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 50,
+            "featurestate_uuid": "68f6df2c-ad02-50a6-bd1c-4dabc592ccfc",
+            "feature_state_value": "segment-8",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 8
+            }
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "name": "segment_9",
+        "rules": [
+          {
+            "type": "ALL",
+            "conditions": [],
+            "rules": [
+              {
+                "type": "ANY",
+                "conditions": [],
+                "rules": [
+                  {
+                    "type": "ALL",
+                    "conditions": [
+                      {
+                        "operator": "EQUAL",
+                        "property_": "beta",
+                        "value": "true"
+                      },
+                      {
+                        "operator": "GREATER_THAN_INCLUSIVE",
+                        "property_": "age",
+                        "value": "18"
+                      }
+                    ],
+                    "rules": []
+                  },
+                  {
+                    "type": "NONE",
+                    "conditions": [
+                      {
+                        "operator": "EQUAL",
+                        "property_": "country",
+                        "value": "CN"
+                      }
+                    ],
+                    "rules": []
+                  }
+                ]
+              },
+              {
+                "type": "ALL",
+                "conditions": [
+                  {
+                    "operator": "IN",
+                    "property_": "plan",
+                    "value": "[\"plan-1\",\"plan-7\",\"plan-13\"]"
+                  }
+                ],
+                "rules": []
+              }
+            ]
+          }
+        ],
+        "feature_states": [
+          {
+            "feature": {
+              "id": 8,
+              "name": "feature_8",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 51,
+            "featurestate_uuid": "a87bfc04-70ca-5a44-a6cc-047f77738a64",
+            "feature_state_value": "segment-9",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 9
+            }
+          },
+          {
+            "feature": {
+              "id": 9,
+              "name": "feature_9",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 52,
+            "featurestate_uuid": "f82608ac-fde1-5eeb-94fa-b6215ba3f878",
+            "feature_state_value": "segment-9",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 9
+            }
+          },
+          {
+            "feature": {
+              "id": 10,
+              "name": "feature_10",
+              "type": "MULTIVARIATE"
+            },
+            "enabled": true,
+            "django_id": 53,
+            "featurestate_uuid": "6c5438f1-8f59-5851-bcd6-ef9ae3bc006e",
+            "feature_state_value": "segment-9",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 9
+            }
+          },
+          {
+            "feature": {
+              "id": 1,
+              "name": "feature_1",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 54,
+            "featurestate_uuid": "8fbd4719-45a1-56e1-a1f1-d9c5e5624c7d",
+            "feature_state_value": "segment-9",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 9
+            }
+          },
+          {
+            "feature": {
+              "id": 2,
+              "name": "feature_2",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 55,
+            "featurestate_uuid": "03a00d19-5793-514c-a238-e3a4ec859509",
+            "feature_state_value": "segment-9",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 9
+            }
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "name": "segment_10",
+        "rules": [
+          {
+            "type": "ALL",
+            "conditions": [
+              {
+                "operator": "EQUAL",
+                "property_": "$.identity.traits.plan",
+                "value": "plan-7"
+              }
+            ],
+            "rules": []
+          }
+        ],
+        "feature_states": [
+          {
+            "feature": {
+              "id": 1,
+              "name": "feature_1",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 56,
+            "featurestate_uuid": "6c9f0400-ec59-5e9a-950b-20a364193344",
+            "feature_state_value": "segment-10",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 10
+            }
+          },
+          {
+            "feature": {
+              "id": 2,
+              "name": "feature_2",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 57,
+            "featurestate_uuid": "f495519c-a0e8-5023-8b5e-936e31487afb",
+            "feature_state_value": "segment-10",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 10
+            }
+          },
+          {
+            "feature": {
+              "id": 3,
+              "name": "feature_3",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 58,
+            "featurestate_uuid": "e7d70150-3ef0-5021-93de-bbffd68f84b6",
+            "feature_state_value": "segment-10",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 10
+            }
+          },
+          {
+            "feature": {
+              "id": 4,
+              "name": "feature_4",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 59,
+            "featurestate_uuid": "185a6d42-1e14-5dad-a92f-2f014c1d61fb",
+            "feature_state_value": "segment-10",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 10
+            }
+          },
+          {
+            "feature": {
+              "id": 5,
+              "name": "feature_5",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 60,
+            "featurestate_uuid": "015725c4-19e3-5b6e-9e6a-26ca5e9d20b7",
+            "feature_state_value": "segment-10",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 10
+            }
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "name": "segment_11",
+        "rules": [
+          {
+            "type": "ANY",
+            "conditions": [
+              {
+                "operator": "CONTAINS",
+                "property_": "$.identity.key",
+                "value": "_user-2"
+              }
+            ],
+            "rules": []
+          }
+        ],
+        "feature_states": [
+          {
+            "feature": {
+              "id": 4,
+              "name": "feature_4",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 61,
+            "featurestate_uuid": "2a63fd1a-b342-5c99-8de8-76d94f3f89b8",
+            "feature_state_value": "segment-11",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 11
+            }
+          },
+          {
+            "feature": {
+              "id": 5,
+              "name": "feature_5",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 62,
+            "featurestate_uuid": "eeca2d6a-e09e-517b-a8c5-c0f7936f7226",
+            "feature_state_value": "segment-11",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 11
+            }
+          },
+          {
+            "feature": {
+              "id": 6,
+              "name": "feature_6",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 63,
+            "featurestate_uuid": "d228eed0-29e5-50e1-b28e-d21751c9e4d3",
+            "feature_state_value": "segment-11",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 11
+            }
+          },
+          {
+            "feature": {
+              "id": 7,
+              "name": "feature_7",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 64,
+            "featurestate_uuid": "e3adbcf5-d445-5dd1-9871-063939e3e88b",
+            "feature_state_value": "segment-11",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 11
+            }
+          },
+          {
+            "feature": {
+              "id": 8,
+              "name": "feature_8",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 65,
+            "featurestate_uuid": "ee124f4d-9ace-58f4-809e-4c255cf30f66",
+            "feature_state_value": "segment-11",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 11
+            }
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "name": "segment_12",
+        "rules": [
+          {
+            "type": "ALL",
+            "conditions": [],
+            "rules": [
+              {
+                "type": "ANY",
+                "conditions": [
+                  {
+                    "operator": "EQUAL",
+                    "property_": "plan",
+                    "value": "plan-12"
+                  },
+                  {
+                    "operator": "GREATER_THAN",
+                    "property_": "age",
+                    "value": "12"
+                  }
+                ],
+                "rules": []
+              },
+              {
+                "type": "ALL",
+                "conditions": [
+                  {
+                    "operator": "IN",
+                    "property_": "country",
+                    "value": "GB,US,DE,FR"
+                  }
+                ],
+                "rules": []
+              }
+            ]
+          }
+        ],
+        "feature_states": [
+          {
+            "feature": {
+              "id": 7,
+              "name": "feature_7",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 66,
+            "featurestate_uuid": "d9442a12-f4e6-583f-b4be-c4cc888d4d5c",
+            "feature_state_value": "segment-12",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 12
+            }
+          },
+          {
+            "feature": {
+              "id": 8,
+              "name": "feature_8",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 67,
+            "featurestate_uuid": "7fff9481-d2c8-5750-b49f-99df28a6a7ca",
+            "feature_state_value": "segment-12",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 12
+            }
+          },
+          {
+            "feature": {
+              "id": 9,
+              "name": "feature_9",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 68,
+            "featurestate_uuid": "3796548d-698d-55e3-ab66-0ab96272f29b",
+            "feature_state_value": "segment-12",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 12
+            }
+          },
+          {
+            "feature": {
+              "id": 10,
+              "name": "feature_10",
+              "type": "MULTIVARIATE"
+            },
+            "enabled": true,
+            "django_id": 69,
+            "featurestate_uuid": "3f0fbb46-022f-5f0c-95cc-5070a982a57a",
+            "feature_state_value": "segment-12",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 12
+            }
+          },
+          {
+            "feature": {
+              "id": 1,
+              "name": "feature_1",
+              "type": "STANDARD"
+            },
+            "enabled": true,
+            "django_id": 70,
+            "featurestate_uuid": "21523e7d-69a5-5179-83bb-5c8cf60e3cec",
+            "feature_state_value": "segment-12",
+            "multivariate_feature_state_values": [],
+            "feature_segment": {
+              "priority": 12
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "feature_states": [
+    {
+      "feature": {
+        "id": 1,
+        "name": "feature_1",
+        "type": "STANDARD"
+      },
+      "enabled": true,
+      "django_id": 1,
+      "featurestate_uuid": "361be181-149b-58be-ab09-5c5c96d6f6df",
+      "feature_state_value": 1,
+      "multivariate_feature_state_values": []
+    },
+    {
+      "feature": {
+        "id": 2,
+        "name": "feature_2",
+        "type": "STANDARD"
+      },
+      "enabled": true,
+      "django_id": 2,
+      "featurestate_uuid": "a7b70f64-7e72-5f15-8a46-364dce223128",
+      "feature_state_value": true,
+      "multivariate_feature_state_values": []
+    },
+    {
+      "feature": {
+        "id": 3,
+        "name": "feature_3",
+        "type": "STANDARD"
+      },
+      "enabled": false,
+      "django_id": 3,
+      "featurestate_uuid": "2059c976-2045-509c-91e7-dbba272a7a89",
+      "feature_state_value": null,
+      "multivariate_feature_state_values": []
+    },
+    {
+      "feature": {
+        "id": 4,
+        "name": "feature_4",
+        "type": "STANDARD"
+      },
+      "enabled": true,
+      "django_id": 4,
+      "featurestate_uuid": "c4e16a4a-842f-5d98-953f-3ce054b4e52d",
+      "feature_state_value": "{\"id\": 4}",
+      "multivariate_feature_state_values": []
+    },
+    {
+      "feature": {
+        "id": 5,
+        "name": "feature_5",
+        "type": "STANDARD"
+      },
+      "enabled": true,
+      "django_id": 5,
+      "featurestate_uuid": "4b0cd602-c598-5b1e-aa1f-faa2f9d38f0b",
+      "feature_state_value": "value-5",
+      "multivariate_feature_state_values": []
+    },
+    {
+      "feature": {
+        "id": 6,
+        "name": "feature_6",
+        "type": "STANDARD"
+      },
+      "enabled": false,
+      "django_id": 6,
+      "featurestate_uuid": "4f5694d8-1fd2-51b2-a4b3-ae68b52f3337",
+      "feature_state_value": 6,
+      "multivariate_feature_state_values": []
+    },
+    {
+      "feature": {
+        "id": 7,
+        "name": "feature_7",
+        "type": "STANDARD"
+      },
+      "enabled": true,
+      "django_id": 7,
+      "featurestate_uuid": "4233a4f1-972d-5ee2-9a15-df30f236817c",
+      "feature_state_value": false,
+      "multivariate_feature_state_values": []
+    },
+    {
+      "feature": {
+        "id": 8,
+        "name": "feature_8",
+        "type": "STANDARD"
+      },
+      "enabled": true,
+      "django_id": 8,
+      "featurestate_uuid": "f09b980b-b71e-504a-98a1-b0746d0a8a35",
+      "feature_state_value": null,
+      "multivariate_feature_state_values": []
+    },
+    {
+      "feature": {
+        "id": 9,
+        "name": "feature_9",
+        "type": "STANDARD"
+      },
+      "enabled": false,
+      "django_id": 9,
+      "featurestate_uuid": "8aa3c7c5-0825-5383-b337-f97bea2e9489",
+      "feature_state_value": "{\"id\": 9}",
+      "multivariate_feature_state_values": []
+    },
+    {
+      "feature": {
+        "id": 10,
+        "name": "feature_10",
+        "type": "MULTIVARIATE"
+      },
+      "enabled": true,
+      "django_id": 10,
+      "featurestate_uuid": "ec4de8da-f6bd-5b25-bb9d-2e0f5acca94d",
+      "feature_state_value": "value-10",
+      "multivariate_feature_state_values": [
+        {
+          "id": 100,
+          "mv_fs_value_uuid": "ee4e8e56-3416-5fb0-8fc8-409635a76505",
+          "percentage_allocation": 30.0,
+          "multivariate_feature_option": {
+            "value": "variant-10-0"
+          }
+        },
+        {
+          "id": 101,
+          "mv_fs_value_uuid": "aa5ad17e-1d3d-5378-bcef-f34be0f37eb4",
+          "percentage_allocation": 30.0,
+          "multivariate_feature_option": {
+            "value": "variant-10-1"
+          }
+        },
+        {
+          "id": 102,
+          "mv_fs_value_uuid": "3ab788c9-9282-5997-831b-4fa737ab4a92",
+          "percentage_allocation": 30.0,
+          "multivariate_feature_option": {
+            "value": "variant-10-2"
+          }
+        }
+      ]
+    }
+  ],
+  "identity_overrides": [
+    {
+      "identifier": "identity-override-1",
+      "identity_uuid": "039d0b11-c8e9-5cfe-87dc-3e615cb8f019",
+      "django_id": 1,
+      "identity_features": [
+        {
+          "feature": {
+            "id": 8,
+            "name": "feature_8",
+            "type": "STANDARD"
+          },
+          "enabled": false,
+          "django_id": 71,
+          "featurestate_uuid": "39050014-a979-53ff-8d88-b2f65da25d25",
+          "feature_state_value": "identity-1",
+          "multivariate_feature_state_values": []
+        },
+        {
+          "feature": {
+            "id": 9,
+            "name": "feature_9",
+            "type": "STANDARD"
+          },
+          "enabled": false,
+          "django_id": 72,
+          "featurestate_uuid": "1dee5311-abeb-53ca-933b-9b60f01856ea",
+          "feature_state_value": "identity-1",
+          "multivariate_feature_state_values": []
+        }
+      ]
+    },
+    {
+      "identifier": "identity-override-2",
+      "identity_uuid": "8524ca20-6fcc-5e37-81e0-fff13b716a97",
+      "django_id": 2,
+      "identity_features": [
+        {
+          "feature": {
+            "id": 1,
+            "name": "feature_1",
+            "type": "STANDARD"
+          },
+          "enabled": true,
+          "django_id": 73,
+          "featurestate_uuid": "beeb1ed0-0aeb-59b0-abf8-cdd22c3d76ff",
+          "feature_state_value": "identity-0",
+          "multivariate_feature_state_values": []
+        }
+      ]
+    },
+    {
+      "identifier": "identity-override-3",
+      "identity_uuid": "a6fb0861-02ee-5ca7-9cdc-d0cd2ee8a1e7",
+      "django_id": 3,
+      "identity_features": [
+        {
+          "feature": {
+            "id": 8,
+            "name": "feature_8",
+            "type": "STANDARD"
+          },
+          "enabled": false,
+          "django_id": 74,
+          "featurestate_uuid": "f9c8d9a7-f1c3-52e2-bf8b-4042abd25d55",
+          "feature_state_value": "identity-1",
+          "multivariate_feature_state_values": []
+        },
+        {
+          "feature": {
+            "id": 9,
+            "name": "feature_9",
+            "type": "STANDARD"
+          },
+          "enabled": false,
+          "django_id": 75,
+          "featurestate_uuid": "d20985fd-d151-59e4-adea-65124006476d",
+          "feature_state_value": "identity-1",
+          "multivariate_feature_state_values": []
+        }
+      ]
+    },
+    {
+      "identifier": "identity-override-4",
+      "identity_uuid": "7e9da688-d231-5a6f-a5d2-d21d65c49b9b",
+      "django_id": 4,
+      "identity_features": [
+        {
+          "feature": {
+            "id": 1,
+            "name": "feature_1",
+            "type": "STANDARD"
+          },
+          "enabled": true,
+          "django_id": 76,
+          "featurestate_uuid": "7b78c047-0c33-5565-aea8-260ca82907c0",
+          "feature_state_value": "identity-0",
+          "multivariate_feature_state_values": []
+        }
+      ]
+    },
+    {
+      "identifier": "identity-override-5",
+      "identity_uuid": "1f2e92b8-1526-5b38-9fbb-752457478c78",
+      "django_id": 5,
+      "identity_features": [
+        {
+          "feature": {
+            "id": 8,
+            "name": "feature_8",
+            "type": "STANDARD"
+          },
+          "enabled": false,
+          "django_id": 77,
+          "featurestate_uuid": "063ecd2f-2d92-5f1b-88e4-d4fd49eecee2",
+          "feature_state_value": "identity-1",
+          "multivariate_feature_state_values": []
+        },
+        {
+          "feature": {
+            "id": 9,
+            "name": "feature_9",
+            "type": "STANDARD"
+          },
+          "enabled": false,
+          "django_id": 78,
+          "featurestate_uuid": "035c8b2e-1b56-52ec-a59b-d065b64d951f",
+          "feature_state_value": "identity-1",
+          "multivariate_feature_state_values": []
+        }
+      ]
+    },
+    {
+      "identifier": "identity-override-6",
+      "identity_uuid": "237ffd32-8110-5276-a375-0557665c8d88",
+      "django_id": 6,
+      "identity_features": [
+        {
+          "feature": {
+            "id": 1,
+            "name": "feature_1",
+            "type": "STANDARD"
+          },
+          "enabled": true,
+          "django_id": 79,
+          "featurestate_uuid": "21e7340c-a54f-53ba-9091-a78d4fe33c78",
+          "feature_state_value": "identity-0",
+          "multivariate_feature_state_values": []
+        }
+      ]
+    },
+    {
+      "identifier": "identity-override-7",
+      "identity_uuid": "23090277-7d97-5bef-968f-94904a135f93",
+      "django_id": 7,
+      "identity_features": [
+        {
+          "feature": {
+            "id": 8,
+            "name": "feature_8",
+            "type": "STANDARD"
+          },
+          "enabled": false,
+          "django_id": 80,
+          "featurestate_uuid": "5cb16812-0166-529c-b17d-fb512909f774",
+          "feature_state_value": "identity-1",
+          "multivariate_feature_state_values": []
+        },
+        {
+          "feature": {
+            "id": 9,
+            "name": "feature_9",
+            "type": "STANDARD"
+          },
+          "enabled": false,
+          "django_id": 81,
+          "featurestate_uuid": "95c70963-c71d-5cf2-bbfb-b22104aa312e",
+          "feature_state_value": "identity-1",
+          "multivariate_feature_state_values": []
+        }
+      ]
+    },
+    {
+      "identifier": "identity-override-8",
+      "identity_uuid": "459d931e-f066-5a39-accf-d2266d2334e5",
+      "django_id": 8,
+      "identity_features": [
+        {
+          "feature": {
+            "id": 1,
+            "name": "feature_1",
+            "type": "STANDARD"
+          },
+          "enabled": true,
+          "django_id": 82,
+          "featurestate_uuid": "11b32bb6-e722-5b9d-a60b-5703ed06266c",
+          "feature_state_value": "identity-0",
+          "multivariate_feature_state_values": []
+        }
+      ]
+    },
+    {
+      "identifier": "identity-override-9",
+      "identity_uuid": "505384a2-0cd6-5b2e-b33c-691dad63f79d",
+      "django_id": 9,
+      "identity_features": [
+        {
+          "feature": {
+            "id": 8,
+            "name": "feature_8",
+            "type": "STANDARD"
+          },
+          "enabled": false,
+          "django_id": 83,
+          "featurestate_uuid": "e788ded3-c057-5e7b-80ff-a4d722dd3c83",
+          "feature_state_value": "identity-1",
+          "multivariate_feature_state_values": []
+        },
+        {
+          "feature": {
+            "id": 9,
+            "name": "feature_9",
+            "type": "STANDARD"
+          },
+          "enabled": false,
+          "django_id": 84,
+          "featurestate_uuid": "a8d569a5-7830-528f-802b-22d8566f7ab8",
+          "feature_state_value": "identity-1",
+          "multivariate_feature_state_values": []
+        }
+      ]
+    },
+    {
+      "identifier": "identity-override-10",
+      "identity_uuid": "a00d6247-2308-5235-ba6a-e4188cd17b47",
+      "django_id": 10,
+      "identity_features": [
+        {
+          "feature": {
+            "id": 1,
+            "name": "feature_1",
+            "type": "STANDARD"
+          },
+          "enabled": true,
+          "django_id": 85,
+          "featurestate_uuid": "f81ecc0f-6e2d-5814-bca3-aea33bb58fe6",
+          "feature_state_value": "identity-0",
+          "multivariate_feature_state_values": []
+        }
+      ]
+    }
+  ]
+}

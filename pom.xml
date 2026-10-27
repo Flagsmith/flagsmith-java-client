@@ -301,6 +301,10 @@
           <failsOnError>true</failsOnError>
           <linkXRef>true</linkXRef>
           <violationSeverity>warning</violationSeverity>
+          <sourceDirectories>
+            <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
+            <sourceDirectory>${project.basedir}/src/jmh/java</sourceDirectory>
+          </sourceDirectories>
         </configuration>
         <executions>
           <execution>
@@ -418,6 +422,20 @@
                   <sources>
                     <source>${project.basedir}/src/jmh/java</source>
                   </sources>
+                </configuration>
+              </execution>
+              <execution>
+                <id>add-jmh-resources</id>
+                <phase>generate-resources</phase>
+                <goals>
+                  <goal>add-resource</goal>
+                </goals>
+                <configuration>
+                  <resources>
+                    <resource>
+                      <directory>${project.basedir}/src/jmh/resources</directory>
+                    </resource>
+                  </resources>
                 </configuration>
               </execution>
             </executions>
