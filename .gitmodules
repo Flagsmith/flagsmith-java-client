@@ -2,3 +2,6 @@
 	path = src/test/java/com/flagsmith/flagengine/enginetestdata
 	url = git@github.com:Flagsmith/engine-test-data.git
 	branch = v3.7.0
+[submodule "third-party/codspeed-jvm"]
+	path = third-party/codspeed-jvm
+	url = https://github.com/CodSpeedHQ/codspeed-jvm.git

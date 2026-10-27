@@ -1,0 +1,43 @@
+name: CodSpeed
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read  # Check out the repository and its submodules
+  id-token: write  # Authenticate result uploads to CodSpeed via OIDC
+
+jobs:
+  benchmarks:
+    name: Run benchmarks
+    runs-on: codspeed-macro
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          submodules: recursive
+
+      - name: Set up JDK
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad  # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Publish CodSpeed JMH fork to local Maven repository
+        working-directory: third-party/codspeed-jvm
+        run: ./gradlew -p jmh-fork publishToMavenLocal
+
+      - name: Build benchmarks
+        run: mvn --batch-mode --no-transfer-progress -P benchmarks -DskipTests package
+
+      - name: Run benchmarks
+        uses: CodSpeedHQ/action@78102a468f96d8e0ccb92d0ec49425753fc42062  # v5.6.0
+        with:
+          mode: walltime
+          run: java -jar target/benchmarks.jar
