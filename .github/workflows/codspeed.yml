@@ -1,0 +1,42 @@
+name: CodSpeed
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read  # Check out the repository and its submodules
+  id-token: write  # Authenticate result uploads to CodSpeed via OIDC
+
+jobs:
+  benchmarks:
+    name: Run benchmarks
+    runs-on: codspeed-macro
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Set up JDK
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad  # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@12eb41b233df95d49b0c11fc1b5bc8312e5d4ce0  # v5.1
+        with:
+          maven-version: 3.10.0
+
+      - name: Run benchmarks
+        uses: CodSpeedHQ/action@78102a468f96d8e0ccb92d0ec49425753fc42062  # v5.6.0
+        with:
+          mode: walltime
+          run: make benchmark
