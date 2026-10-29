@@ -1,7 +1,9 @@
 import com.flagsmith.FlagsmithClient;
+import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.Flags;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -35,6 +37,20 @@ public class Steps {
     return FlagsmithClient.newBuilder().setApiKey(environmentKey).withApiUrl(apiUrl).build();
   }
 
+  // Create the SDK client with events enabled
+  static FlagsmithClient createClientWithEvents(
+      String environmentKey, String apiUrl, String eventsUrl) {
+    return FlagsmithClient.newBuilder()
+        .setApiKey(environmentKey)
+        .withConfiguration(
+            FlagsmithConfig.newBuilder()
+                .baseUri(apiUrl)
+                .withEnableEvents(true)
+                .eventsUri(eventsUrl)
+                .build())
+        .build();
+  }
+
   // When the application gets the environment flags
   static List<SpecFlag> getEnvironmentFlags(FlagsmithClient flagsmith)
       throws FlagsmithClientError {
@@ -46,5 +62,33 @@ public class Steps {
       FlagsmithClient flagsmith, String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
     return asSpecFlags(flagsmith.getIdentityFlags(identifier, traits));
+  }
+
+  // When the application gets the experiment flag "{feature}" for identity "{identifier}" with traits:
+  static List<SpecFlag> getExperimentFlag(
+      FlagsmithClient flagsmith, String feature, String identifier, Map<String, Object> traits)
+      throws FlagsmithClientError {
+    return Collections.singletonList(
+        new SpecFlag(flagsmith.getExperimentFlag(feature, identifier, traits)));
+  }
+
+  // When the application tracks event "{event}" for identity "{identifier}" with value {value} and metadata:
+  static void trackEvent(
+      FlagsmithClient flagsmith,
+      String event,
+      String identifier,
+      Object value,
+      Map<String, Object> metadata) {
+    flagsmith.trackEvent(event, identifier, value, null, metadata);
+  }
+
+  // When the application tracks an exposure of feature "{feature}" for identity "{identifier}" with value {value} and metadata:
+  static void trackExposureEvent(
+      FlagsmithClient flagsmith,
+      String feature,
+      String identifier,
+      Object value,
+      Map<String, Object> metadata) {
+    flagsmith.trackExposureEvent(feature, identifier, value, null, metadata);
   }
 }
