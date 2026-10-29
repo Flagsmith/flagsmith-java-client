@@ -62,15 +62,50 @@ public class TypeCasting {
     return value1.compareTo(value2) == 0;
   }
 
+  /*
+   * Whether a string may parse as a decimal, sparing a failed parse's exception when it can't.
+   * Accepts a superset of Float.parseFloat and Double.parseDouble inputs.
+   */
+  private static boolean mayBeDecimal(String value) {
+    int index = 0;
+    while (index < value.length() && value.charAt(index) <= ' ') {
+      index++; // Skips the whitespace the parsers trim.
+    }
+    if (index == value.length()) {
+      return false;
+    }
+    char first = value.charAt(index);
+    return Character.isDigit(first)
+        || first == '+' || first == '-' || first == '.' || first == 'N' || first == 'I';
+  }
+
+  /*
+   * Whether a string may parse as an integer, sparing a failed parse's exception when it can't.
+   * Accepts a superset of Integer.valueOf inputs.
+   */
+  private static boolean mayBeInteger(String value) {
+    if (value.isEmpty()) {
+      return false;
+    }
+    char first = value.charAt(0);
+    return Character.isDigit(first) || first == '+' || first == '-';
+  }
+
   /**
    * Convert the object to Double.
    *
    * @param number Object to convert to Double.
    */
   public static Double toDouble(Object number) {
+    if (number instanceof Double) {
+      return (Double) number;
+    }
+    String asString = String.valueOf(number);
+    if (!mayBeDecimal(asString)) {
+      return null;
+    }
     try {
-      String asString = String.valueOf(number);
-      return number instanceof Double ? ((Double) number) : Double.parseDouble(asString);
+      return Double.parseDouble(asString);
     } catch (Exception nfe) {
       return null;
     }
@@ -91,8 +126,15 @@ public class TypeCasting {
    * @param number Object to convert to Float.
    */
   public static Float toFloat(Object number) {
+    if (number instanceof Float) {
+      return (Float) number;
+    }
+    String asString = String.valueOf(number);
+    if (!mayBeDecimal(asString)) {
+      return null;
+    }
     try {
-      return number instanceof Float ? ((Float) number) : Float.parseFloat(String.valueOf(number));
+      return Float.parseFloat(asString);
     } catch (Exception nfe) {
       return null;
     }
@@ -113,9 +155,15 @@ public class TypeCasting {
    * @param number Object to convert to Integer.
    */
   public static Integer toInteger(Object number) {
+    if (number instanceof Integer) {
+      return (Integer) number;
+    }
+    String asString = String.valueOf(number);
+    if (!mayBeInteger(asString)) {
+      return null;
+    }
     try {
-      String asString = String.valueOf(number);
-      return number instanceof Integer ? ((Integer) number) : Integer.valueOf(asString);
+      return Integer.valueOf(asString);
     } catch (Exception nfe) {
       return null;
     }
