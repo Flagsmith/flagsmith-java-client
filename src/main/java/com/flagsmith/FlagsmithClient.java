@@ -9,6 +9,8 @@ import com.flagsmith.exceptions.FlagsmithRuntimeError;
 import com.flagsmith.flagengine.Engine;
 import com.flagsmith.flagengine.EvaluationContext;
 import com.flagsmith.flagengine.EvaluationResult;
+import com.flagsmith.flagengine.SegmentRule;
+import com.flagsmith.flagengine.Segments;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.mappers.EngineMappers;
@@ -42,6 +44,9 @@ import org.slf4j.LoggerFactory;
  */
 @Data
 public class FlagsmithClient {
+
+  private static final List<String> IDENTITY_FREE_PROPERTY_PREFIXES = List.of(
+      "$.environment.", "$.environment[", "$.flags.", "$.flags[");
 
   private final FlagsmithLogger logger = new FlagsmithLogger();
   private FlagsmithSdk flagsmithSdk;
@@ -420,13 +425,39 @@ public class FlagsmithClient {
 
     final EvaluationResult result = Engine.getEvaluationResult(
       new EvaluationContext(evaluationContext)
-        .withSegments(null)
+        .withSegments(getIdentityFreeSegments(evaluationContext.getSegments()))
     );
 
     return Flags.fromEvaluationResult(
         result,
         getConfig().getAnalyticsProcessor(),
         getConfig().getFlagsmithFlagDefaults());
+  }
+
+  /*
+   * The segments that resolve without an identity, i.e. those whose every
+   * condition reads only the environment or other flags.
+   */
+  private static Segments getIdentityFreeSegments(Segments segments) {
+    if (segments == null) {
+      return null;
+    }
+    Segments identityFreeSegments = new Segments();
+    segments.getAdditionalProperties().forEach((segmentKey, segmentContext) -> {
+      if (isIdentityFree(segmentContext.getRules())) {
+        identityFreeSegments.setAdditionalProperty(segmentKey, segmentContext);
+      }
+    });
+    return identityFreeSegments;
+  }
+
+  private static boolean isIdentityFree(List<SegmentRule> rules) {
+    return rules == null || rules.stream().allMatch(rule ->
+        (rule.getConditions() == null || rule.getConditions().stream().allMatch(condition ->
+            condition.getProperty() != null
+                && IDENTITY_FREE_PROPERTY_PREFIXES.stream()
+                    .anyMatch(condition.getProperty()::startsWith)))
+            && isIdentityFree(rule.getRules()));
   }
 
   private Flags getIdentityFlagsFromEvaluationContext(
