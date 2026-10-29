@@ -1,5 +1,32 @@
 # Changelog
 
+## [8.3.0](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.2.0...v8.3.0) (2026-10-29)
+
+
+### Features
+
+* **CI:** Set up CodSpeed ([#241](https://github.com/Flagsmith/flagsmith-java-client/issues/241)) ([3e778a5](https://github.com/Flagsmith/flagsmith-java-client/commit/3e778a5fb7b04d4ad3821affcf1156298c8bfb25))
+* **Flag Dependency:** Evaluate flags that depend on other flags ([#240](https://github.com/Flagsmith/flagsmith-java-client/issues/240)) ([7f7f7ee](https://github.com/Flagsmith/flagsmith-java-client/commit/7f7f7eeab7f60e4322c1abcc43422f55aaa78636))
+
+
+### CI
+
+* Label Renovate's SDK spec bump PRs ([#238](https://github.com/Flagsmith/flagsmith-java-client/issues/238)) ([773fb3e](https://github.com/Flagsmith/flagsmith-java-client/commit/773fb3ec88fb6143efb1fd79baca58c9714a035f))
+* Run the Flagsmith SDK behavioural spec ([#237](https://github.com/Flagsmith/flagsmith-java-client/issues/237)) ([18281fc](https://github.com/Flagsmith/flagsmith-java-client/commit/18281fcb81f433a1a95a31de0b29022a91d1d84f))
+
+
+### Dependency Updates
+
+* update dependency third-party/sdk-benchmarks to v0.0.2 ([#244](https://github.com/Flagsmith/flagsmith-java-client/issues/244)) ([6328b2f](https://github.com/Flagsmith/flagsmith-java-client/commit/6328b2fe889d55105f59a14543127d52ae7ef22b))
+* update third-party/codspeed-jvm digest to 29d18a7 ([#242](https://github.com/Flagsmith/flagsmith-java-client/issues/242)) ([89db472](https://github.com/Flagsmith/flagsmith-java-client/commit/89db47238f3219b3754602bf75c2ab22ac34d594))
+
+
+### Other
+
+* **deps-dev:** bump com.google.guava:guava from 32.0.1-jre to 33.7.1-jre ([#243](https://github.com/Flagsmith/flagsmith-java-client/issues/243)) ([9a669d4](https://github.com/Flagsmith/flagsmith-java-client/commit/9a669d474f7758855736d52a7e79957f40c03656))
+* **deps:** bump com.fasterxml.jackson.core:jackson-core from 2.18.9 to 2.18.11 ([#233](https://github.com/Flagsmith/flagsmith-java-client/issues/233)) ([bfbfd81](https://github.com/Flagsmith/flagsmith-java-client/commit/bfbfd81e23abb305b44dfba6a94e9746605353a9))
+* **deps:** bump com.fasterxml.jackson.core:jackson-databind from 2.18.9 to 2.18.11 ([#232](https://github.com/Flagsmith/flagsmith-java-client/issues/232)) ([6df032a](https://github.com/Flagsmith/flagsmith-java-client/commit/6df032ae1610ad5022f2fc72bf9273d92a814e5f))
+
 ## [8.2.0](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.1.2...v8.2.0) (2026-10-05)
 
 
