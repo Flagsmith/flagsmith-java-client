@@ -20,6 +20,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 public class SegmentEvaluatorTest {
@@ -60,6 +61,46 @@ public class SegmentEvaluatorTest {
     Boolean actualResult = SegmentEvaluator.isContextInSegment(context, segment);
 
     Assertions.assertEquals(expectedResponse, actualResult);
+  }
+
+  private static Stream<Arguments> numericTraitComparisons() {
+    return Stream.of(
+        Arguments.of(7, SegmentConditions.EQUAL, "7", true),
+        Arguments.of("7", SegmentConditions.EQUAL, "7", true),
+        Arguments.of("+7", SegmentConditions.EQUAL, "7", true),
+        Arguments.of("007", SegmentConditions.EQUAL, "7", true),
+        Arguments.of("-7", SegmentConditions.LESS_THAN, "0", true),
+        Arguments.of("7.5", SegmentConditions.GREATER_THAN, "7", true),
+        Arguments.of(".5", SegmentConditions.LESS_THAN, "1", true),
+        Arguments.of(" 7 ", SegmentConditions.EQUAL, "7.0", true),
+        Arguments.of("7e2", SegmentConditions.EQUAL, "700", true),
+        Arguments.of("NaN", SegmentConditions.EQUAL, "NaN", true),
+        Arguments.of("-Infinity", SegmentConditions.LESS_THAN, "0", true),
+        Arguments.of("plan-7", SegmentConditions.EQUAL, "7", false),
+        Arguments.of("", SegmentConditions.EQUAL, "0", false),
+        Arguments.of("   ", SegmentConditions.EQUAL, "0", false)
+    );
+  }
+
+  @ParameterizedTest
+  @MethodSource("numericTraitComparisons")
+  public void testTraitValuesThatReadAsNumbersAreComparedAsNumbers(Object traitValue,
+      SegmentConditions conditionOperator, String conditionValue, Boolean expectedResult) {
+    // Given
+    final EvaluationContext context = EngineMappers.mapContextAndIdentityDataToContext(
+        FlagsmithTestHelper.evaluationContext(), "foo", Map.of("score", traitValue));
+    SegmentContext segment = new SegmentContext().withName("testSegment").withRules(
+        Arrays.asList(new SegmentRule().withType(SegmentRule.Type.ALL).withConditions(
+            Arrays.asList(new SegmentCondition()
+                .withOperator(conditionOperator)
+                .withProperty("score")
+                .withValue(conditionValue)))));
+
+    // When
+    Boolean inSegment = SegmentEvaluator.isContextInSegment(context, segment);
+
+    // Then
+    Assertions.assertEquals(expectedResult, inSegment);
   }
 
   private static Stream<Arguments> traitExistenceChecks() {

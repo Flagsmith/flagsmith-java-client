@@ -1,4 +1,5 @@
 import com.flagsmith.FlagsmithClient;
+import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.Flags;
@@ -33,6 +34,17 @@ public class Steps {
   // Create the SDK client
   static FlagsmithClient createClient(String environmentKey, String apiUrl) {
     return FlagsmithClient.newBuilder().setApiKey(environmentKey).withApiUrl(apiUrl).build();
+  }
+
+  // Create the SDK client with local evaluation
+  static FlagsmithClient createClientWithLocalEvaluation(String environmentKey, String apiUrl) {
+    return FlagsmithClient.newBuilder()
+        .setApiKey(environmentKey)
+        .withConfiguration(FlagsmithConfig.newBuilder()
+            .baseUri(apiUrl)
+            .withLocalEvaluation(true)
+            .build())
+        .build();
   }
 
   // When the application gets the environment flags

@@ -16,6 +16,7 @@ import com.jayway.jsonpath.Option;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -249,6 +250,9 @@ public class SegmentEvaluator {
       Map<String, Object> contextMap;
       if (property.startsWith("$.flags.") || property.startsWith("$.flags[")) {
         contextMap = Map.of("flags", flags); // Spares serialising a context the path can't reach.
+      } else if (property.startsWith("$.environment.") || property.startsWith("$.environment[")) {
+        contextMap = Collections.singletonMap("environment",
+            mapper.convertValue(context.getEnvironment(), contextMapTypeRef));
       } else {
         contextMap = mapper.convertValue(context, contextMapTypeRef);
         contextMap.put("flags", flags); // Replaces any client-supplied flags.
