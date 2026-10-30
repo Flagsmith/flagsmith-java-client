@@ -15,3 +15,4 @@ jobs:
     with:
       spec-ref: v0.7.0
       language: java
+      tags: core or local-evaluation

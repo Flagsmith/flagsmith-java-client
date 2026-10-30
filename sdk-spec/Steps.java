@@ -42,12 +42,22 @@ public class Steps {
       String environmentKey, String apiUrl, String eventsUrl) {
     return FlagsmithClient.newBuilder()
         .setApiKey(environmentKey)
-        .withConfiguration(
-            FlagsmithConfig.newBuilder()
-                .baseUri(apiUrl)
-                .withEnableEvents(true)
-                .eventsUri(eventsUrl)
-                .build())
+        .withConfiguration(FlagsmithConfig.newBuilder()
+            .baseUri(apiUrl)
+            .withEnableEvents(true)
+            .eventsUri(eventsUrl)
+            .build())
+        .build();
+  }
+
+  // Create the SDK client with local evaluation 
+  static FlagsmithClient createClientWithLocalEvaluation(String environmentKey, String apiUrl) {
+    return FlagsmithClient.newBuilder()
+        .setApiKey(environmentKey)
+        .withConfiguration(FlagsmithConfig.newBuilder()
+            .baseUri(apiUrl)
+            .withLocalEvaluation(true)
+            .build())
         .build();
   }
 

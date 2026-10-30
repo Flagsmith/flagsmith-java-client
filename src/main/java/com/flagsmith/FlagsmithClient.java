@@ -9,6 +9,8 @@ import com.flagsmith.exceptions.FlagsmithRuntimeError;
 import com.flagsmith.flagengine.Engine;
 import com.flagsmith.flagengine.EvaluationContext;
 import com.flagsmith.flagengine.EvaluationResult;
+import com.flagsmith.flagengine.SegmentRule;
+import com.flagsmith.flagengine.Segments;
 import com.flagsmith.interfaces.FlagsmithCache;
 import com.flagsmith.interfaces.FlagsmithSdk;
 import com.flagsmith.mappers.EngineMappers;
@@ -30,9 +32,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import lombok.ToString;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,9 +47,17 @@ import org.slf4j.LoggerFactory;
 @Data
 public class FlagsmithClient {
 
+  private static final List<String> IDENTITY_FREE_PROPERTY_PREFIXES = List.of(
+      "$.environment.", "$.environment[", "$.flags.", "$.flags[");
+
   private final FlagsmithLogger logger = new FlagsmithLogger();
   private FlagsmithSdk flagsmithSdk;
   private EvaluationContext evaluationContext;
+  @Getter(AccessLevel.NONE)
+  @Setter(AccessLevel.NONE)
+  @EqualsAndHashCode.Exclude
+  @ToString.Exclude
+  private EvaluationContext environmentEvaluationContext;
   private PollingManager pollingManager;
   @Getter(AccessLevel.PACKAGE)
   @Setter(AccessLevel.NONE)
@@ -59,6 +71,19 @@ public class FlagsmithClient {
   }
 
   /**
+   * Set the evaluation context, and derive the one environment flags evaluate against.
+   *
+   * @param evaluationContext the evaluation context
+   */
+  public void setEvaluationContext(EvaluationContext evaluationContext) {
+    this.environmentEvaluationContext = evaluationContext == null
+        ? null
+        : new EvaluationContext(evaluationContext)
+            .withSegments(getIdentityFreeSegments(evaluationContext.getSegments()));
+    this.evaluationContext = evaluationContext;
+  }
+
+  /**
    * Load the environment flags in the environment variable from the API.
    */
   public void updateEnvironment() {
@@ -68,7 +93,7 @@ public class FlagsmithClient {
       // if we didn't get an environment from the API,
       // then don't overwrite the copy we already have.
       if (updatedEvaluationContext != null) {
-        this.evaluationContext = updatedEvaluationContext;
+        setEvaluationContext(updatedEvaluationContext);
       } else {
         logger.error(getEnvironmentUpdateErrorMessage());
       }
@@ -411,22 +436,46 @@ public class FlagsmithClient {
   }
 
   private Flags getEnvironmentFlagsFromEvaluationContext() throws FlagsmithClientError {
-    if (evaluationContext == null) {
+    final EvaluationContext context = environmentEvaluationContext;
+    if (context == null) {
       if (getConfig().getFlagsmithFlagDefaults() == null) {
         throw new FlagsmithClientError("Unable to get flags. No environment present.");
       }
       return getDefaultFlags();
     }
 
-    final EvaluationResult result = Engine.getEvaluationResult(
-      new EvaluationContext(evaluationContext)
-        .withSegments(null)
-    );
+    final EvaluationResult result = Engine.getEvaluationResult(context);
 
     return Flags.fromEvaluationResult(
         result,
         getConfig().getAnalyticsProcessor(),
         getConfig().getFlagsmithFlagDefaults());
+  }
+
+  /*
+   * The segments that resolve without an identity, i.e. those whose every
+   * condition reads only the environment or other flags.
+   */
+  private static Segments getIdentityFreeSegments(Segments segments) {
+    if (segments == null) {
+      return null;
+    }
+    Segments identityFreeSegments = new Segments();
+    segments.getAdditionalProperties().forEach((segmentKey, segmentContext) -> {
+      if (isIdentityFree(segmentContext.getRules())) {
+        identityFreeSegments.setAdditionalProperty(segmentKey, segmentContext);
+      }
+    });
+    return identityFreeSegments;
+  }
+
+  private static boolean isIdentityFree(List<SegmentRule> rules) {
+    return rules == null || rules.stream().allMatch(rule ->
+        (rule.getConditions() == null || rule.getConditions().stream().allMatch(condition ->
+            condition.getProperty() != null
+                && IDENTITY_FREE_PROPERTY_PREFIXES.stream()
+                    .anyMatch(condition.getProperty()::startsWith)))
+            && isIdentityFree(rule.getRules()));
   }
 
   private Flags getIdentityFlagsFromEvaluationContext(
@@ -748,8 +797,8 @@ public class FlagsmithClient {
           throw new FlagsmithRuntimeError(
               "Cannot use both default flag handler and offline handler.");
         }
-        client.evaluationContext = EngineMappers.mapEnvironmentToContext(
-          configuration.getOfflineHandler().getEnvironment());
+        client.setEvaluationContext(EngineMappers.mapEnvironmentToContext(
+            configuration.getOfflineHandler().getEnvironment()));
       }
 
       EventProcessor processor = null;
