@@ -197,7 +197,7 @@ public class SegmentEvaluator {
         if (contextValue != null) {
           try {
             Pattern pattern = Pattern.compile(conditionValue.toString());
-            return pattern.matcher(contextValue.toString()).find();
+            return pattern.matcher(contextValue.toString()).lookingAt();
           } catch (PatternSyntaxException pse) {
             return false;
           }

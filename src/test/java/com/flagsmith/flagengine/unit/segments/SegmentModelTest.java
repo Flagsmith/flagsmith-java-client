@@ -81,6 +81,16 @@ public class SegmentModelTest {
         Arguments.of(SegmentConditions.REGEX, "FOO", "[a-z]+", false),
         Arguments.of(SegmentConditions.REGEX, 42, "[a-z]+", false),
         Arguments.of(SegmentConditions.REGEX, 42, "\\d+", true),
+        Arguments.of(SegmentConditions.REGEX, "production", "prod", true),
+        Arguments.of(SegmentConditions.REGEX, "nonproduction", "prod", false),
+        Arguments.of(SegmentConditions.REGEX, "development", "prod|dev", true),
+        Arguments.of(SegmentConditions.REGEX, "nondev", "prod|dev", false),
+        Arguments.of(SegmentConditions.REGEX, "jane@example.com", "@example\\.com$", false),
+        Arguments.of(SegmentConditions.REGEX, "jane@example.com", "^[^@]+@example\\.com$", true),
+        Arguments.of(SegmentConditions.REGEX, "jane@example.com.br", "^[^@]+@example\\.com$", false),
+        Arguments.of(SegmentConditions.REGEX, "Production", "prod", false),
+        Arguments.of(SegmentConditions.REGEX, "Production", "[Pp]rod", true),
+        Arguments.of(SegmentConditions.REGEX, "a)(b", "a)(b", false),
         Arguments.of(SegmentConditions.MODULO, 2, "2|0", true),
         Arguments.of(SegmentConditions.MODULO, 3, "2|0", false),
         Arguments.of(SegmentConditions.MODULO, 2.0, "2|0", true),
@@ -113,7 +123,7 @@ public class SegmentModelTest {
       Object traitValue,
       Object conditionValue,
       Boolean expectedResponse) {
-
+    // Given
     final EvaluationContext context = EngineMappers.mapContextAndIdentityDataToContext(
         FlagsmithTestHelper.evaluationContext(), "foo",
         Collections.singletonMap("foo", traitValue));
@@ -125,8 +135,10 @@ public class SegmentModelTest {
                     .withOperator(condition).withProperty("foo")
                     .withValue(conditionValue)))));
 
+    // When
     Boolean actualResult = SegmentEvaluator.isContextInSegment(context, segmentContext);
 
+    // Then
     assertEquals(expectedResponse, actualResult);
   }
 
