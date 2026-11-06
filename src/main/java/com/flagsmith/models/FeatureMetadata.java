@@ -1,5 +1,7 @@
 package com.flagsmith.models;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 /**
  * FeatureMetadata
  * 
@@ -8,6 +10,8 @@ package com.flagsmith.models;
  */
 public class FeatureMetadata {
   private Integer flagsmithId;
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  private ExperimentMetadata experiment;
 
   /*
    * FlagsmithId
@@ -27,5 +31,19 @@ public class FeatureMetadata {
    */
   public void setFlagsmithId(Integer flagsmithId) {
     this.flagsmithId = flagsmithId;
+  }
+
+  /*
+   * Experiment
+   * <p>The running experiment the feature state belongs to, if any.
+   *
+   * @return The experiment
+   */
+  public ExperimentMetadata getExperiment() {
+    return experiment;
+  }
+
+  public void setExperiment(ExperimentMetadata experiment) {
+    this.experiment = experiment;
   }
 }

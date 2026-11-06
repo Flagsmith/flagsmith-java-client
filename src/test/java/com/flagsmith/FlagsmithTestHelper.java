@@ -447,8 +447,48 @@ public class FlagsmithTestHelper {
         + "  {\"id\": 4, \"feature\": {\"id\": 4, \"name\": \"disabled_feature\", \"type\": \"MULTIVARIATE\"},\n"
         + "   \"feature_state_value\": \"off\", \"enabled\": false, \"variant\": \"treatment\",\n"
         + "   \"reason\": \"SPLIT; weight=50.0\", \"metadata\": {\"experiment\":\n"
-        + "   {\"id\": 44, \"name\": \"disabled_experiment\", \"in_experiment\": true}}}\n"
+        + "   {\"id\": 44, \"name\": \"disabled_experiment\", \"in_experiment\": true}}},\n"
+        + "  {\"id\": 5, \"feature\": {\"id\": 5, \"name\": \"no_variant\", \"type\": \"STANDARD\"},\n"
+        + "   \"feature_state_value\": \"on\", \"enabled\": true, \"metadata\": {\"experiment\":\n"
+        + "   {\"id\": 45, \"name\": \"no_variant_experiment\", \"in_experiment\": true}}}\n"
         + "]}";
+  }
+
+  /**
+   * An environment document running an experiment on {@code checkout}. Its rollout segment is
+   * identities on the premium plan, split evenly between {@code control} and {@code treatment}.
+   * {@code user_overridden} has an identity override for {@code checkout}, and {@code plain} has no
+   * experiment.
+   */
+  public static String getEnvironmentDocumentWithExperiment() {
+    String experiment = "{\"id\": 42, \"name\": \"Checkout experiment\", \"in_experiment\": %s}";
+    String checkout = "{\"name\": \"checkout\", \"type\": \"MULTIVARIATE\", \"id\": 10}";
+    return "{\"api_key\": \"B62qaMZNwfiqT76p38ggrQ\", \"name\": \"Test Environment\", \"id\": 1,\n"
+        + " \"project\": {\"name\": \"Test project\", \"id\": 1, \"hide_disabled_flags\": false,\n"
+        + "  \"organisation\": {\"id\": 1, \"name\": \"Test Org\", \"feature_analytics\": false,\n"
+        + "   \"persist_trait_data\": true, \"stop_serving_flags\": false},\n"
+        + "  \"segments\": [{\"id\": 7, \"name\": \"Checkout experiment rollout\",\n"
+        + "   \"rules\": [{\"type\": \"ALL\", \"rules\": [], \"conditions\": [\n"
+        + "    {\"operator\": \"EQUAL\", \"property_\": \"plan\", \"value\": \"premium\"}]}],\n"
+        + "   \"feature_states\": [{\"id\": 2, \"featurestate_uuid\": \"c2c2c2c2-c2c2-c2c2-c2c2-c2c2c2c2c2c2\",\n"
+        + "    \"feature\": " + checkout + ", \"feature_state_value\": \"control\", \"enabled\": true,\n"
+        + "    \"feature_segment\": {\"priority\": 0},\n"
+        + "    \"multivariate_feature_state_values\": [{\"id\": 3, \"percentage_allocation\": 50,\n"
+        + "     \"mv_fs_value_uuid\": \"3e3e3e3e-3e3e-3e3e-3e3e-3e3e3e3e3e3e\",\n"
+        + "     \"multivariate_feature_option\": {\"id\": 3, \"value\": \"new checkout\", \"key\": \"treatment\"}}],\n"
+        + "    \"metadata\": {\"experiment\": " + String.format(experiment, "true") + "}}]}]},\n"
+        + " \"feature_states\": [\n"
+        + "  {\"id\": 1, \"featurestate_uuid\": \"c1c1c1c1-c1c1-c1c1-c1c1-c1c1c1c1c1c1\",\n"
+        + "   \"feature\": " + checkout + ", \"feature_state_value\": \"control\", \"enabled\": true,\n"
+        + "   \"multivariate_feature_state_values\": [],\n"
+        + "   \"metadata\": {\"experiment\": " + String.format(experiment, "false") + "}},\n"
+        + "  {\"id\": 3, \"featurestate_uuid\": \"c3c3c3c3-c3c3-c3c3-c3c3-c3c3c3c3c3c3\",\n"
+        + "   \"feature\": {\"name\": \"plain\", \"type\": \"STANDARD\", \"id\": 11},\n"
+        + "   \"feature_state_value\": \"hello\", \"enabled\": true, \"multivariate_feature_state_values\": []}],\n"
+        + " \"identity_overrides\": [{\"identifier\": \"user_overridden\", \"identity_features\": [\n"
+        + "  {\"featurestate_uuid\": \"c4c4c4c4-c4c4-c4c4-c4c4-c4c4c4c4c4c4\", \"feature\": " + checkout + ",\n"
+        + "   \"feature_state_value\": \"overridden checkout\", \"enabled\": true,\n"
+        + "   \"multivariate_feature_state_values\": []}]}]}";
   }
 
   public static <T> Future<T> futurableReturn(T response) {

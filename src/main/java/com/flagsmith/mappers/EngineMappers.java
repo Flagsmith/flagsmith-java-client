@@ -63,6 +63,8 @@ public class EngineMappers {
     flag.setValue(flagResult.getValue());
     flag.setEnabled(flagResult.getEnabled());
     flag.setReason(flagResult.getReason());
+    flag.setVariant(flagResult.getVariant());
+    flag.setExperiment(metadata.getExperiment());
     return flag;
   }
 
@@ -358,6 +360,7 @@ public class EngineMappers {
     for (MultivariateFeatureStateValueModel mvValue :
         featureState.getMultivariateFeatureStateValues()) {
       FeatureValue variant = new FeatureValue()
+          .withKey(mvValue.getMultivariateFeatureOption().getKey())
           .withValue(mvValue.getMultivariateFeatureOption().getValue())
           .withWeight(mvValue.getPercentageAllocation().doubleValue())
           .withPriority(getMultivariateFeatureValuePriority(mvValue));
@@ -381,6 +384,9 @@ public class EngineMappers {
       FeatureStateModel featureState) {
     FeatureMetadata metadata = new FeatureMetadata();
     metadata.setFlagsmithId(featureState.getFeature().getId());
+    if (featureState.getMetadata() != null) {
+      metadata.setExperiment(featureState.getMetadata().getExperiment());
+    }
     return MapperFactory.getMapper().convertValue(metadata,
         new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
         });
