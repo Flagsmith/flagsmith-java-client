@@ -1148,6 +1148,10 @@ public class FlagsmithClientTest {
         // enrolled, but the flag is off
         assertEquals(Boolean.FALSE,
                 client.getExperimentFlag("disabled_feature", "user-1").getEnabled());
+        // enrolled, but the flag has no variant
+        Flag noVariant = (Flag) client.getExperimentFlag("no_variant", "user-1");
+        assertEquals(Boolean.TRUE, noVariant.getExperiment().getInExperiment());
+        assertNull(noVariant.getVariant());
 
         verify(processor, never()).trackExposureEvent(any(), any(), any(), any(), any());
     }
@@ -1175,23 +1179,19 @@ public class FlagsmithClientTest {
         verify(processor, never()).trackExposureEvent(any(), any(), any(), any(), any());
     }
 
-    @Test
-    public void testGetExperimentFlagRecordsNoExposureWithLocalEvaluation()
-            throws JsonProcessingException, FlagsmithClientError {
-        String baseUrl = "http://bad-url";
+    /**
+     * A locally evaluating client serving
+     * {@link FlagsmithTestHelper#getEnvironmentDocumentWithExperiment()}.
+     */
+    private static FlagsmithClient localExperimentClient(EventProcessor processor) {
         MockInterceptor interceptor = new MockInterceptor();
-        EventProcessor processor = mock(EventProcessor.class);
         interceptor.addRule()
-                .get(baseUrl + "/environment-document/")
+                .get("http://bad-url/environment-document/")
                 .anyTimes()
-                .respond(
-                        MapperFactory.getMapper()
-                                .writeValueAsString(FlagsmithTestHelper.environmentModel()),
-                        MEDIATYPE_JSON);
-
+                .respond(FlagsmithTestHelper.getEnvironmentDocumentWithExperiment(), MEDIATYPE_JSON);
         FlagsmithClient client = FlagsmithClient.newBuilder()
                 .withConfiguration(FlagsmithConfig.newBuilder()
-                        .baseUri(baseUrl)
+                        .baseUri("http://bad-url")
                         .addHttpInterceptor(interceptor)
                         .withEventProcessor(processor)
                         .withLocalEvaluation(true)
@@ -1199,13 +1199,63 @@ public class FlagsmithClientTest {
                 .setApiKey("ser.abcdefg")
                 .build();
         client.updateEnvironment();
+        return client;
+    }
 
-        BaseFlag flag = client.getExperimentFlag("some_feature", "user-1");
+    @Test
+    public void testGetExperimentFlagRecordsAnExposureWithLocalEvaluationWhenEnrolled()
+            throws FlagsmithClientError {
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithClient client = localExperimentClient(processor);
+        Map<String, Object> traits = Collections.singletonMap("plan", "premium");
 
-        assertTrue(flag instanceof Flag);
-        assertNull(((Flag) flag).getVariant());
-        assertNull(((Flag) flag).getExperiment());
+        Flag flag = (Flag) client.getExperimentFlag("checkout", "user-1", traits);
+
+        assertEquals("new checkout", flag.getValue());
+        assertEquals("treatment", flag.getVariant());
+        assertEquals(42, flag.getExperiment().getId());
+        assertEquals("Checkout experiment", flag.getExperiment().getName());
+        assertEquals(Boolean.TRUE, flag.getExperiment().getInExperiment());
+        verify(processor).trackExposureEvent("checkout", "user-1", "treatment", traits,
+                Collections.singletonMap("experiment_id", 42));
+    }
+
+    private static Stream<Arguments> localExperimentFlagsWithoutAnExposure() {
+        return Stream.of(
+                // outside the rollout
+                Arguments.of("checkout", "user-1", "free", "control", Boolean.FALSE),
+                // an identity override carries no experiment
+                Arguments.of("checkout", "user_overridden", "premium", "overridden checkout", null),
+                // no experiment on the feature
+                Arguments.of("plain", "user-1", "premium", "hello", null));
+    }
+
+    @ParameterizedTest
+    @MethodSource("localExperimentFlagsWithoutAnExposure")
+    public void testGetExperimentFlagRecordsNoExposureWithLocalEvaluation(
+            String featureName, String identifier, String plan, String expectedValue,
+            Boolean expectedInExperiment) throws FlagsmithClientError {
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithClient client = localExperimentClient(processor);
+
+        Flag flag = (Flag) client.getExperimentFlag(
+                featureName, identifier, Collections.singletonMap("plan", plan));
+
+        assertEquals(expectedValue, flag.getValue());
+        assertEquals(expectedInExperiment,
+                flag.getExperiment() == null ? null : flag.getExperiment().getInExperiment());
         verify(processor, never()).trackExposureEvent(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void testEnvironmentFlagsCarryNoExperimentWithLocalEvaluation()
+            throws FlagsmithClientError {
+        FlagsmithClient client = localExperimentClient(mock(EventProcessor.class));
+
+        Flag flag = (Flag) client.getEnvironmentFlags().getFlag("checkout");
+
+        assertEquals("control", flag.getValue());
+        assertNull(flag.getExperiment());
     }
 
     /**

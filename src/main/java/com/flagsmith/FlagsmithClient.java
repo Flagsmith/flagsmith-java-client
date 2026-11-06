@@ -9,6 +9,9 @@ import com.flagsmith.exceptions.FlagsmithRuntimeError;
 import com.flagsmith.flagengine.Engine;
 import com.flagsmith.flagengine.EvaluationContext;
 import com.flagsmith.flagengine.EvaluationResult;
+import com.flagsmith.flagengine.FeatureContext;
+import com.flagsmith.flagengine.Features;
+import com.flagsmith.flagengine.SegmentContext;
 import com.flagsmith.flagengine.SegmentRule;
 import com.flagsmith.flagengine.Segments;
 import com.flagsmith.interfaces.FlagsmithCache;
@@ -79,6 +82,7 @@ public class FlagsmithClient {
     this.environmentEvaluationContext = evaluationContext == null
         ? null
         : new EvaluationContext(evaluationContext)
+            .withFeatures(withoutExperiments(evaluationContext.getFeatures()))
             .withSegments(getIdentityFreeSegments(evaluationContext.getSegments()));
     this.evaluationContext = evaluationContext;
   }
@@ -250,8 +254,7 @@ public class FlagsmithClient {
 
   /**
    * Get an identity's flag, recording one {@code $flag_exposure} event if the identity is enrolled
-   * in a running experiment on it. Only remote evaluation carries experiment metadata, so local
-   * evaluation and offline mode record no exposure.
+   * in a running experiment on it.
    *
    * @param featureName feature name
    * @param identifier  identifier string
@@ -295,6 +298,12 @@ public class FlagsmithClient {
     if (experiment == null || !Boolean.TRUE.equals(experiment.getInExperiment())) {
       logger.info("Not recording an exposure for feature {}: the identity is not enrolled in a "
           + "running experiment.", featureName);
+      return flag;
+    }
+
+    if (((Flag) flag).getVariant() == null) {
+      logger.info("Not recording an exposure for feature {}: the flag has no variant.",
+          featureName);
       return flag;
     }
 
@@ -463,10 +472,38 @@ public class FlagsmithClient {
     Segments identityFreeSegments = new Segments();
     segments.getAdditionalProperties().forEach((segmentKey, segmentContext) -> {
       if (isIdentityFree(segmentContext.getRules())) {
-        identityFreeSegments.setAdditionalProperty(segmentKey, segmentContext);
+        identityFreeSegments.setAdditionalProperty(segmentKey, segmentContext.getOverrides() == null
+            ? segmentContext
+            : new SegmentContext(segmentContext).withOverrides(segmentContext.getOverrides()
+                .stream()
+                .map(FlagsmithClient::withoutExperiment)
+                .collect(Collectors.toList())));
       }
     });
     return identityFreeSegments;
+  }
+
+  /*
+   * Only an identity is enrolled in an experiment, so environment flags carry none.
+   */
+  private static Features withoutExperiments(Features features) {
+    if (features == null) {
+      return null;
+    }
+    Features environmentFeatures = new Features();
+    features.getAdditionalProperties().forEach((featureName, featureContext) ->
+        environmentFeatures.setAdditionalProperty(featureName, withoutExperiment(featureContext)));
+    return environmentFeatures;
+  }
+
+  private static FeatureContext withoutExperiment(FeatureContext featureContext) {
+    Map<String, Object> metadata = featureContext.getMetadata();
+    if (metadata == null || !metadata.containsKey("experiment")) {
+      return featureContext;
+    }
+    Map<String, Object> environmentMetadata = new HashMap<>(metadata);
+    environmentMetadata.remove("experiment");
+    return new FeatureContext(featureContext).withMetadata(environmentMetadata);
   }
 
   private static boolean isIdentityFree(List<SegmentRule> rules) {

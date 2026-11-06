@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 /**
- * Details of the experiment running on a feature, as returned by remote evaluation.
+ * Details of the experiment running on a feature. Only identity evaluation carries it.
  */
 @Data
 public class ExperimentMetadata {
