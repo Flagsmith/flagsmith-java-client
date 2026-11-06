@@ -456,7 +456,7 @@ public class FlagsmithTestHelper {
 
   /**
    * An environment document running an experiment on {@code checkout}. Its rollout segment is
-   * identities on the premium plan, who are served the {@code treatment} variant.
+   * identities on the premium plan, split evenly between {@code control} and {@code treatment}.
    * {@code user_overridden} has an identity override for {@code checkout}, and {@code plain} has no
    * experiment.
    */
@@ -473,7 +473,7 @@ public class FlagsmithTestHelper {
         + "   \"feature_states\": [{\"id\": 2, \"featurestate_uuid\": \"c2c2c2c2-c2c2-c2c2-c2c2-c2c2c2c2c2c2\",\n"
         + "    \"feature\": " + checkout + ", \"feature_state_value\": \"control\", \"enabled\": true,\n"
         + "    \"feature_segment\": {\"priority\": 0},\n"
-        + "    \"multivariate_feature_state_values\": [{\"id\": 3, \"percentage_allocation\": 100,\n"
+        + "    \"multivariate_feature_state_values\": [{\"id\": 3, \"percentage_allocation\": 50,\n"
         + "     \"mv_fs_value_uuid\": \"3e3e3e3e-3e3e-3e3e-3e3e-3e3e3e3e3e3e\",\n"
         + "     \"multivariate_feature_option\": {\"id\": 3, \"value\": \"new checkout\", \"key\": \"treatment\"}}],\n"
         + "    \"metadata\": {\"experiment\": " + String.format(experiment, "true") + "}}]}]},\n"

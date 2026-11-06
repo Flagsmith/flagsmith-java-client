@@ -57,6 +57,7 @@ import okio.Buffer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -1202,21 +1203,26 @@ public class FlagsmithClientTest {
         return client;
     }
 
-    @Test
-    public void testGetExperimentFlagRecordsAnExposureWithLocalEvaluationWhenEnrolled()
+    @ParameterizedTest
+    @CsvSource({
+        "user-1, new checkout, treatment",
+        "user-3, control, control"
+    })
+    public void testGetExperimentFlagRecordsAnExposureWithLocalEvaluationWhenEnrolled(
+            String identifier, String expectedValue, String expectedVariant)
             throws FlagsmithClientError {
         EventProcessor processor = mock(EventProcessor.class);
         FlagsmithClient client = localExperimentClient(processor);
         Map<String, Object> traits = Collections.singletonMap("plan", "premium");
 
-        Flag flag = (Flag) client.getExperimentFlag("checkout", "user-1", traits);
+        Flag flag = (Flag) client.getExperimentFlag("checkout", identifier, traits);
 
-        assertEquals("new checkout", flag.getValue());
-        assertEquals("treatment", flag.getVariant());
+        assertEquals(expectedValue, flag.getValue());
+        assertEquals(expectedVariant, flag.getVariant());
         assertEquals(42, flag.getExperiment().getId());
         assertEquals("Checkout experiment", flag.getExperiment().getName());
         assertEquals(Boolean.TRUE, flag.getExperiment().getInExperiment());
-        verify(processor).trackExposureEvent("checkout", "user-1", "treatment", traits,
+        verify(processor).trackExposureEvent("checkout", identifier, expectedVariant, traits,
                 Collections.singletonMap("experiment_id", 42));
     }
 
