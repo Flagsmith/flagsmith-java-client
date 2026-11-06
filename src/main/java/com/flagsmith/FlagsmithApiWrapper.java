@@ -16,18 +16,23 @@ import com.flagsmith.models.features.FeatureStateModel;
 import com.flagsmith.responses.FlagsAndTraitsResponse;
 import com.flagsmith.threads.AnalyticsProcessor;
 import com.flagsmith.threads.RequestProcessor;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.Getter;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
+import okhttp3.Response;
 
 @Getter
 public class FlagsmithApiWrapper implements FlagsmithSdk {
@@ -36,6 +41,7 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
   private static final String USER_AGENT_HEADER = "User-Agent";
   private static final String ACCEPT_HEADER = "Accept";
   private static final Integer TIMEOUT = 15000;
+  private static final Pattern NEXT_PAGE_LINK = Pattern.compile("<([^>]+)>;\\s*rel=\"next\"");
 
   private final FlagsmithLogger logger;
   private final FlagsmithConfig defaultConfig;
@@ -252,14 +258,36 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
 
   @Override
   public EvaluationContext getEvaluationContext() {
-    final Request request = newGetRequest(defaultConfig.getEnvironmentUri());
-
-    Future<EnvironmentModel> environmentFuture = requestor.executeAsync(request,
-        new TypeReference<EnvironmentModel>() {},
-        Boolean.TRUE);
+    long startTime = System.nanoTime();
+    EnvironmentModel environment = null;
+    String nextPageId = null;
 
     try {
-      EnvironmentModel environment = environmentFuture.get(TIMEOUT, TimeUnit.MILLISECONDS);
+      do {
+        HttpUrl url = defaultConfig.getEnvironmentUri();
+        if (nextPageId != null) {
+          url = url.newBuilder().addQueryParameter("page_id", nextPageId).build();
+        }
+        final Request request = newGetRequest(url);
+
+        Future<EnvironmentPage> pageFuture = requestor.submit(
+            request, this::readEnvironmentPage, Boolean.TRUE);
+        EnvironmentPage page = pageFuture.get(TIMEOUT, TimeUnit.MILLISECONDS);
+
+        if (environment == null) {
+          environment = page.environment;
+        } else if (page.environment.getIdentityOverrides() != null) {
+          if (environment.getIdentityOverrides() == null) {
+            environment.setIdentityOverrides(new ArrayList<>());
+          }
+          environment.getIdentityOverrides().addAll(page.environment.getIdentityOverrides());
+        }
+
+        nextPageId = page.nextPageId;
+      } while (nextPageId != null);
+
+      warnWhenEnvironmentFetchExceededRefreshInterval(startTime);
+
       return EngineMappers.mapEnvironmentToContext(environment);
     } catch (TimeoutException ie) {
       logger.error("Timed out on fetching Feature flags.", ie);
@@ -273,6 +301,52 @@ public class FlagsmithApiWrapper implements FlagsmithSdk {
     }
 
     return null;
+  }
+
+  private EnvironmentPage readEnvironmentPage(Response response) throws IOException {
+    return new EnvironmentPage(
+        MapperFactory.getMapper().readValue(response.body().string(), EnvironmentModel.class),
+        extractNextPageId(response.header("Link")));
+  }
+
+  String extractNextPageId(String linkHeader) {
+    if (linkHeader == null) {
+      return null;
+    }
+
+    Matcher matcher = NEXT_PAGE_LINK.matcher(linkHeader);
+    if (!matcher.find()) {
+      return null;
+    }
+
+    HttpUrl nextUrl = defaultConfig.getEnvironmentUri().resolve(matcher.group(1));
+    return nextUrl == null ? null : nextUrl.queryParameter("page_id");
+  }
+
+  private void warnWhenEnvironmentFetchExceededRefreshInterval(long startTime) {
+    Integer refreshIntervalSeconds = defaultConfig.getEnvironmentRefreshIntervalSeconds();
+    if (refreshIntervalSeconds == null) {
+      return;
+    }
+
+    double elapsedSeconds = (System.nanoTime() - startTime) / 1_000_000_000.0;
+    if (elapsedSeconds > refreshIntervalSeconds) {
+      logger.warn(
+          "Fetching the environment document took {}s, longer than the environment refresh "
+              + "interval of {}s; raise the refresh interval or reduce the environment size.",
+          String.format(Locale.ROOT, "%.1f", elapsedSeconds),
+          refreshIntervalSeconds);
+    }
+  }
+
+  private static class EnvironmentPage {
+    private final EnvironmentModel environment;
+    private final String nextPageId;
+
+    private EnvironmentPage(EnvironmentModel environment, String nextPageId) {
+      this.environment = environment;
+      this.nextPageId = nextPageId;
+    }
   }
 
   @Override
