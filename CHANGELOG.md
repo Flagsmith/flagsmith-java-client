@@ -1,5 +1,17 @@
 # Changelog
 
+## [8.4.0](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.3.0...v8.4.0) (2026-11-06)
+
+
+### Features
+
+* Record exposures under local evaluation ([#251](https://github.com/Flagsmith/flagsmith-java-client/issues/251)) ([106d8a6](https://github.com/Flagsmith/flagsmith-java-client/commit/106d8a6d439b365767ee726b8ec3655c42f58e22))
+
+
+### Other
+
+* Let Renovate keep updating spec bumps the webhook handler commits to ([#246](https://github.com/Flagsmith/flagsmith-java-client/issues/246)) ([e278fd5](https://github.com/Flagsmith/flagsmith-java-client/commit/e278fd5fa56440adcf71f36a9ecfe2e499e1525d))
+
 ## [8.3.0](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.2.0...v8.3.0) (2026-10-29)
 
 
