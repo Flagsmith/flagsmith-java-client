@@ -1232,7 +1232,7 @@ public class FlagsmithClientTest {
 
     @ParameterizedTest
     @MethodSource("localExperimentFlagsWithoutAnExposure")
-    public void testGetExperimentFlagRecordsNoExposureWithLocalEvaluation(
+    public void testGetExperimentFlagRecordsNoExposureWithLocalEvaluationWhenNotEnrolled(
             String featureName, String identifier, String plan, String expectedValue,
             Boolean expectedInExperiment) throws FlagsmithClientError {
         EventProcessor processor = mock(EventProcessor.class);
