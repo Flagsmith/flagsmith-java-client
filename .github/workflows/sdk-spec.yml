@@ -15,4 +15,4 @@ jobs:
     with:
       spec-ref: v0.9.0
       language: java
-      tags: core or local-evaluation
+      tags: core events local-evaluation
