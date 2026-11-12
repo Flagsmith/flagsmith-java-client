@@ -406,10 +406,13 @@ public class EventProcessorTest {
     verify(logger, times(1)).error(contains("refused the environment key"));
   }
 
-  @Test
-  public void flush_doesNotResendAKeptBatchForAFlushRequestedWhileItWasInFlight() {
-    CountDownLatch release = new CountDownLatch(1);
-    EventProcessor processor = newProcessor(1000, 0, (chain) -> {
+  /** Fails the first {@link EventProcessor#MAX_ATTEMPTS} requests once released, then accepts. */
+  private static Interceptor failingOneBatchOnceReleased(CountDownLatch release) {
+    AtomicInteger requests = new AtomicInteger();
+    return (chain) -> {
+      if (requests.incrementAndGet() > EventProcessor.MAX_ATTEMPTS) {
+        return AcceptingInterceptor.accepted(chain.request());
+      }
       try {
         release.await(WAIT_SECONDS, TimeUnit.SECONDS);
       } catch (InterruptedException e) {
@@ -417,7 +420,25 @@ public class EventProcessorTest {
         throw new IOException(e);
       }
       throw new IOException("connection reset");
-    });
+    };
+  }
+
+  /** Every event sent, in the order sent, across every request. */
+  @SneakyThrows
+  private List<String> sentEvents() {
+    List<String> sent = new ArrayList<>();
+    for (String body : recorder.bodies()) {
+      MapperFactory.getMapper().readTree(body).get("events")
+          .forEach((event) -> sent.add(event.get("event").asText()));
+    }
+    return sent;
+  }
+
+  @Test
+  @SneakyThrows
+  public void flush_sendsTheEventsBehindAKeptBatchWithItWhenRequestedWhileItWasInFlight() {
+    CountDownLatch release = new CountDownLatch(1);
+    EventProcessor processor = newProcessor(1000, 0, failingOneBatchOnceReleased(release));
     mockLogger(processor);
 
     processor.trackEvent("add_to_cart", "user-1", "1", null, null);
@@ -426,13 +447,81 @@ public class EventProcessorTest {
     CompletableFuture<Void> second = processor.flush();
     release.countDown();
 
-    first.join();
-    second.join();
-    assertEquals(EventProcessor.MAX_ATTEMPTS, recorder.count());
-    assertEquals(2, processor.bufferedEvents().size());
-    assertEquals("add_to_cart", processor.bufferedEvents().get(0).get("event"));
+    first.get(WAIT_SECONDS, TimeUnit.SECONDS);
+    second.get(WAIT_SECONDS, TimeUnit.SECONDS);
+    assertEquals(EventProcessor.MAX_ATTEMPTS + 1, recorder.count());
+    assertEquals(Arrays.asList("add_to_cart", "add_to_cart", "add_to_cart", "add_to_cart",
+        "checkout"), sentEvents());
+    assertTrue(processor.bufferedEvents().isEmpty());
+  }
+
+  @Test
+  @SneakyThrows
+  public void close_sendsTheEventsBehindAKeptBatchWithIt() {
+    CountDownLatch release = new CountDownLatch(1);
+    EventProcessor processor = newProcessor(1000, 0, failingOneBatchOnceReleased(release));
     eventProcessor = null;
-    processor.close(0);
+    FlagsmithLogger logger = mockLogger(processor);
+
+    processor.trackEvent("add_to_cart", "user-1", "1", null, null);
+    processor.flush();
+    processor.trackEvent("checkout", "user-1", "42", null, null);
+    CompletableFuture<Void> closed = CompletableFuture.runAsync(() -> processor.close());
+    release.countDown();
+    closed.get(WAIT_SECONDS, TimeUnit.SECONDS);
+
+    assertEquals(Arrays.asList("add_to_cart", "add_to_cart", "add_to_cart", "add_to_cart",
+        "checkout"), sentEvents());
+    verify(logger, never()).error(contains("left unsent on close"));
+  }
+
+  @Test
+  @SneakyThrows
+  public void trackEvent_holdsAFullBufferAfterAKeptBatchUntilTheNextFlush() {
+    EventProcessor processor = newProcessor(2, 0, failingWith(503, 503, 503));
+    mockLogger(processor);
+    interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(ACCEPTED_BODY, MEDIATYPE_JSON);
+
+    processor.trackEvent("event_1", "user-1", null, null, null);
+    processor.trackEvent("event_2", "user-1", null, null, null);
+    flushAndWait(processor);
+    assertEquals(EventProcessor.MAX_ATTEMPTS, recorder.count());
+
+    for (int i = 3; i <= 6; i++) {
+      processor.trackEvent("event_" + i, "user-1", null, null, null);
+    }
+    assertEquals(EventProcessor.MAX_ATTEMPTS, recorder.count());
+    assertEquals(6, processor.bufferedEvents().size());
+
+    flushAndWait(processor);
+    assertEquals(EventProcessor.MAX_ATTEMPTS + 1, recorder.count());
+    assertTrue(processor.bufferedEvents().isEmpty());
+
+    // Once a batch gets through, a full buffer is sent at once again.
+    processor.trackEvent("event_7", "user-1", null, null, null);
+    processor.trackEvent("event_8", "user-1", null, null, null);
+    assertTrue(processor.bufferedEvents().isEmpty());
+    flushAndWait(processor);
+    assertEquals(EventProcessor.MAX_ATTEMPTS + 2, recorder.count());
+  }
+
+  @Test
+  @SneakyThrows
+  public void trackEvent_holdsABufferThatFilledBehindABatchThatIsThenKept() {
+    CountDownLatch release = new CountDownLatch(1);
+    EventProcessor processor = newProcessor(2, 0, failingOneBatchOnceReleased(release));
+    mockLogger(processor);
+
+    processor.trackEvent("event_1", "user-1", null, null, null);
+    processor.trackEvent("event_2", "user-1", null, null, null);
+    CompletableFuture<Void> inFlight = processor.flush();
+    processor.trackEvent("event_3", "user-1", null, null, null);
+    processor.trackEvent("event_4", "user-1", null, null, null);
+    release.countDown();
+    inFlight.get(WAIT_SECONDS, TimeUnit.SECONDS);
+
+    assertEquals(EventProcessor.MAX_ATTEMPTS, recorder.count());
+    assertEquals(4, processor.bufferedEvents().size());
   }
 
   @Test

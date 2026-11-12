@@ -119,6 +119,11 @@ public class EventProcessor {
   private final LongUnaryOperator jitter;
   private CompletableFuture<Void> inFlight = null;  // guarded by lock
   private CompletableFuture<Void> nextBatch = null; // guarded by lock
+  // Whether a timer tick, the application or close() asked for the next batch, rather than
+  // only a full buffer.
+  private boolean nextBatchRequested = false;      // guarded by lock
+  // After a kept batch, a full buffer waits for the next tick or explicit flush to send it.
+  private boolean holdFullBuffer = false;           // guarded by lock
   private int droppedSinceLastReport = 0;           // guarded by lock
   private Long lastDropReportNanos = null;          // guarded by lock
   private volatile Call currentCall;
@@ -237,13 +242,23 @@ public class EventProcessor {
   }
 
   /**
-   * Send everything buffered so far. While a batch is in flight, the buffer is sent once it
-   * succeeds or is dropped; if it is kept instead, the buffer waits for the next flush with it.
+   * Send everything buffered so far, a batch kept from a failed flush first. While a batch is in
+   * flight, the buffer is sent once it settles, together with that batch if it is kept.
    *
    * @return a future completing, never exceptionally, once every event buffered so far has been
    *     sent, dropped or kept for the next flush, retries included
    */
   public CompletableFuture<Void> flush() {
+    return flush(true);
+  }
+
+  /**
+   * Send the buffer.
+   *
+   * @param requested false when only a full buffer asks for it: then, while the events API is
+   *                  failing (the last batch was kept), the buffer waits for the next flush
+   */
+  private CompletableFuture<Void> flush(boolean requested) {
     List<Map<String, Object>> batch;
     CompletableFuture<Void> tracked;
 
@@ -256,9 +271,10 @@ public class EventProcessor {
         if (nextBatch == null && !buffer.isEmpty()) {
           nextBatch = new CompletableFuture<>();
         }
+        nextBatchRequested |= requested && nextBatch != null;
         return nextBatch == null ? inFlight : nextBatch;
       }
-      if (buffer.isEmpty()) {
+      if (buffer.isEmpty() || (!requested && holdFullBuffer)) {
         return CompletableFuture.completedFuture(null);
       }
       batch = takeBuffer();
@@ -393,7 +409,7 @@ public class EventProcessor {
 
       logDrops(droppedToReport);
       if (isFull) {
-        flush();
+        flush(false);
       }
     } catch (JsonProcessingException | RuntimeException e) {
       logger.error("Failed to buffer event " + event + ".", e);
@@ -608,15 +624,19 @@ public class EventProcessor {
       }
       if (disabled.get()) {
         clearBuffer();
-      } else if (outcome == Outcome.KEPT && !closed.get()) {
+      } else if (outcome == Outcome.KEPT && !cancelled) {
         buffer.addAll(0, batch);
         droppedToReport = dropOverflow();
       }
+      // A kept batch means the events API is failing: retrying it whenever the buffer fills
+      // would start a retry cycle per tracked event, so only a tick or a flush sends it again.
+      holdFullBuffer = outcome == Outcome.KEPT;
 
       waiting = nextBatch;
+      boolean requested = nextBatchRequested;
       nextBatch = null;
-      // A kept batch means the events API is failing: the buffer waits for the next flush.
-      if (waiting != null && outcome != Outcome.KEPT && !buffer.isEmpty()) {
+      nextBatchRequested = false;
+      if (waiting != null && !buffer.isEmpty() && (requested || !holdFullBuffer)) {
         next = takeBuffer();
         inFlight = waiting;
       } else {
