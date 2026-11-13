@@ -3,8 +3,10 @@ import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.models.BaseFlag;
 import com.flagsmith.models.Flags;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -47,6 +49,35 @@ public class Steps {
         .build();
   }
 
+  // Create the SDK client with events enabled
+  static FlagsmithClient createClientWithEvents(
+      String environmentKey, String apiUrl, String eventsUrl) {
+    return FlagsmithClient.newBuilder()
+        .setApiKey(environmentKey)
+        .withConfiguration(
+            FlagsmithConfig.newBuilder()
+                .baseUri(apiUrl)
+                .withEnableEvents(true)
+                .eventsUri(eventsUrl)
+                .build())
+        .build();
+  }
+
+  // Create the SDK client with local evaluation and events enabled
+  static FlagsmithClient createClientWithLocalEvaluationAndEvents(
+      String environmentKey, String apiUrl, String eventsUrl) {
+    return FlagsmithClient.newBuilder()
+        .setApiKey(environmentKey)
+        .withConfiguration(
+            FlagsmithConfig.newBuilder()
+                .baseUri(apiUrl)
+                .withLocalEvaluation(true)
+                .withEnableEvents(true)
+                .eventsUri(eventsUrl)
+                .build())
+        .build();
+  }
+
   // When the application gets the environment flags
   static List<SpecFlag> getEnvironmentFlags(FlagsmithClient flagsmith)
       throws FlagsmithClientError {
@@ -58,5 +89,50 @@ public class Steps {
       FlagsmithClient flagsmith, String identifier, Map<String, Object> traits)
       throws FlagsmithClientError {
     return asSpecFlags(flagsmith.getIdentityFlags(identifier, traits));
+  }
+
+  // When the application gets the experiment flag "{feature}" for identity "{identifier}" with traits:
+  static List<SpecFlag> getExperimentFlag(
+      FlagsmithClient flagsmith, String feature, String identifier, Map<String, Object> traits)
+      throws FlagsmithClientError {
+    return Collections.singletonList(
+        new SpecFlag(flagsmith.getExperimentFlag(feature, identifier, traits)));
+  }
+
+  // When the application tracks event "{event}" for identity "{identifier}" with value {value} and metadata:
+  static void trackEvent(
+      FlagsmithClient flagsmith,
+      String event,
+      String identifier,
+      Object value,
+      Map<String, Object> metadata) {
+    flagsmith.trackEvent(event, identifier, value, null, metadata);
+  }
+
+  // When the application tracks an exposure of feature "{feature}" for identity "{identifier}" with value {value} and metadata:
+  static void trackExposureEvent(
+      FlagsmithClient flagsmith,
+      String feature,
+      String identifier,
+      Object value,
+      Map<String, Object> metadata) {
+    flagsmith.trackExposureEvent(feature, identifier, value, null, metadata);
+  }
+
+  // When the application tracks events "event_{first}" to "event_{last}" for identity "{identifier}"
+  static void trackEvents(FlagsmithClient flagsmith, int first, int last, String identifier) {
+    for (int number = first; number <= last; number++) {
+      flagsmith.trackEvent("event_" + number, identifier);
+    }
+  }
+
+  // When the application flushes events
+  static void flushEvents(FlagsmithClient flagsmith) throws Exception {
+    flagsmith.flushEvents().get();
+  }
+
+  // When the application closes the client with a timeout of {timeout} seconds
+  static void close(FlagsmithClient flagsmith, int timeout) {
+    flagsmith.close(timeout, TimeUnit.SECONDS);
   }
 }

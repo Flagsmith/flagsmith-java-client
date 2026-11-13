@@ -1102,6 +1102,27 @@ public class FlagsmithClientTest {
     }
 
     @Test
+    public void testCloseWithATimeoutClosesTheEventProcessorWithIt() {
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithClient client = experimentClient(processor);
+
+        client.close(2, TimeUnit.SECONDS);
+
+        verify(processor).close(2_000L);
+        verify(processor, never()).close();
+    }
+
+    @Test
+    public void testCloseClosesTheEventProcessorWithItsDefaultTimeout() {
+        EventProcessor processor = mock(EventProcessor.class);
+        FlagsmithClient client = experimentClient(processor);
+
+        client.close();
+
+        verify(processor).close();
+    }
+
+    @Test
     public void testTrackExposureEventWithBlankIdentifierSendsNothing() {
         EventProcessor processor = mock(EventProcessor.class);
         FlagsmithClient client = experimentClient(processor);

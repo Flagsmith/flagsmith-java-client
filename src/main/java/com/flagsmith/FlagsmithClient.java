@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.AccessLevel;
@@ -408,8 +410,9 @@ public class FlagsmithClient {
   /**
    * Send buffered events now.
    *
-   * @return a future completing once every event buffered so far has been sent or dropped, already
-   *     completed when events are not enabled
+   * @return a future completing, never exceptionally, once every event buffered so far has been
+   *     sent, dropped or kept for the next flush, retries included; already completed when events
+   *     are not enabled
    */
   public CompletableFuture<Void> flushEvents() {
     if (eventProcessor == null) {
@@ -421,15 +424,32 @@ public class FlagsmithClient {
 
   /**
    * Should be called when terminating the client to clean up any resources that
-   * need cleaning up.
+   * need cleaning up. Sends the buffered events first, waiting for at most one batch's worst case
+   * under the events API's timeouts and retries.
    **/
   public void close() {
+    close(EventProcessor::close);
+  }
+
+  /**
+   * Should be called when terminating the client to clean up any resources that need cleaning
+   * up. Sends the buffered events first, retries included, waiting for them for at most
+   * {@code timeout}; events still unsent then are dropped. Never throws.
+   *
+   * @param timeout how long to wait for the buffered events to be sent
+   * @param unit    unit of {@code timeout}
+   */
+  public void close(long timeout, TimeUnit unit) {
+    close((processor) -> processor.close(unit.toMillis(timeout)));
+  }
+
+  private void close(Consumer<EventProcessor> closeEvents) {
     if (pollingManager != null) {
       pollingManager.stopPolling();
     }
 
     if (eventProcessor != null) {
-      eventProcessor.close();
+      closeEvents.accept(eventProcessor);
     }
 
     flagsmithSdk.close();
