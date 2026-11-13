@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.5.0](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.4.0...v8.5.0) (2026-11-13)
+
+
+### Features
+
+* Retry event delivery and close the client with a timeout ([#253](https://github.com/Flagsmith/flagsmith-java-client/issues/253)) ([63ccae9](https://github.com/Flagsmith/flagsmith-java-client/commit/63ccae9870ff745ca0f6d6fc6daa798cad37902b))
+
 ## [8.4.0](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.3.0...v8.4.0) (2026-11-06)
 
 
