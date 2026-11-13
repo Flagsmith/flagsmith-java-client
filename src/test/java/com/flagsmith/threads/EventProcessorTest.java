@@ -507,6 +507,49 @@ public class EventProcessorTest {
 
   @Test
   @SneakyThrows
+  public void trackEvent_sendsAFullBufferOnceTheHoldCoolsDownWithTheTimerOff() {
+    EventProcessor processor = newProcessor(2, 0, failingWith(503, 503, 503));
+    processor.setHoldCoolDownMillis(200);
+    mockLogger(processor);
+    interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(ACCEPTED_BODY, MEDIATYPE_JSON);
+
+    processor.trackEvent("event_1", "user-1", null, null, null);
+    processor.trackEvent("event_2", "user-1", null, null, null);
+    flushAndWait(processor);
+    processor.trackEvent("event_3", "user-1", null, null, null);
+    assertEquals(EventProcessor.MAX_ATTEMPTS, recorder.count());
+    assertEquals(3, processor.bufferedEvents().size());
+
+    Thread.sleep(300);
+    processor.trackEvent("event_4", "user-1", null, null, null);
+    assertTrue(recorder.awaitCount(EventProcessor.MAX_ATTEMPTS + 1));
+    flushAndWait(processor);
+
+    assertEquals(Arrays.asList("event_1", "event_2", "event_1", "event_2", "event_1", "event_2",
+        "event_1", "event_2", "event_3", "event_4"), sentEvents());
+    assertTrue(processor.bufferedEvents().isEmpty());
+  }
+
+  @Test
+  @SneakyThrows
+  public void trackEvent_holdsAFullBufferUntilTheNextTickWithTheTimerOn() {
+    EventProcessor processor = newProcessor(2, 60_000, failingWith(503, 503, 503));
+    processor.setHoldCoolDownMillis(0);
+    mockLogger(processor);
+    interceptor.addRule().post(EVENTS_ENDPOINT).anyTimes().respond(ACCEPTED_BODY, MEDIATYPE_JSON);
+
+    processor.trackEvent("event_1", "user-1", null, null, null);
+    processor.trackEvent("event_2", "user-1", null, null, null);
+    flushAndWait(processor);
+    Thread.sleep(50);
+    processor.trackEvent("event_3", "user-1", null, null, null);
+
+    assertEquals(EventProcessor.MAX_ATTEMPTS, recorder.count());
+    assertEquals(3, processor.bufferedEvents().size());
+  }
+
+  @Test
+  @SneakyThrows
   public void trackEvent_holdsABufferThatFilledBehindABatchThatIsThenKept() {
     CountDownLatch release = new CountDownLatch(1);
     EventProcessor processor = newProcessor(2, 0, failingOneBatchOnceReleased(release));

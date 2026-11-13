@@ -76,6 +76,11 @@ public class EventProcessor {
   static final long CLOSE_TIMEOUT_MILLIS = MAX_ATTEMPTS * REQUEST_TIMEOUT_MILLIS
       + INITIAL_BACKOFF_MILLIS * ((1L << (MAX_ATTEMPTS - 1)) - 1);
   private static final long DROP_LOG_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(10);
+  /**
+   * With the flush timer off, how long a full buffer waits after a kept batch before it is sent
+   * again: the default flush interval.
+   */
+  static final long HOLD_COOL_DOWN_MILLIS = 10_000L;
 
   /** How a batch's delivery ended. */
   enum Outcome {
@@ -122,8 +127,9 @@ public class EventProcessor {
   // Whether a timer tick, the application or close() asked for the next batch, rather than
   // only a full buffer.
   private boolean nextBatchRequested = false;      // guarded by lock
-  // After a kept batch, a full buffer waits for the next tick or explicit flush to send it.
-  private boolean holdFullBuffer = false;           // guarded by lock
+  // After a kept batch, a full buffer waits for the next tick or explicit flush to send it, or,
+  // with the timer off, for the cool-down to pass. Null when nothing holds it.
+  private Long fullBufferHeldSinceNanos = null;     // guarded by lock
   private int droppedSinceLastReport = 0;           // guarded by lock
   private Long lastDropReportNanos = null;          // guarded by lock
   private volatile Call currentCall;
@@ -131,6 +137,8 @@ public class EventProcessor {
   @Getter(AccessLevel.PACKAGE)
   @Setter(AccessLevel.PACKAGE)
   private long closeTimeoutMillis = CLOSE_TIMEOUT_MILLIS;
+  @Setter(AccessLevel.PACKAGE)
+  private long holdCoolDownMillis = HOLD_COOL_DOWN_MILLIS;
   @Setter
   private FlagsmithSdk api;
   private FlagsmithLogger logger = new FlagsmithLogger();
@@ -256,7 +264,8 @@ public class EventProcessor {
    * Send the buffer.
    *
    * @param requested false when only a full buffer asks for it: then, while the events API is
-   *                  failing (the last batch was kept), the buffer waits for the next flush
+   *                  failing (the last batch was kept), the buffer waits for the next flush, or,
+   *                  with the flush timer off, for {@link #HOLD_COOL_DOWN_MILLIS} to pass
    */
   private CompletableFuture<Void> flush(boolean requested) {
     List<Map<String, Object>> batch;
@@ -274,7 +283,7 @@ public class EventProcessor {
         nextBatchRequested |= requested && nextBatch != null;
         return nextBatch == null ? inFlight : nextBatch;
       }
-      if (buffer.isEmpty() || (!requested && holdFullBuffer)) {
+      if (buffer.isEmpty() || (!requested && isFullBufferHeld())) {
         return CompletableFuture.completedFuture(null);
       }
       batch = takeBuffer();
@@ -629,14 +638,15 @@ public class EventProcessor {
         droppedToReport = dropOverflow();
       }
       // A kept batch means the events API is failing: retrying it whenever the buffer fills
-      // would start a retry cycle per tracked event, so only a tick or a flush sends it again.
-      holdFullBuffer = outcome == Outcome.KEPT;
+      // would start a retry cycle per tracked event, so only a tick or a flush sends it again,
+      // or, with the timer off, a full buffer once the cool-down has passed.
+      fullBufferHeldSinceNanos = outcome == Outcome.KEPT ? System.nanoTime() : null;
 
       waiting = nextBatch;
       boolean requested = nextBatchRequested;
       nextBatch = null;
       nextBatchRequested = false;
-      if (waiting != null && !buffer.isEmpty() && (requested || !holdFullBuffer)) {
+      if (waiting != null && !buffer.isEmpty() && (requested || !isFullBufferHeld())) {
         next = takeBuffer();
         inFlight = waiting;
       } else {
@@ -651,6 +661,22 @@ public class EventProcessor {
     } else if (waiting != null) {
       waiting.complete(null);
     }
+  }
+
+  /** Whether a full buffer must wait for the next flush. Call holding the lock. */
+  private boolean isFullBufferHeld() {
+    if (fullBufferHeldSinceNanos == null) {
+      return false;
+    }
+    if (flushIntervalMillis > 0) {
+      return true;
+    }
+    if (System.nanoTime() - fullBufferHeldSinceNanos
+        < TimeUnit.MILLISECONDS.toNanos(holdCoolDownMillis)) {
+      return true;
+    }
+    fullBufferHeldSinceNanos = null;
+    return false;
   }
 
   private int recordDrop(int count) {
