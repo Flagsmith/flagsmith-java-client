@@ -79,4 +79,23 @@ public class FeatureStateModelTest {
     assertNull(flag.getReason());
     assertNull(flag.getExperiment());
   }
+
+  @Test
+  public void apiFlagCarriesItsReason() throws JsonProcessingException {
+    Flag flag = Flag.fromApiFlag(MapperFactory.getMapper().readTree(
+        "{\"feature\": {\"id\": 1, \"name\": \"banner\"},"
+            + " \"enabled\": true, \"feature_state_value\": \"hello premium user\","
+            + " \"reason\": \"TARGETING_MATCH; segment=premium_users\"}"));
+
+    assertEquals("TARGETING_MATCH; segment=premium_users", flag.getReason());
+  }
+
+  @Test
+  public void apiFlagWithoutReasonHasNoReason() throws JsonProcessingException {
+    Flag flag = Flag.fromApiFlag(MapperFactory.getMapper().readTree(
+        "{\"feature\": {\"id\": 1, \"name\": \"banner\"},"
+            + " \"enabled\": true, \"feature_state_value\": \"hello\"}"));
+
+    assertNull(flag.getReason());
+  }
 }
