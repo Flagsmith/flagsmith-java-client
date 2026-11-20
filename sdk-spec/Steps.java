@@ -2,6 +2,7 @@ import com.flagsmith.FlagsmithClient;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.models.BaseFlag;
+import com.flagsmith.models.Flag;
 import com.flagsmith.models.Flags;
 import java.util.Collections;
 import java.util.List;
@@ -21,11 +22,13 @@ public class Steps {
     public final String feature;
     public final boolean enabled;
     public final Object value;
+    public final String reason;
 
     SpecFlag(BaseFlag flag) {
       feature = flag.getFeatureName();
       enabled = flag.getEnabled();
       value = flag.getValue();
+      reason = flag instanceof Flag ? ((Flag) flag).getReason() : null;
     }
   }
 

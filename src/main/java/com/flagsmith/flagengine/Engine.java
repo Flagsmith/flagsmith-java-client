@@ -152,7 +152,8 @@ public class Engine {
             "TARGETING_MATCH; segment=" + segmentOverride.getLeft()));
       } else {
         flags.resolved.put(featureName, getFlagResultFromFeatureContext(
-            featureContext, identityKey, "DEFAULT"));
+            featureContext, identityKey,
+            getFallbackReason(featureName, segmentKeysByFeatureName.keySet())));
       }
     }
 
@@ -312,6 +313,7 @@ public class Engine {
     Flags flags = new Flags();
 
     String identityKey = getIdentityKey(context);
+    Set<String> targetedFeatureNames = getTargetedFeatureNames(context);
 
     if (contextFeatures != null) {
       for (FeatureContext featureContext : contextFeatures.getAdditionalProperties().values()) {
@@ -322,7 +324,7 @@ public class Engine {
           featureContext = segmentNameFeaturePair.getRight();
           reason = "TARGETING_MATCH; segment=" + segmentNameFeaturePair.getLeft();
         } else {
-          reason = "DEFAULT";
+          reason = getFallbackReason(featureContext.getName(), targetedFeatureNames);
         }
         flags.setAdditionalProperty(featureContext.getName(),
             getFlagResultFromFeatureContext(
@@ -333,6 +335,36 @@ public class Engine {
     }
 
     return flags;
+  }
+
+  /*
+   * Get the names of the features overridden by at least one segment.
+   */
+  private static Set<String> getTargetedFeatureNames(EvaluationContext context) {
+    Set<String> targetedFeatureNames = new HashSet<>();
+    Segments contextSegments = context.getSegments();
+    if (contextSegments != null) {
+      for (SegmentContext segmentContext : contextSegments.getAdditionalProperties().values()) {
+        List<FeatureContext> overrides = segmentContext.getOverrides();
+        if (overrides != null) {
+          for (FeatureContext override : overrides) {
+            targetedFeatureNames.add(override.getName());
+          }
+        }
+      }
+    }
+    return targetedFeatureNames;
+  }
+
+  /*
+   * Get the reason for a flag evaluated to its environment default.
+   *
+   * DEFAULT if the feature has segment overrides that did not match,
+   * STATIC if it has none.
+   */
+  private static String getFallbackReason(
+      String featureName, Set<String> targetedFeatureNames) {
+    return targetedFeatureNames.contains(featureName) ? "DEFAULT" : "STATIC";
   }
 
   private static String getIdentityKey(EvaluationContext context) {
