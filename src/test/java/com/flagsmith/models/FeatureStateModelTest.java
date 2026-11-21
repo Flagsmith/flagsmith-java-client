@@ -1,6 +1,7 @@
 package com.flagsmith.models;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.models.features.FeatureStateModel;
 import org.junit.jupiter.api.Test;
@@ -82,20 +83,30 @@ public class FeatureStateModelTest {
 
   @Test
   public void apiFlagCarriesItsReason() throws JsonProcessingException {
-    Flag flag = Flag.fromApiFlag(MapperFactory.getMapper().readTree(
+    // Given
+    JsonNode node = MapperFactory.getMapper().readTree(
         "{\"feature\": {\"id\": 1, \"name\": \"banner\"},"
             + " \"enabled\": true, \"feature_state_value\": \"hello premium user\","
-            + " \"reason\": \"TARGETING_MATCH; segment=premium_users\"}"));
+            + " \"reason\": \"TARGETING_MATCH; segment=premium_users\"}");
 
+    // When
+    Flag flag = Flag.fromApiFlag(node);
+
+    // Then
     assertEquals("TARGETING_MATCH; segment=premium_users", flag.getReason());
   }
 
   @Test
   public void apiFlagWithoutReasonHasNoReason() throws JsonProcessingException {
-    Flag flag = Flag.fromApiFlag(MapperFactory.getMapper().readTree(
+    // Given
+    JsonNode node = MapperFactory.getMapper().readTree(
         "{\"feature\": {\"id\": 1, \"name\": \"banner\"},"
-            + " \"enabled\": true, \"feature_state_value\": \"hello\"}"));
+            + " \"enabled\": true, \"feature_state_value\": \"hello\"}");
 
+    // When
+    Flag flag = Flag.fromApiFlag(node);
+
+    // Then
     assertNull(flag.getReason());
   }
 }
