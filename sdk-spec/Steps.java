@@ -2,7 +2,6 @@ import com.flagsmith.FlagsmithClient;
 import com.flagsmith.config.FlagsmithConfig;
 import com.flagsmith.exceptions.FlagsmithClientError;
 import com.flagsmith.models.BaseFlag;
-import com.flagsmith.models.Flag;
 import com.flagsmith.models.Flags;
 import java.util.Collections;
 import java.util.List;
@@ -28,7 +27,7 @@ public class Steps {
       feature = flag.getFeatureName();
       enabled = flag.getEnabled();
       value = flag.getValue();
-      reason = flag instanceof Flag ? ((Flag) flag).getReason() : null;
+      reason = flag.getReason();
     }
   }
 
