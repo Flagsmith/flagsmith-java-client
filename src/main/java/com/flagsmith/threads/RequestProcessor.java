@@ -2,7 +2,6 @@ package com.flagsmith.threads;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flagsmith.FlagsmithLogger;
 import com.flagsmith.MapperFactory;
 import com.flagsmith.config.Retry;
@@ -96,6 +95,37 @@ public class RequestProcessor {
    */
   public <T> CompletableFuture<T> submit(
       Request request, TypeReference<T> clazz, Boolean doThrow, Retry retries) {
+    return submit(request,
+        response -> MapperFactory.getMapper().readValue(response.body().string(), clazz),
+        doThrow, retries);
+  }
+
+  /**
+   * Execute the request in async mode, building the result from the successful response.
+   *
+   * @param request request to invoke
+   * @param reader reads a successful response into the result
+   * @param doThrow should throw Exception (boolean)
+   * @param <T> Type inference for the response
+   */
+  public <T> CompletableFuture<T> submit(
+      Request request, ResponseReader<T> reader, Boolean doThrow) {
+    return submit(request, reader, doThrow, retries);
+  }
+
+  /**
+   * Execute the request in async mode, building the result from the successful response.
+   *
+   * @param request Request object
+   * @param reader reads a successful response into the result
+   * @param doThrow should throw Exception
+   * @param retries no of retries before failing
+   * @param <T> Type inference for the response
+   * @return a future completed with the reader's result, or null when the call failed and
+   *     doThrow is false
+   */
+  public <T> CompletableFuture<T> submit(
+      Request request, ResponseReader<T> reader, Boolean doThrow, Retry retries) {
     CompletableFuture<T> completableFuture = new CompletableFuture<>();
     Retry localRetry = retries.toBuilder().build();
     // run the execute method in a fixed thread with retries.
@@ -111,8 +141,7 @@ public class RequestProcessor {
           try (Response response = call.execute()) {
             statusCode = response.code();
             if (response.isSuccessful()) {
-              ObjectMapper mapper = MapperFactory.getMapper();
-              completableFuture.complete(mapper.readValue(response.body().string(), clazz));
+              completableFuture.complete(reader.read(response));
               // break the while
               break;
 
@@ -139,6 +168,17 @@ public class RequestProcessor {
     });
 
     return completableFuture;
+  }
+
+  /**
+   * Reads a successful response into a value, with access to the response headers.
+   *
+   * @param <T> the result type
+   */
+  @FunctionalInterface
+  public interface ResponseReader<T> {
+
+    T read(Response response) throws IOException;
   }
 
   public void close() {
