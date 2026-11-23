@@ -1,5 +1,12 @@
 # Changelog
 
+## [8.6.0](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.5.0...v8.6.0) (2026-11-23)
+
+
+### Features
+
+* Every SDK includes `reason` in responses for identity and environment flags ([#256](https://github.com/Flagsmith/flagsmith-java-client/issues/256)) ([4511946](https://github.com/Flagsmith/flagsmith-java-client/commit/45119467125933bb537e7a3f886a6f254e134518))
+
 ## [8.5.0](https://github.com/Flagsmith/flagsmith-java-client/compare/v8.4.0...v8.5.0) (2026-11-13)
 
 
